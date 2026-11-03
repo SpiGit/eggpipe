@@ -81,8 +81,8 @@
 
 ```python
 # Ядро передаёт плагину:
-@dataclass
-class GeneratorInput:
+class GeneratorInput(BaseModel):
+    """Входные данные для генератора."""
     model: SourceModel           # Распарсенная модель
     config: GeneratorConfig      # Конфиг генератора из .mg.yaml
     app_config: AppConfig        # Application Config (technical settings)
@@ -92,24 +92,28 @@ class GeneratorInput:
 ### 2.2 Контракт: что плагин возвращает
 
 ```python
-@dataclass
-class Artifact:
+class Artifact(BaseModel):
+    """Один сгенерированный файл."""
     path: str                    # Относительный путь файла
     content: str                 # Содержимое файла
     mime_type: str               # MIME-тип (application/sql, text/x-python, etc.)
 
-@dataclass
-class GenerationResult:
-    artifacts: list[Artifact]
-    warnings: list[str]          # Предупреждения (не критичные)
-    errors: list[str]            # Ошибки генерации
+class GenerationResult(BaseModel):
+    """Результат генерации."""
+    artifacts: list[Artifact] = []
+    warnings: list[str] = []     # Предупреждения (не критичные)
+    errors: list[str] = []       # Ошибки генерации
+
+    @property
+    def success(self) -> bool:
+        return len(self.errors) == 0
 ```
 
 ### 2.3 Базовый интерфейс
 
 ```python
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 class GeneratorPlugin(ABC):
     """Базовый интерфейс плагина-генератора."""
@@ -189,43 +193,20 @@ class MyGenerator(GeneratorPlugin):
 
 ---
 
-## 3. Внутренние структуры ядра
+## 3. Внутренние структуры ядра (Pydantic)
+
+> Все внутренние модели используют **Pydantic v2** для валидации, сериализации и автогенерации ошибок.
 
 ### 3.1 SourceModel — модель данных
 
 ```python
-@dataclass
-class SourceModel:
-    """Распарсенная модель — внутреннее представление."""
-    name: str
-    description: str | None
-    entities: list[Entity]
-    enums: list[Enum]
-    types: list[CustomType]
-    metadata: dict[str, Any]           # Произвольные метаданные
+from pydantic import BaseModel, Field, field_validator
+from typing import Any
 
-@dataclass
-class Entity:
-    """Сущность."""
-    name: str
-    description: str | None
-    fields: list[Field]
-    imports: dict[str, Import]         # Импортированные файлы: name → Import
-    raw_data: dict[str, Any]           # Сырые данные для расширений
+# Примитивные типы (из ТЗ)
+PRIMITIVE_TYPES = {"string", "int", "float", "bool", "datetime", "date", "text"}
 
-@dataclass
-class Field:
-    """Поле сущности."""
-    name: str
-    type: str                          # Примитивный тип или ссылка на enum/type
-    description: str | None
-    required: bool = False
-    nullable: bool = True
-    default: str | int | float | bool | None = None
-    constraints: Constraints | None = None
-
-@dataclass
-class Constraints:
+class Constraints(BaseModel):
     """Ограничения поля."""
     min_value: int | float | None = None
     max_value: int | float | None = None
@@ -233,72 +214,156 @@ class Constraints:
     max_length: int | None = None
     pattern: str | None = None
 
-@dataclass
-class Enum:
-    """Перечисление."""
-    name: str
-    description: str | None
-    values: list[EnumValue]
+class Field(BaseModel):
+    """Поле сущности."""
+    name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+    type: str
+    description: str | None = None
+    required: bool = False
+    nullable: bool = True
+    default: str | int | float | bool | None = None
+    constraints: Constraints | None = None
 
-@dataclass
-class EnumValue:
-    name: str
-    value: str | int
-    description: str | None
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        # Тип может быть примитивом или ссылкой на enum/type
+        # Валидация ссылок происходит на уровне Composition
+        return v
 
-@dataclass
-class CustomType:
-    """Пользовательский тип."""
-    name: str
-    base: str                          # Базовый примитивный тип
-    constraints: Constraints | None
-
-@dataclass
-class Import:
+class Import(BaseModel):
     """Импортированный файл."""
     path: Path
-    content: bytes                     # Содержимое файла
-    as_name: str | None                # Алиас для обращения в шаблоне
+    content: bytes
+    as_name: str | None = None
+
+class Entity(BaseModel):
+    """Сущность."""
+    name: str = Field(..., min_length=1)
+    description: str | None = None
+    fields: list[Field] = []
+    imports: dict[str, Import] = {}    # name → Import
+    metadata: dict[str, Any] = {}      # Произвольные метаданные
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        if not v[0].isupper():
+            raise ValueError("Entity name must start with uppercase")
+        return v
+
+class EnumValue(BaseModel):
+    """Значение перечисления."""
+    name: str = Field(..., min_length=1)
+    value: str | int
+    description: str | None = None
+
+class Enum(BaseModel):
+    """Перечисление."""
+    name: str = Field(..., min_length=1)
+    description: str | None = None
+    values: list[EnumValue] = []
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        if not v[0].isupper():
+            raise ValueError("Enum name must start with uppercase")
+        return v
+
+class CustomType(BaseModel):
+    """Пользовательский тип."""
+    name: str = Field(..., min_length=1)
+    base: str                          # Базовый примитивный тип
+    constraints: Constraints | None = None
+
+class SourceModel(BaseModel):
+    """Распарсенная модель — внутреннее представление."""
+    name: str
+    description: str | None = None
+    entities: list[Entity] = []
+    enums: list[Enum] = []
+    types: list[CustomType] = []
+    metadata: dict[str, Any] = {}
+
+    @property
+    def entity_map(self) -> dict[str, Entity]:
+        """Быстрый доступ к сущностям по имени."""
+        return {e.name: e for e in self.entities}
+
+    @property
+    def enum_map(self) -> dict[str, Enum]:
+        """Быстрый доступ к enum'ам по имени."""
+        return {e.name: e for e in self.enums}
 ```
 
 ### 3.2 GeneratorConfig — конфиг генератора
 
 ```python
-@dataclass
-class GeneratorConfig:
+class GeneratorInputConfig(BaseModel):
+    """Что брать из source."""
+    entities: list[str] | None = None   # Пусто = все
+    enums: list[str] | None = None
+    types: list[str] | None = None
+
+class GeneratorConfig(BaseModel):
     """Конфиг генератора из .mg.yaml."""
-    id: str
-    enabled: bool
+    id: str = Field(..., min_length=1)
+    enabled: bool = True
     source: str                        # Путь к source
-    input: GeneratorInputConfig        # Что брать из source
+    input: GeneratorInputConfig = GeneratorInputConfig()
     output_dir: str
     file_naming: str | None = None
-    options: dict[str, Any] = None     # Опции специфичные для генератора
-    templates: dict[str, str] | None = None  # Переопределение шаблонов
+    options: dict[str, Any] | None = None
+    templates: dict[str, str] | None = None
 ```
 
 ### 3.3 BusinessConfig — .mg.yaml
 
 ```python
-@dataclass
-class BusinessConfig:
-    """Содержимое .mg.yaml."""
-    version: str
-    defaults: DefaultsConfig
-    sources: list[SourceConfig]
-    generators: list[GeneratorConfig]
-
-@dataclass
-class DefaultsConfig:
+class DefaultsConfig(BaseModel):
+    """Defaults для генерации."""
     naming_convention: str = "snake_case"
     required_by_default: bool = False
 
-@dataclass
-class SourceConfig:
+class SourceConfig(BaseModel):
+    """Источник данных."""
     path: str
     entities: list[str] | None = None   # Пусто = все
     enums: list[str] | None = None
     types: list[str] | None = None
+
+class BusinessConfig(BaseModel):
+    """Содержимое .mg.yaml."""
+    version: str = "1.0"
+    defaults: DefaultsConfig = DefaultsConfig()
+    sources: list[SourceConfig] = []
+    generators: list[GeneratorConfig] = []
+```
+
+### 3.4 Преимущества Pydantic
+
+| Возможность | Как работает |
+|-------------|--------------|
+| **Валидация типов** | Автоматически при создании модели |
+| **YAML → Model** | `SourceModel.model_validate(yaml_data)` |
+| **Понятные ошибки** | `e.error_count()`, `e.errors()` |
+| **Aliases** | `Field(validation_alias="...")` для kebab-case YAML |
+| **Defaults** | `Field(default_factory=list)` |
+| **Computed fields** | `@computed_field` для `entity_map` |
+
+### 3.5 Парсинг YAML с валидацией
+
+```python
+def parse_model(yaml_data: dict) -> SourceModel:
+    """Парсит YAML в SourceModel с валидацией."""
+    try:
+        return SourceModel.model_validate(yaml_data)
+    except ValidationError as e:
+        # Pydantic 自动но формирует понятные ошибки
+        for error in e.errors():
+            print(f"{error['loc']}: {error['msg']}")
+        raise
 ```
 
 ---
@@ -421,23 +486,18 @@ class AppConfig(BaseSettings):
 
 ```python
 class BusinessConfigLoader:
-    """Загружает и валидирует .mg.yaml."""
-
-    def __init__(self, schema: dict):
-        self.schema = schema
+    """Загружает и валидирует .mg.yaml через Pydantic."""
 
     def load(self, path: Path) -> BusinessConfig:
         """Загружает .mg.yaml."""
         with open(path) as f:
             data = yaml.safe_load(f)
 
-        # Валидация по схеме
-        validator = SchemaValidator(self.schema)
-        errors = validator.validate(data)
-        if errors:
-            raise ConfigValidationError(errors)
-
-        return BusinessConfig(**data)
+        # Pydantic валидирует автоматически
+        try:
+            return BusinessConfig.model_validate(data)
+        except ValidationError as e:
+            raise ConfigValidationError.from_pydantic(e)
 
     def load_from_dir(self, dir: Path) -> BusinessConfig | None:
         """Ищет .mg.yaml в директории."""
@@ -445,6 +505,39 @@ class BusinessConfigLoader:
         if config_path.exists():
             return self.load(config_path)
         return None
+
+class ConfigValidationError(Exception):
+    """Ошибка валидации конфигурации."""
+
+    @classmethod
+    def from_pydantic(cls, e: ValidationError) -> "ConfigValidationError":
+        messages = []
+        for error in e.errors():
+            loc = " → ".join(str(l) for l in error["loc"])
+            messages.append(f"{loc}: {error['msg']}")
+        return cls("\n".join(messages))
+```
+
+### 5.3 Aliases для YAML (kebab-case → snake_case)
+
+```python
+from pydantic import ConfigDict, Field
+
+class GeneratorConfig(BaseModel):
+    """Поддержка kebab-case в YAML."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    generator_id: str = Field(alias="generator-id")
+    output_dir: str = Field(alias="output-dir")
+    file_naming: str | None = Field(None, alias="file-naming")
+
+# YAML:
+# generator-id: my-gen
+# output-dir: ./output
+# file-naming: kebab
+
+# Превращается в:
+# GeneratorConfig(generator_id="my-gen", output_dir="./output", file_naming="kebab")
 ```
 
 ---
@@ -662,11 +755,9 @@ metadata-generator/                    # pip пакет
 │   │   └── formatters.py             # TextFormatter, JsonFormatter
 │   ├── core/
 │   │   ├── __init__.py
-│   │   ├── model.py                  # SourceModel, Entity, Field, etc.
+│   │   ├── model.py                  # SourceModel, Entity, Field, Constraints (Pydantic)
 │   │   ├── parser.py                 # Parser, YamlParser
-│   │   ├── composition.py            # Merge, resolve imports/extends
-│   │   ├── validator.py              # ModelValidator
-│   │   └── types.py                  # Примитивные типы, Constraints
+│   │   └── composition.py            # Merge, resolve imports/extends
 │   ├── config/
 │   │   ├── __init__.py
 │   │   ├── app_config.py             # AppConfig (pydantic-settings)
