@@ -318,7 +318,7 @@ class GeneratorConfig(BaseModel):
     templates: dict[str, str] | None = None
 ```
 
-### 3.3 BusinessConfig — .mg.yaml
+### 3.3 GeneratorRules — .mg.yaml
 
 ```python
 class DefaultsConfig(BaseModel):
@@ -333,8 +333,8 @@ class SourceConfig(BaseModel):
     enums: list[str] | None = None
     types: list[str] | None = None
 
-class BusinessConfig(BaseModel):
-    """Содержимое .mg.yaml."""
+class GeneratorRules(BaseModel):
+    """Правила генерации из .mg.yaml (ранее BusinessConfig)."""
     version: str = "1.0"
     defaults: DefaultsConfig = DefaultsConfig()
     sources: list[SourceConfig] = []
@@ -482,24 +482,24 @@ class AppConfig(BaseSettings):
         env_nested_delimiter = "_"
 ```
 
-### 5.2 Загрузка Business Config
+### 5.2 Загрузка GeneratorRules
 
 ```python
-class BusinessConfigLoader:
-    """Загружает и валидирует .mg.yaml через Pydantic."""
+class GeneratorRulesLoader:
+    """Загружает и валидирует .mg.yaml через Pydantic (ранее BusinessConfigLoader)."""
 
-    def load(self, path: Path) -> BusinessConfig:
+    def load(self, path: Path) -> GeneratorRules:
         """Загружает .mg.yaml."""
         with open(path) as f:
             data = yaml.safe_load(f)
 
         # Pydantic валидирует автоматически
         try:
-            return BusinessConfig.model_validate(data)
+            return GeneratorRules.model_validate(data)
         except ValidationError as e:
             raise ConfigValidationError.from_pydantic(e)
 
-    def load_from_dir(self, dir: Path) -> BusinessConfig | None:
+    def load_from_dir(self, dir: Path) -> GeneratorRules | None:
         """Ищет .mg.yaml в директории."""
         config_path = dir / ".mg.yaml"
         if config_path.exists():
@@ -518,7 +518,89 @@ class ConfigValidationError(Exception):
         return cls("\n".join(messages))
 ```
 
-### 5.3 Aliases для YAML (kebab-case → snake_case)
+### 5.3 Настройка логирования
+
+```python
+# metadata_generator/logging.py
+
+import logging
+import sys
+from pathlib import Path
+
+def setup_logging(config: AppConfig) -> None:
+    """Инициализирует логирование на основе AppConfig.
+    
+    Приоритет источников (согласно ТЗ):
+    1. Environment variables (MG_LOG_LEVEL, MG_LOG_DESTINATION)
+    2. .env файл
+    3. Файл конфигурации
+    4. Значения по умолчанию
+    """
+    level_name = config.log_level.upper()
+    level = getattr(logging, level_name, logging.INFO)
+    
+    handlers: list[logging.Handler] = []
+    
+    # Настройка destination
+    dest = config.log_destination.lower()
+    if dest == "stderr":
+        handlers.append(logging.StreamHandler(sys.stderr))
+    elif dest == "stdout":
+        handlers.append(logging.StreamHandler(sys.stdout))
+    elif dest.startswith("file:"):
+        # file:path/to/log.txt
+        file_path = dest.split(":", 1)[1]
+        # Поддержка ротации для long-running процессов
+        from logging.handlers import RotatingFileHandler
+        handlers.append(
+            RotatingFileHandler(
+                file_path,
+                maxBytes=10 * 1024 * 1024,  # 10 MB
+                backupCount=5
+            )
+        )
+    else:
+        # По умолчанию stderr
+        handlers.append(logging.StreamHandler(sys.stderr))
+    
+    logging.basicConfig(
+        level=level,
+        format=config.log_format,
+        handlers=handlers,
+        force=True  # Перезаписать существующую конфигурацию
+    )
+    
+    # Логирование конфигурации в DEBUG
+    logger = logging.getLogger(__name__)
+    logger.debug(
+        f"Logging initialized: level={config.log_level}, "
+        f"destination={config.log_destination}, format={config.log_format}"
+    )
+
+def get_logger(name: str) -> logging.Logger:
+    """Получить логгер для компонента."""
+    return logging.getLogger(name)
+```
+
+**Примечание:** pydantic-settings обрабатывает приоритет источников автоматически:
+1. Сначала проверяет environment variables (MG_LOG_LEVEL, MG_LOG_DESTINATION)
+2. Затем .env файл
+3. Затем значения по умолчанию
+
+Для проверки вручную можно использовать:
+```python
+from pydantic_settings import SettingsConfigDict
+
+class AppConfig(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="MG_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False
+    )
+```
+
+### 5.4 Aliases для YAML (kebab-case → snake_case)
 
 ```python
 from pydantic import ConfigDict, Field
@@ -761,7 +843,8 @@ metadata-generator/                    # pip пакет
 │   ├── config/
 │   │   ├── __init__.py
 │   │   ├── app_config.py             # AppConfig (pydantic-settings)
-│   │   ├── business_config.py        # BusinessConfigLoader
+│   │   ├── generator_rules.py        # GeneratorRules, GeneratorRulesLoader
+│   │   ├── logging.py                # setup_logging(), get_logger()
 │   │   └── schemas/
 │   │       └── metacofig.schema.json # JSON Schema для .mg.yaml
 │   ├── engine/
