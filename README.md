@@ -14,6 +14,12 @@
 - Go-структуры
 - И всё остальное через плагинную систему
 
+Ключевые свойства:
+
+- **Сущности изолированы**: базовая модель не знает о связях между ними — ядро остаётся нейтральным.
+- **Нет встроенных генераторов**: все генераторы и все форматы (кроме базового `entity-model`) — плагины.
+- **Модель — просто данные**: метаконфиг решает, что, из чего и куда генерировать.
+
 ## Режимы использования
 
 ### Как CLI
@@ -27,11 +33,10 @@ mg watch model.yaml
 ### Как библиотека
 
 ```python
-from metadata_generator.core import Engine
-from metadata_generator.config import AppConfig
+from metadata_generator import Engine, AppConfig
 
-# Programmatic API
-engine = Engine(config)
+# Programmatic API (детали — в System Design §2)
+engine = Engine(AppConfig(), rules)
 results = engine.generate()
 ```
 
@@ -46,26 +51,32 @@ results = engine.generate()
    dependencies = ["metadata-generator"]
    ```
 
-2. Плагины генерации в проекте N:
+2. Плагин генерации:
    ```python
-   # my_project/plugins/__init__.py
-   from metadata_generator.core import GeneratorPlugin, GeneratorInput, GenerationResult
-   
+   # my_project/plugins.py
+   from metadata_generator import GeneratorPlugin, GeneratorInput, GenerationResult, Artifact
+
    class MyProjectGenerator(GeneratorPlugin):
+       api_version = "1"
+
        @property
        def id(self) -> str:
            return "my-project-generator"
-       
-       def generate(self, entity: GeneratorInput, context) -> GenerationResult:
-           # Генерируем всё что нужно для проекта N
-           return GenerationResult(...)
+
+       def generate(self, input: GeneratorInput) -> GenerationResult:
+           # input.model — цельный срез модели (entities/enums/types)
+           # input.context — vars, naming-fit, импортированные файлы
+           # input.config — блок этого генератора из .mg.yaml
+           return GenerationResult(artifacts=[
+               Artifact(path="user.py", content=render(input.model.entities...))
+           ])
    ```
 
 3. Регистрация через entry points:
    ```toml
    # pyproject.toml проекта N
    [project.entry-points."metadata_generator.generators"]
-   my-project = "my_project.plugins:MyProjectGenerator"
+   my-project-generators = "my_project.plugins:MyProjectGenerator"
    ```
 
 4. Запуск:
@@ -73,6 +84,8 @@ results = engine.generate()
    - Library: `engine.generate()` — тот же результат
 
 **Примеры инструментов с такой архитектурой:** ruff, pytest, mypy.
+
+Плагин также может регистрировать **формат документа** (например `sql-model` с SQL-спецификой и собственными правилами) — группа entry points `metadata_generator.formats`.
 
 ## Быстрый старт
 
@@ -88,14 +101,18 @@ mg generate model.yaml
 
 # Режим watch
 mg watch model.yaml
+
+# Разработка своего плагина — editable install
+pip install -e ./plugins/my-generator
+mg gen list
 ```
 
 ## Документация
 
-- [Техническое задание](./docs/requirements/index.md)
+- [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.1
+- [System Design](./docs/system-design/index.md)
+- [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
 
 ## Статус
 
-**Стадия:** проектирование (draft)
-
-См. [текущее ТЗ](./docs/requirements/index.md#открытые-вопросы-для-уточнения) для списка открытых вопросов.
+**Стадия:** проектирование (draft) — следующий шаг: разработка ядра v0.1 (см. Roadmap в ТЗ v1.1 §13).

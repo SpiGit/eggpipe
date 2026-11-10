@@ -1,28 +1,30 @@
 # System Design — Metadata Generator
 
-> Документ реализации (implementation details) для проекта metadata-generator.
+> Документ реализации для проекта metadata-generator. Соответствует [ТЗ v1.1](../requirements/v1.1.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md).
+
+*Версия документа: 1.1. Дата: 2026-11-10.*
 
 ---
 
 ## 1. Обзор архитектуры
 
-### 1.1 Компоненты и их ответственность
+### 1.1 Компоненты
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      metadata-generator (ядро)                   │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│   CLI ──▶ Config ──▶ Engine ──▶ Model Builder                   │
+│   CLI ──▶ Config ──▶ Engine ──▶ Model Builder                    │
 │                          │                                       │
 │              ┌───────────┼───────────┐                          │
 │              ▼           ▼           ▼                          │
-│          Parser    Composition    Validator                     │
+│   FormatRegistry  Parser  Composition  Validator                 │
 │                                                                  │
-│   Plugin Loader ←──────────────────────                          │
+│   Plugin Loader (entry points: generators + formats)             │
 │        │                                                        │
 │        ▼                                                        │
-│   Plugins (генераторы)                                          │
+│   Плагины (генераторы + доп. форматы)                            │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -30,255 +32,246 @@
 | Компонент | Ответственность |
 |-----------|-----------------|
 | **CLI** | Парсинг аргументов, вывод результатов, watch mode |
-| **Config** | Загрузка Application Config (env vars, .env, defaults) |
-| **Engine** | Orchestration: координация парсинга, загрузки плагинов, запуска генерации |
-| **Parser** | Парсинг YAML, imports, extends |
-| **Composition** | Объединение данных из нескольких файлов |
-| **Validator** | Валидация модели (типы, ссылки, циклы) |
-| **Plugin Loader** | Загрузка плагинов-генераторов |
-| **Plugins** | Генерация артефактов (код + шаблоны внутри плагина) |
+| **Config** | AppConfig (env → .env → defaults) + GeneratorRules (.mg.yaml) |
+| **Engine** | Оркестрация: парсинг → composition → validate → generate → write |
+| **FormatRegistry** | Реестр форматов: встроенный `entity-model` + форматы от формат-плагинов |
+| **Parser** | YAML parse, imports, entity.extends |
+| **Composition** | Merge по правилам ADR-0001 |
+| **Validator** | Кросс-сущностные проверки: warnings + errors (null-matrix, дубликаты, unused, stale dates) |
+| **Plugin Loader** | Загрузка плагинов из entry points, проверка `api_version` |
+| **Artifact Writer** | Проверка путей, on_conflict, atomic write, manifest, cleanup |
+| **Plugins** | Генераторы (и формат-плагины) — код + шаблоны |
 
 ### 1.2 Поток данных
 
 ```
-1. CLI получает команду (mg generate, -g, model.yaml, etc.)
+1. CLI получает команду
         │
-        ▼
-2. Config загружает Application Config (env → .env → defaults)
+2. AppConfig создаётся (env → .env → defaults)
         │
-        ▼
-3. Engine загружает Business Config (.mg.yaml)
+3. GeneratorRulesLoader загружает .mg.yaml
         │
-        ▼
-4. Для каждого source в .mg.yaml:
-    ├── Parser парсит YAML
-    ├── Composition объединяет imports
-    └── Validator валидирует
+4. Для каждого source:
+    ├── FormatRegistry выбирает формат (по header `format`)
+    ├── Parser парсит YAML (imports, entity.extends — рекурсивно,
+    │   правила merge: ADR-0001)
+    └── Validator: структурные (Pydantic) + semantic проверки
         │
-        ▼
-5. Model Builder собирает единую модель
+5. Engine собирает финальную модель из sources (union),
+   валидирует глобальные инварианты (дубликаты имён между source)
         │
-        ▼
-6. Plugin Loader загружает указанные генераторы
+6. Plugin Loader загружает генераторы (проверка api_version)
         │
-        ▼
 7. Для каждого генератора:
-    ├── Engine передаёт Model + GeneratorConfig
-    └── Plugin.generate() → [Artifact]
+    ├── Engine вычисляет срез (sources × input)
+    ├── формирует GeneratorInput (model, context, config)
+    ├── Plugin.generate() → GenerationResult
+    └── ArtifactWriter пишет артефакты (atomic, on_conflict, manifest)
         │
-        ▼
-8. Artifact Writer записывает артефакты
-        │
-        ▼
-9. CLI выводит результат
+8. CLI выводит результат (text / json), exit code по §8.4 ТЗ
 ```
 
 ---
 
-## 2. Интерфейс плагина (GeneratorPlugin)
+## 2. Интерфейсы плагинов
 
-### 2.1 Контракт: что плагин получает
+> Публичный API ядра экспортирует **только** эти контракты (из `metadata_generator.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, ImportedFile, SourceModel, Entity, Field, Enum, CustomType, NamingStyle`. Всё остальное — внутреннее и может меняться.
+
+### 2.1 GeneratorInput — вход генератора
 
 ```python
-# Ядро передаёт плагину:
 class GeneratorInput(BaseModel):
-    """Входные данные для генератора."""
-    model: SourceModel           # Распарсенная модель
-    config: GeneratorConfig      # Конфиг генератора из .mg.yaml
-    app_config: AppConfig        # Application Config (technical settings)
-    context: GenerationContext   # Дополнительный контекст
+    """Замороженные входные данные генератора."""
+    model: SourceModel           # цельный срез модели: entities/enums/types по sources × input
+    config: GeneratorConfig      # свой блок из .mg.yaml (id, options, output_dir, ...)
+    context: GenerationContext   # vars, naming hint, imported files, source paths
 ```
 
-### 2.2 Контракт: что плагин возвращает
+**AppConfig в плагин не передаётся** — технические настройки вне клиентского контракта.
+
+### 2.2 GenerationContext
+
+```python
+class GenerationContext(BaseModel):
+    """Контекст генерации, одинаковый для всех плагинов в запуске."""
+    variables: dict[str, str] = {}      # --var ∪ .mg.yaml variables (CLI > config)
+    naming_hint: NamingStyle | None     # defaults.naming_convention (подсказка!)
+    imports: dict[str, ImportedFile]    # имя (as) → файл
+    sources: list[Path]                 # пути source-файлов (провенанс)
+
+class ImportedFile(BaseModel):
+    name: str          # значение `as` из imports
+    path: Path
+    content: bytes     # ядро читает; decode — задача плагина
+```
+
+### 2.3 Artifact и GenerationResult — выход генератора
 
 ```python
 class Artifact(BaseModel):
     """Один сгенерированный файл."""
-    path: str                    # Относительный путь файла
-    content: str                 # Содержимое файла
-    mime_type: str               # MIME-тип (application/sql, text/x-python, etc.)
+    path: str                    # ОТНОСИТЕЛЬНЫЙ POSIX-путь; плагин сам решает имя
+    content: str                 # текст; encoding = "utf-8"
+    description: str | None = None
 
 class GenerationResult(BaseModel):
-    """Результат генерации."""
     artifacts: list[Artifact] = []
-    warnings: list[str] = []     # Предупреждения (не критичные)
-    errors: list[str] = []       # Ошибки генерации
+    warnings: list[str] = []
+    errors: list[str] = []
 
     @property
     def success(self) -> bool:
         return len(self.errors) == 0
 ```
 
-### 2.3 Базовый интерфейс
+mime_type убран: целиком артефакт — текст; ядро никакого прочего использования этого поля не имеет.
+
+### 2.4 GeneratorPlugin
 
 ```python
 from abc import ABC, abstractmethod
-from pydantic import BaseModel
+from typing import Literal
+
+API_VERSION = Literal["1"]
 
 class GeneratorPlugin(ABC):
-    """Базовый интерфейс плагина-генератора."""
-
-    @property
-    @abstractmethod
-    def id(self) -> str:
-        """Уникальный идентификатор генератора."""
-        ...
-
-    @property
-    def name(self) -> str:
-        """Человекочитаемое имя для вывода."""
-        return self.id
-
-    @property
-    def supported_formats(self) -> list[str]:
-        """Какие format документа поддерживает (entity-model, sql-model, etc.)."""
-        return []
+    api_version: Literal["1"]          # ядро проверяет при загрузке
+    id: str                            # совпадает с entry point id
+    name: str = ""                     # default → id
 
     @abstractmethod
-    def generate(
-        self,
-        input: GeneratorInput,
-    ) -> GenerationResult:
-        """Основной метод генерации."""
-        ...
+    def generate(self, input: GeneratorInput) -> GenerationResult: ...
 
     def validate_config(self, config: GeneratorConfig) -> list[str]:
-        """Валидация конфига генератора. Возвращает список ошибок."""
+        return []                      # semantic-ошибки конфига генератора
+```
+
+**Жизненный цикл:** `__init__` → `validate_config()` → `generate()`. `cleanup()` не в v1 (по необходимости — контекстный менеджер в future).
+
+Замечание по многоразовости: экземпляр плагина создаётся один раз на запуск и не обязан быть потокобезопасным (v0.1–v0.2 — однопоточно).
+
+### 2.5 FormatPlugin
+
+```python
+class FormatPlugin(ABC):
+    """Регистрирует формат документа в FormatRegistry."""
+    api_version: Literal["1"]
+    format_names: list[str]            # ["sql-model", ...]
+    supported_versions: list[str]      # ["1.0", "1.1"]
+
+    @abstractmethod
+    def parse(self, raw: dict, base_path: Path) -> SourceModel:
+        """Парсит документ. Базовая реализация ядра покрывает entity-model;
+        формат-плагин может использовать ядро и расширять."""
+
+
+    def validate(self, model: SourceModel) -> list[Diagnostic]:
+        """Формат-специфичные проверки (напр. column.generated для sql-model)."""
         return []
 ```
 
-### 2.4 Жизненный цикл
+Формат-плагин ответственен за то, что документ его формата обязательно включает header поля `format`, `version` и поддерживаемую им версию; несовместимая версия → Diagnostic error.
 
-```
-init()           → __init__ плагина (опционально)
-validate_config() → Проверка .mg.yaml конфига (опционально)
-generate()        → Основная генерация
-cleanup()         → Очистка (если нужно, опционально)
+### 2.6 NamingStyle
+
+```python
+class NamingStyle(StrEnum):
+    SNAKE = "snake_case"
+    CAMEL = "camelCase"
+    PASCAL = "pascal_case"
+    KEBAB = "kebab-case"
+
+def transform(name: str, style: NamingStyle) -> str: ...
 ```
 
-### 2.5 Пример реализации плагина
+- `defaults.naming_convention` из `.mg.yaml` — **подсказка**: ядро кладёт её в `context.naming_hint` и никогда не переименовывает канонические имена (Entity.name остаётся как в YAML).
+- Какую трансформацию куда применить — решает плагин (SQL table → snake, Pydantic class → pascal и т.п.).
+
+### 2.7 Пример генератора
 
 ```python
 # my-generator/src/my_generator/__init__.py
-
-from metadata_generator.core import GeneratorPlugin, GeneratorInput, GenerationResult, Artifact
+from metadata_generator import (
+    GeneratorPlugin, GeneratorInput, GenerationResult, Artifact,
+    NamingStyle, transform,
+)
 
 class MyGenerator(GeneratorPlugin):
+    api_version = "1"
+
     @property
     def id(self) -> str:
         return "my-generator"
 
-    @property
-    def name(self) -> str:
-        return "My Custom Generator"
-
     def generate(self, input: GeneratorInput) -> GenerationResult:
-        artifacts = []
+        result = GenerationResult()
+        style = input.context.naming_hint or NamingStyle.SNAKE
 
         for entity in input.model.entities:
             content = self._render_entity(entity, input)
-            artifacts.append(Artifact(
-                path=f"{entity.name.lower()}.py",
+            result.artifacts.append(Artifact(
+                path=f"{transform(entity.name, style)}.py",   # путь задаёт плагин
                 content=content,
-                mime_type="text/x-python"
             ))
 
-        return GenerationResult(artifacts=artifacts)
-
-    def _render_entity(self, entity, input):
-        # Рендеринг через Jinja2 или свой движок
-        template = self._get_template("entity.j2")
-        return template.render(entity=entity, config=input.config)
+        # cross-entity артефакт — возможен, потому что вход цельный:
+        result.artifacts.append(Artifact(path="__init__.py", content="# barrel"))
+        return result
 ```
 
 ---
 
-## 3. Внутренние структуры ядра (Pydantic)
+## 3. Внутренние модели ядра (Pydantic v2)
 
-> Все внутренние модели используют **Pydantic v2** для валидации, сериализации и автогенерации ошибок.
-
-### 3.1 SourceModel — модель данных
+### 3.1 SourceModel
 
 ```python
-from pydantic import BaseModel, Field, field_validator
-from typing import Any
-
-# Примитивные типы (из ТЗ)
-PRIMITIVE_TYPES = {"string", "int", "float", "bool", "datetime", "date", "text"}
+PRIMITIVE_TYPES = Literal[
+    "string", "text", "integer", "bigint", "boolean",
+    "float", "date", "datetime", "uuid", "json",
+]   # строго соответствует ТЗ §3.2 (не отдельный сет!)
 
 class Constraints(BaseModel):
-    """Ограничения поля."""
     min_value: int | float | None = None
     max_value: int | float | None = None
     min_length: int | None = None
     max_length: int | None = None
-    pattern: str | None = None
+    pattern: str | None = None       # noqa — валидация regex в validator.py (warnings/error)
 
 class Field(BaseModel):
-    """Поле сущности."""
     name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
     type: str
     description: str | None = None
     required: bool = False
-    nullable: bool = True
+    nullable: bool = False           # v1: НЕ nullable по умолчанию
     default: str | int | float | bool | None = None
     constraints: Constraints | None = None
-
-    @field_validator("type")
-    @classmethod
-    def validate_type(cls, v: str) -> str:
-        # Тип может быть примитивом или ссылкой на enum/type
-        # Валидация ссылок происходит на уровне Composition
-        return v
-
-class Import(BaseModel):
-    """Импортированный файл."""
-    path: Path
-    content: bytes
-    as_name: str | None = None
+    # default: scalar only. Никаких `auto`/`generated` — это зона формата-плагина.
 
 class Entity(BaseModel):
-    """Сущность."""
     name: str = Field(..., min_length=1)
     description: str | None = None
+    version: str | int | None = None          # опциональная версия сущности
+    updated_at: datetime | None = None        # опциональная дата изменения сущности
+    extends: str | None = None                # resolve в composition
     fields: list[Field] = []
-    imports: dict[str, Import] = {}    # name → Import
-    metadata: dict[str, Any] = {}      # Произвольные метаданные
-
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, v: str) -> str:
-        if not v[0].isupper():
-            raise ValueError("Entity name must start with uppercase")
-        return v
+    metadata: dict[str, Any] = {}             # escape hatch для данных форматов (col.gen и т.п.)
 
 class EnumValue(BaseModel):
-    """Значение перечисления."""
-    name: str = Field(..., min_length=1)
-    value: str | int
-    description: str | None = None
+    name: str
+    value: str | int | None = None   # None → подставляется name (на валидации)
 
 class Enum(BaseModel):
-    """Перечисление."""
-    name: str = Field(..., min_length=1)
+    name: str
     description: str | None = None
     values: list[EnumValue] = []
 
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, v: str) -> str:
-        if not v[0].isupper():
-            raise ValueError("Enum name must start with uppercase")
-        return v
-
 class CustomType(BaseModel):
-    """Пользовательский тип."""
-    name: str = Field(..., min_length=1)
-    base: str                          # Базовый примитивный тип
+    name: str
+    base: PRIMITIVE_TYPES | str      # str — валидация в composition/validator
     constraints: Constraints | None = None
 
 class SourceModel(BaseModel):
-    """Распарсенная модель — внутреннее представление."""
     name: str
     description: str | None = None
     entities: list[Entity] = []
@@ -286,396 +279,322 @@ class SourceModel(BaseModel):
     types: list[CustomType] = []
     metadata: dict[str, Any] = {}
 
-    @property
-    def entity_map(self) -> dict[str, Entity]:
-        """Быстрый доступ к сущностям по имени."""
-        return {e.name: e for e in self.entities}
-
-    @property
-    def enum_map(self) -> dict[str, Enum]:
-        """Быстрый доступ к enum'ам по имени."""
-        return {e.name: e for e in self.enums}
+    model_config = ConfigDict(validate_assignment=True)
 ```
 
-### 3.2 GeneratorConfig — конфиг генератора
+**Cached индексы.** `entity_map` / `enum_map` как `@property` пересобирают dict на каждый вызов (hotpath плагина). Вместо этого:
 
 ```python
-class GeneratorInputConfig(BaseModel):
-    """Что брать из source."""
-    entities: list[str] | None = None   # Пусто = все
+class SourceModel(BaseModel):
+    _entity_map: dict[str, Entity] = PrivateAttr(default={})
+    _enum_map: dict[str, Enum] = PrivateAttr(default={})
+
+    @model_validator(mode="after")
+    def _build_maps(self) -> "SourceModel":
+        self._entity_map = {e.name: e for e in self.entities}
+        self._enum_map = {e.name: e for e in self.enums}
+        return self
+
+    def entity(self, name: str) -> Entity:     # KeyError с понятным сообщением
+        ...
+    def enum(self, name: str) -> Enum: ...
+```
+
+**Null-matrix.** Проверки §3.6 ТЗ — в Pydantic-валидаторе на уровне Entity (`mode="after"`), потому что комбинированное состояние по одному полю не видно:
+
+| Комбинация | Откуда | Серьёзность |
+|---|---|---|
+| `required=false, nullable=false, default=None` | Field.model_validator | Error |
+| `required=true, nullable=true` | validator.py | Warning (для future PATCH-семантики) |
+| `required=true, default=None` при nullable=false | Field.model_validator | Error? |
+
+> Согласуется с таблицей ТЗ §3.6: строго валидируются/ошибки — в Pydantic warnings — в `validator.py` (см. §4.4).
+
+### 3.2 GeneratorConfig / GeneratorRules
+
+```python
+class InputSlice(BaseModel):
+    entities: list[str] | None = None   # None/пусто = все
     enums: list[str] | None = None
     types: list[str] | None = None
 
 class GeneratorConfig(BaseModel):
-    """Конфиг генератора из .mg.yaml."""
-    id: str = Field(..., min_length=1)
+    id: str
     enabled: bool = True
-    source: str                        # Путь к source
-    input: GeneratorInputConfig = GeneratorInputConfig()
-    output_dir: str
-    file_naming: str | None = None
-    options: dict[str, Any] | None = None
-    templates: dict[str, str] | None = None
-```
+    input: InputSlice = InputSlice()
+    output_dir: Path
+    on_conflict: Literal["overwrite", "skip", "error"] = "overwrite"
+    cleanup: Literal["off", "prompt", "enabled"] = "prompt"
+    options: dict[str, Any] = {}        # в т.ч. file_naming — зона плагина
 
-### 3.3 GeneratorRules — .mg.yaml
-
-```python
 class DefaultsConfig(BaseModel):
-    """Defaults для генерации."""
-    naming_convention: str = "snake_case"
+    naming_convention: NamingStyle | None = NamingStyle.SNAKE   # подсказка
     required_by_default: bool = False
 
 class SourceConfig(BaseModel):
-    """Источник данных."""
-    path: str
-    entities: list[str] | None = None   # Пусто = все
-    enums: list[str] | None = None
-    types: list[str] | None = None
+    path: Path
+    input: InputSlice = InputSlice()
 
 class GeneratorRules(BaseModel):
-    """Правила генерации из .mg.yaml (ранее BusinessConfig)."""
     version: str = "1.0"
     defaults: DefaultsConfig = DefaultsConfig()
+    variables: dict[str, str] = {}
     sources: list[SourceConfig] = []
     generators: list[GeneratorConfig] = []
 ```
 
-### 3.4 Преимущества Pydantic
+Генератор **не имеет `source`** — работает с составленным целым по срезу `input`. Срез = пересечение: `sources[].input` ∩ `generators[].input`.
 
-| Возможность | Как работает |
-|-------------|--------------|
-| **Валидация типов** | Автоматически при создании модели |
-| **YAML → Model** | `SourceModel.model_validate(yaml_data)` |
-| **Понятные ошибки** | `e.error_count()`, `e.errors()` |
-| **Aliases** | `Field(validation_alias="...")` для kebab-case YAML |
-| **Defaults** | `Field(default_factory=list)` |
-| **Computed fields** | `@computed_field` для `entity_map` |
+Нейминг: `GeneratorRulesLoader` (не `BusinessConfigLoader`), файл `config/generator_rules.py`.
 
-### 3.5 Парсинг YAML с валидацией
+### 3.3 Преимущества Pydantic (с охватом v1.1)
+
+| Возможность | Как |
+|-------------|-----|
+| Валидация null-matrix | `Field.model_validator(mode="after")` |
+| Type-references | Literal + composition/validator |
+| YAML → Model | `SourceModel.model_validate(yaml_data)` |
+| Понятные ошибки | `e.errors()` → `ConfigValidationError` |
+| Aliases | kebab-case не понадобится, т.к. у нас schema задокументирована как snake_case (только имена в header `format`, `version`; всё остальное snake_case) |
+| Computed maps | `model_validator(mode="after")` + `PrivateAttr` |
+
+### 3.4 Aliases (kebab-case)
+
+ТЗ v1.1 — только snake_case ключи; поддержка kebab оставлена плагином формата (некоторые окружения ограничены). Ядро не даст "тихо" мержить разные регистры: `model_config = ConfigDict(extra="forbid")` — опечатки в ключах сразу в ошибке:
 
 ```python
-def parse_model(yaml_data: dict) -> SourceModel:
-    """Парсит YAML в SourceModel с валидацией."""
-    try:
-        return SourceModel.model_validate(yaml_data)
-    except ValidationError as e:
-        # Pydantic 自动но формирует понятные ошибки
-        for error in e.errors():
-            print(f"{error['loc']}: {error['msg']}")
-        raise
+class Field(BaseModel):
+    ...
+    model_config = ConfigDict(extra="forbid")   # защита от опечаток
 ```
 
 ---
 
-## 4. Парсинг YAML
+## 4. Парсинг и композиция
 
 ### 4.1 Parser
 
 ```python
 class Parser:
-    """Парсит YAML-документы в SourceModel."""
+    def __init__(self, registry: FormatRegistry):
+        self.registry = registry
 
-    def __init__(self, format_registry: FormatRegistry):
-        self.format_registry = format_registry
-
-    def parse(self, path: Path) -> SourceModel:
-        """Парсит документ по пути."""
-        with open(path) as f:
-            data = yaml.safe_load(f)
-
-        format_type = data.get("format", "entity-model")
-        parser = self.format_registry.get_parser(format_type)
-
-        return parser.parse(data, base_path=path.parent)
-
-    def parse_with_composition(self, path: Path) -> SourceModel:
-        """Парсит документ с учетом imports и extends."""
-        doc = self.parse(path)
-
-        # Обработка imports
-        doc = self._resolve_imports(doc, path.parent)
-
-        # Обработка extends
-        doc = self._resolve_extends(doc, path.parent)
-
-        return doc
+    def parse_document(self, path: Path) -> RawDocument:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        fmt = data.get("format", "entity-model")     # неизвестный format → error
+        version = data.get("version")                 # формат проверяет поддержку версии
+        plugin = self.registry.get(fmt)
+        return plugin.parse_yaml(data, base_path=path.parent)  # SourceModel
 ```
 
-### 4.2 Resolution imports
+Реестр:
 
 ```python
-    def _resolve_imports(self, doc: dict, base_path: Path) -> dict:
-        """Рекурсивно разрешает imports."""
-        imports = doc.get("model", {}).get("imports", [])
-
-        for imp in imports:
-            imp_path = (base_path / imp["path"]).resolve()
-            imp_doc = self.parse_with_composition(imp_path)
-
-            # Мержим данные
-            doc = self._merge(doc, imp_doc)
-
-        return doc
-
-    def _merge(self, target: dict, source: dict) -> dict:
-        """Мержит source в target. source приоритетнее."""
-        # Рекурсивный мерж списков (entities, enums) по name
-        # Перезапись полей при совпадении name
-        ...
+class FormatRegistry:
+    """Встроенный 'entity-model' + форматы от формат-плагинов."""
+    def register(self, name: str, plugin: FormatPlugin) -> None: ...
+    def get(self, name: str) -> FormatPlugin: ...   # UnknownFormatError
 ```
 
-### 4.3 Resolution extends
+### 4.2 Imports (см. ADR-0001, полный алгоритм — там)
 
 ```python
-    def _resolve_extends(self, doc: dict, base_path: Path) -> dict:
-        """Обрабатывает extends для типов документа."""
-        extends = doc.get("extends")
+class Composition:
+    def __init__(self, parser: Parser): ...
 
-        if not extends:
-            return doc
+    def resolve(self, path: Path) -> SourceModel:
+        state = ResolveState(visiting=set(), imports={}, depth=0)
+        doc = self._resolve_document(path, state)
+        self._resolve_entity_extends(doc, state)
+        return self._finalize(doc)
 
-        # Загружаем родительский тип
-        parent_path = self._find_type_definition(extends)
-        parent_doc = self.parse_with_composition(parent_path)
+    def _resolve_document(self, path: Path, state) -> SourceModel:
+        if path in state.visiting:
+            raise CyclicImportError(state.full_cycle())
+        if state.depth > MAX_IMPORT_DEPTH (10):
+            raise ImportDepthError(path)
+        state.visiting.add(path)
+        doc = self.parser.parse_document(path)
+        for imp in doc.model.imports:
+            resolved = (imp.doc_root / imp.path).resolve()
+            self._merge_or_register(doc, imp, resolved, state)
+        state.visiting.remove(path)
+        return doc
 
-        # Мержим: parent → child (child приоритетнее)
-        return self._merge(parent_doc, doc)
+    def _merge_or_register(self, doc, imp, resolved, state):
+        """YAML → merge (ADR-0001 #1–#5); прочее → imports-map под `as` (#6: дубль as → error)."""
 ```
+
+### 4.3 Entity-level extends
+
+```python
+def merge_entity(parent: Entity, child: Entity) -> Entity:
+    """ADR-0001 #3: parent-поля на своих позициях, override фиксирует позицию,
+       новые поля child — в конце. Override — полное замещение атрибутов."""
+    overridden = {f.name for f in child.fields} if child.fields else set()
+    fields = [
+        child.field(f.name) if f.name in overridden else f
+        for f in parent.fields
+    ]
+    child_new = [f for f in child.fields if f.name not in overridden]
+    ...
+```
+
+Порядок полей детерминирован и стабилен между запусками (важно для diff артефактов).
+
+### 4.4 Validator (semantic, поверх Pydantic)
+
+```python
+class Diagnostic(BaseModel):
+    level: Literal["warning", "error"]
+    code: str                 # MG004 unknown-type, MG010 null-matrix, ...
+    message: str
+    location: str | None      # file:entity.field
+
+def validate(model: SourceModel, config: GeneratorRules | None) -> list[Diagnostic]:
+    ...
+```
+
+| Code | Проверка | Уровень |
+|------|----------|---------|
+| MG001 | Ссылка type на несуществующий enum/type | error |
+| MG002 | Дубликат имени entity/enum/type после композиции | error |
+| MG003 | Дубликат поля в entity | error |
+| MG004 | Неизвестный тип | error |
+| MG005 | Regex в `constraints.pattern` | error |
+| MG006 | Циклический import / depth | error (в composition) |
+| MG010 | Null-matrix запрещённые combo (§3.6 ТЗ) | error |
+| MG011 | `required=true` + `nullable=true` | warning |
+| MG012 | Entity.name не PascalCase | warning |
+| MG013 | Неиспользуемый enum/type | warning |
+| MG014 | `updated_at` устарела (entity.updated_at < file mtime) | warning |
+| MG015 | Пустой description у required-поля | warning |
+
+`--strict` повышает warnings до errors (уровень повышается, exit code 1).
+
+Pydantic-валидаторы отвечают за структурные проверки; Validator — за семантику (cross-ref'ы).
 
 ---
 
 ## 5. Configuration Layer
 
-### 5.1 Application Config (pydantic-settings)
+### 5.1 AppConfig (pydantic-settings, v2-стиль)
 
 ```python
-# metadata_generator/config.py
-
-from pydantic_settings import BaseSettings
-from pathlib import Path
-
-class AppConfig(BaseSettings):
-    """Application Config — технические настройки."""
-
-    # Логирование
-    log_level: str = "INFO"
-    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    log_destination: str = "stderr"    # stderr, stdout, file:path
-
-    # Пути
-    plugins_dir: Path = Path("./plugins")
-    cache_dir: Path = Path(".mg-cache")
-    config_file: Path | None = None    # Путь к .mg.yaml
-
-    # Debug
-    debug: bool = False
-    verbose: bool = False
-    quiet: bool = False
-
-    # Watch
-    watch_debounce_ms: int = 300
-
-    class Config:
-        env_prefix = "MG_"
-        env_file = ".env"
-        env_nested_delimiter = "_"
-```
-
-### 5.2 Загрузка GeneratorRules
-
-```python
-class GeneratorRulesLoader:
-    """Загружает и валидирует .mg.yaml через Pydantic (ранее BusinessConfigLoader)."""
-
-    def load(self, path: Path) -> GeneratorRules:
-        """Загружает .mg.yaml."""
-        with open(path) as f:
-            data = yaml.safe_load(f)
-
-        # Pydantic валидирует автоматически
-        try:
-            return GeneratorRules.model_validate(data)
-        except ValidationError as e:
-            raise ConfigValidationError.from_pydantic(e)
-
-    def load_from_dir(self, dir: Path) -> GeneratorRules | None:
-        """Ищет .mg.yaml в директории."""
-        config_path = dir / ".mg.yaml"
-        if config_path.exists():
-            return self.load(config_path)
-        return None
-
-class ConfigValidationError(Exception):
-    """Ошибка валидации конфигурации."""
-
-    @classmethod
-    def from_pydantic(cls, e: ValidationError) -> "ConfigValidationError":
-        messages = []
-        for error in e.errors():
-            loc = " → ".join(str(l) for l in error["loc"])
-            messages.append(f"{loc}: {error['msg']}")
-        return cls("\n".join(messages))
-```
-
-### 5.3 Настройка логирования
-
-```python
-# metadata_generator/logging.py
-
-import logging
-import sys
-from pathlib import Path
-
-def setup_logging(config: AppConfig) -> None:
-    """Инициализирует логирование на основе AppConfig.
-    
-    Приоритет источников (согласно ТЗ):
-    1. Environment variables (MG_LOG_LEVEL, MG_LOG_DESTINATION)
-    2. .env файл
-    3. Файл конфигурации
-    4. Значения по умолчанию
-    """
-    level_name = config.log_level.upper()
-    level = getattr(logging, level_name, logging.INFO)
-    
-    handlers: list[logging.Handler] = []
-    
-    # Настройка destination
-    dest = config.log_destination.lower()
-    if dest == "stderr":
-        handlers.append(logging.StreamHandler(sys.stderr))
-    elif dest == "stdout":
-        handlers.append(logging.StreamHandler(sys.stdout))
-    elif dest.startswith("file:"):
-        # file:path/to/log.txt
-        file_path = dest.split(":", 1)[1]
-        # Поддержка ротации для long-running процессов
-        from logging.handlers import RotatingFileHandler
-        handlers.append(
-            RotatingFileHandler(
-                file_path,
-                maxBytes=10 * 1024 * 1024,  # 10 MB
-                backupCount=5
-            )
-        )
-    else:
-        # По умолчанию stderr
-        handlers.append(logging.StreamHandler(sys.stderr))
-    
-    logging.basicConfig(
-        level=level,
-        format=config.log_format,
-        handlers=handlers,
-        force=True  # Перезаписать существующую конфигурацию
-    )
-    
-    # Логирование конфигурации в DEBUG
-    logger = logging.getLogger(__name__)
-    logger.debug(
-        f"Logging initialized: level={config.log_level}, "
-        f"destination={config.log_destination}, format={config.log_format}"
-    )
-
-def get_logger(name: str) -> logging.Logger:
-    """Получить логгер для компонента."""
-    return logging.getLogger(name)
-```
-
-**Примечание:** pydantic-settings обрабатывает приоритет источников автоматически:
-1. Сначала проверяет environment variables (MG_LOG_LEVEL, MG_LOG_DESTINATION)
-2. Затем .env файл
-3. Затем значения по умолчанию
-
-Для проверки вручную можно использовать:
-```python
-from pydantic_settings import SettingsConfigDict
+# metadata_generator/config/app_config.py
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class AppConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="MG_",
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=False
+        case_sensitive=False,
+        extra="ignore",
     )
+
+    log_level: str = "INFO"
+    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_destination: str = "stderr"       # stderr | stdout | file:./mg.log
+
+    cache_dir: Path = Path(".mg-cache")
+    config_file: Path | None = None       # путь к .mg.yaml (переопределяется -c)
+
+    debug: bool = False
+    verbose: bool = False
+    quiet: bool = False
+    watch_debounce_ms: int = 300
 ```
 
-### 5.4 Aliases для YAML (kebab-case → snake_case)
+`plugins_dir` **удалена**: плагины из директорий с ручным `sys.path` не поддерживаются (§6.3). Дев-плагины — через editable install.
+
+### 5.2 GeneratorRulesLoader
 
 ```python
-from pydantic import ConfigDict, Field
+class GeneratorRulesLoader:
+    def load(self, path: Path) -> GeneratorRules:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        try:
+            return GeneratorRules.model_validate(data)
+        except ValidationError as e:
+            raise ConfigValidationError.from_pydantic(e) from e
 
-class GeneratorConfig(BaseModel):
-    """Поддержка kebab-case в YAML."""
-    model_config = ConfigDict(populate_by_name=True)
-
-    generator_id: str = Field(alias="generator-id")
-    output_dir: str = Field(alias="output-dir")
-    file_naming: str | None = Field(None, alias="file-naming")
-
-# YAML:
-# generator-id: my-gen
-# output-dir: ./output
-# file-naming: kebab
-
-# Превращается в:
-# GeneratorConfig(generator_id="my-gen", output_dir="./output", file_naming="kebab")
+    @classmethod
+    def discover(cls) -> GeneratorRules | None:
+        """Ищет .mg.yaml от cwd вверх по дереву."""
 ```
+
+### 5.3 Логирование (единая точка)
+
+В проекте — **один** модуль логирования: `config/logging.py` (ранее дублировался `utils/logging.py` — убран).
+
+```python
+def setup_logging(config: AppConfig) -> None:
+    handlers: list[logging.Handler] = []
+    dest = config.log_destination.lower()
+    if dest == "stdout":
+        handlers.append(logging.StreamHandler(sys.stdout))
+    elif dest.startswith("file:"):
+        handlers.append(RotatingFileHandler(dest[5:], maxBytes=10 * 1024 * 1024, backupCount=5))
+    else:
+        handlers.append(logging.StreamHandler(sys.stderr))
+    logging.basicConfig(level=getattr(logging, config.log_level.upper(), logging.INFO),
+                        format=config.log_format, handlers=handlers, force=True)
+
+def get_logger(name: str) -> logging.Logger:
+    return logging.getLogger(f"mg.{name}")
+```
+
+> Console-вывод CLI результатов generate идёт не через logging: пользовательский вывод — rich; logging — для диагностики. Логи не попадают на stdout (не ломается `--format json`) — только stderr/file.
 
 ---
 
 ## 6. Plugin Loader
 
-### 6.1 Механизм загрузки
+### 6.1 Entry points
 
 ```python
 class PluginLoader:
-    """Загружает плагины-генераторы."""
+    GROUP_GENERATORS = "metadata_generator.generators"
+    GROUP_FORMATS    = "metadata_generator.formats"
 
-    def __init__(self, app_config: AppConfig):
-        self.app_config = app_config
-        self._plugins: dict[str, GeneratorPlugin] = {}
+    def load_generators(self) -> dict[str, GeneratorPlugin]:
+        plugins = {}
+        for ep in entry_points(group=self.GROUP_GENERATORS):
+            cls = ep.load()                       # ImportError → DiagnosticError
+            if cls.api_version != EXPECTED_API_VERSION:
+                raise ApiVersionError(ep.name, cls.api_version, EXPECTED_API_VERSION)
+            plugin = cls()
+            if plugin.id != ep.name:
+                logger.warning(...)   # предупреждение, но работает по plugin.id
+            plugins[plugin.id] = plugin
+        return plugins
 
-    def discover(self) -> dict[str, GeneratorPlugin]:
-        """Обнаруживает и загружает все доступные плагины."""
-        # 1. Entry points (из установленных пакетов)
-        self._load_from_entry_points()
-
-        # 2. Локальные плагины из plugins_dir
-        if self.app_config.plugins_dir.exists():
-            self._load_from_directory(self.app_config.plugins_dir)
-
-        return self._plugins
-
-    def _load_from_entry_points(self):
-        """Загрузка через pip entry_points."""
-        for ep in importlib.metadata.entry_points(
-            group="metadata_generator.generators"
-        ):
-            plugin_class = ep.load()
-            plugin = plugin_class()
-            self._plugins[plugin.id] = plugin
-
-    def _load_from_directory(self, plugins_dir: Path):
-        """Загрузка локальных плагинов."""
-        for item in plugins_dir.iterdir():
-            if item.is_dir() and (item / "pyproject.toml").exists():
-                # Добавляем в sys.path и загружаем
-                ...
+    def load_formats(self) -> list[FormatPlugin]:
+        ...
 ```
 
-### 6.2 Регистрация плагина (pyproject.toml)
+### 6.2 Регистрация (pyproject.toml проекта-плагина)
 
 ```toml
-# Пример: my-generator/pyproject.toml
-
-[project]
-name = "my-generator"
-version = "1.0.0"
-
 [project.entry-points."metadata_generator.generators"]
-my-generator = "my_generator:MyGenerator"
+oracle-ddl = "my_oracle_generator:MyGenerator"
+
+# для новых форматов:
+[project.entry-points."metadata_generator.formats"]
+sql-model = "my_oracle_generator.format:SqlModelFormat"
 ```
+
+### 6.3 Локальная разработка плагина
+
+`sys.path`-хаки и `plugins_dir` **не поддерживаются** (v1.1). Дев-цикл:
+
+```bash
+pip install -e ./plugins/my-generator   # editatable install
+mg gen list                             # plugin виден
+```
+
+(Future, v0.3+: `--plugin path/to/module.py` — явный importlib spec loading, без правки sys.path.)
 
 ---
 
@@ -684,321 +603,296 @@ my-generator = "my_generator:MyGenerator"
 ### 7.1 Структура команд
 
 ```python
-# metadata_generator/cli/main.py
-
-import typer
-
-app = typer.Typer(name="mg", help="Metadata Generator")
+app = typer.Typer(name="mg", help="Metadata Generator", no_args_is_help=True)
+app.add_typer(config_app, name="config")       # show, validate
+app.add_typer(model_app,  name="model")        # validate
+app.add_typer(gen_app,    name="gen")          # list
 
 @app.command()
 def generate(
-    models: list[str] = typer.Argument(None, help="Пути к моделям"),
-    generator: list[str] = typer.Option(None, "-g", "--generator", help="Генераторы"),
-    config: Path = typer.Option(None, "-c", "--config", help="Путь к .mg.yaml"),
-    output: Path = typer.Option(None, "-o", "--output", help="Output dir"),
-    watch: bool = typer.Option(False, "-w", "--watch", help="Watch mode"),
-    dry_run: bool = typer.Option(False, "--dry-run"),
-    format: str = typer.Option("text", "--format", help="text или json"),
+    models: list[Path] = typer.Argument(None),
+    generator: list[str] = typer.Option(None, "-g", "--generator"),
+    config: Path      = typer.Option(None, "-c", "--config"),
+    output: Path      = typer.Option(None, "-o", "--output"),
+    var: list[str]    = typer.Option(None, "--var", help="KEY=VALUE, многократно"),
+    dry_run: bool     = typer.Option(False, "--dry-run"),
+    clean: bool       = typer.Option(False, "--clean", help="разовая зачистка илиphans"),
+    strict: bool      = typer.Option(False, "--strict"),
+    output_format: str = typer.Option("text", "--format"),
+    verbose: bool = typer.Option(False, "-v", "--verbose"),
+    quiet: bool   = typer.Option(False, "-q", "--quiet"),
 ):
     """Генерация артефактов."""
     ...
 
 @app.command()
-def init():
-    """Создать шаблон .mg.yaml."""
-    ...
+def watch(models: list[Path] = typer.Argument(None)): ...
 
 @app.command()
-def config_show(config: Path = typer.Option(".mg.yaml")):
-    """Показать конфигурацию."""
-    ...
-
-@app.command()
-def list_generators():
-    """Список доступных генераторов."""
-    ...
+def init(): ...
 ```
 
-### 7.2 Output Formatters
+### 7.2 Выходные коды и поведение при ошибках
+
+| Ситуация | exit code |
+|----------|-----------|
+| Успех | 0 |
+| Есть errors генерации (или warnings при --strict) | 1 |
+| Config/usage: нет .mg.yaml, unknown generator id, --var без `=`, api_version mismatch | 2 |
+
+Ошибка одного генератора: логируется, остальные продолжаются (aggregate отчёт в конце).
+
+### 7.3 `--var`
+
+```python
+def parse_vars(items: list[str]) -> dict[str, str]:
+    out = {}
+    for item in items:
+        if "=" not in item:
+            raise UsageError(f"`--var` expects KEY=VALUE, got: {item}")   # exit 2
+        k, v = item.split("=", 1)
+        out[k.strip()] = v
+    return out
+```
+
+Приоритет: CLI `--var` > `.mg.yaml variables`. Результат — `GenerationContext.variables`. Ядро не подставляет vars в пути/шаблоны сам — это решение плагина.
+
+### 7.4 Formatters
 
 ```python
 class OutputFormatter(ABC):
     @abstractmethod
-    def format(self, result: GenerationResult) -> str:
-        ...
+    def format(self, report: EngineReport) -> str: ...
 
-class TextFormatter(OutputFormatter):
-    def format(self, result: GenerationResult) -> str:
-        # [✓] generator → path/
-        #     ├── file1
-        #     └── file2
-        ...
-
-class JsonFormatter(OutputFormatter):
-    def format(self, result: GenerationResult) -> str:
-        return json.dumps({
-            "success": True,
-            "artifacts": [...],
-            "warnings": [...],
-        }, indent=2)
+class TextFormatter(OutputFormatter): ...    # [✓] generator → dir/ tree
+class JsonFormatter(OutputFormatter): ...    # {"success": ..., "artifacts": [...]}
 ```
+
+`EngineReport` содержит общий результат (не путается с GenerationResult одного плагина).
 
 ---
 
-## 8. Watch Mode
+## 8. Artifact Writer
 
-### 8.1 File Watcher
+### 8.1 Валидация путей
 
 ```python
-# Простой watch без кэширования
+def validate_artifact_path(output_dir: Path, artifact: Artifact) -> Path:
+    path = (output_dir / artifact.path).resolve()
+    output_resolved = output_dir.resolve()
+    if not path.is_relative_to(output_resolved):
+        raise ArtifactPathError(artifact, path)     # '..' / абсолютный / symlink
+    return path
+```
+
+### 8.2 on_conflict
+
+| `on_conflict` | Если файл существует |
+|---|---|
+| `overwrite` (default) | Перезаписать |
+| `skip` | Не трогать (для ручной правки поверх сгенерированного) |
+| `error` | Прервать генератор с ошибкой (артефакт + путь в сообщении) |
+
+### 8.3 Atomicity
+
+```python
+_with_staging(output_dir):
+    """Пишет во временный каталог (.mg-staging-XXXX), затем атомарно move в output_dir.
+    При ошибке — staging удаляется; output_dir не остаётся в полуопределённом состоянии."""
+```
+
+### 8.4 Manifest и cleanup
+
+После успешного **полного** запуска ядро пишет `output_dir/.mg-manifest.json`:
+
+```json
+{
+  "mg_version": "0.1.0",
+  "generated_at": "2026-11-10T12:34:56Z",
+  "generator": "oracle-ddl",
+  "artifacts": ["user.sql", "post.sql"]
+}
+```
+
+**Cleanup** — сравнение файлов `output_dir` со списками из манифестов: файл, не описанный ни в одном манифесте, — осиротевший ("orphan"). Политика `cleanup: off | prompt | enabled` + разовый флаг `mg generate --clean`. Cleanup работает **только по манифестам** — никогда не удаляет файлы "по догадке", что защищает ручные файлы, лежащие рядом.
+
+- `prompt` интерактивен; при `not sys.stdout.isatty()` → fallback `off` + warning.
+- Манифест пишется только если весь запуск успеха (а не частичен).
+
+---
+
+## 9. Watch Mode
+
+### 9.1 File Watcher (как в 1.0, lazy import)
+
+```python
 class Watcher:
-    """Наблюдает за изменениями файлов."""
-
-    def __init__(self, paths: list[Path], callback: Callable, debounce_ms: int = 300):
-        self.paths = paths
-        self.callback = callback
-        self.debounce_ms = debounce_ms
-
-    def start(self):
-        """Запускает наблюдение."""
-        from watchdog.observers import Observer
-
-        observer = Observer()
-        for path in self.paths:
-            event_handler = DebounceHandler(
-                callback=self.callback,
-                debounce_ms=self.debounce_ms
-            )
-            observer.schedule(event_handler, str(path), recursive=True)
-
-        observer.start()
-
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            observer.stop()
-
-class DebounceHandler(FileSystemEventHandler):
-    """Handler с debounce."""
-
-    def __init__(self, callback: Callable, debounce_ms: int):
-        self.callback = callback
-        self.debounce_ms = debounce_ms
-        self._timers: dict[str, Timer] = {}
-
-    def on_modified(self, event):
-        # Debounce: ждём debounce_ms после последнего изменения
-        path = event.src_path
-        if path in self._timers:
-            self._timers[path].cancel()
-
-        self._timers[path] = Timer(self.debounce_ms / 1000, self.callback, [path])
-        self._timers[path].start()
+    """watchdog Observer + DebounceHandler(debounce_ms).
+    import watchdog — лениво, чтобы CLI не платил стартовой ценой пакета."""
 ```
 
-### 8.2 Интерфейс для будущего кэширования
+### 9.2 Интерфейс для будущего кэширования
 
 ```python
-# Заложено для future расширения
 class CacheStrategy(ABC):
-    """Интерфейс для кэширования."""
-
     @abstractmethod
-    def get_hash(self, path: Path) -> str:
-        """Получить хеш файла."""
-        ...
-
+    def get_hash(self, path: Path) -> str: ...
     @abstractmethod
-    def is_changed(self, path: Path) -> bool:
-        """Проверить, изменился ли файл."""
-        ...
-
+    def is_changed(self, path: Path) -> bool: ...
     @abstractmethod
-    def get_dependencies(self, path: Path) -> list[Path]:
-        """Получить зависимости файла (для cascade invalidation)."""
-        ...
+    def get_dependencies(self, path: Path) -> list[Path]: ...
 ```
 
 ---
 
-## 9. Структура проекта (код)
-
-### 9.1 Ядро
+## 10. Структура проекта (код)
 
 ```
-metadata-generator/                    # pip пакет
+metadata-generator/
 ├── src/metadata_generator/
-│   ├── __init__.py
+│   ├── __init__.py                  # публичный API (см. §2)
 │   ├── cli/
 │   │   ├── __init__.py
-│   │   ├── main.py                   # Точка входа (typer)
-│   │   ├── commands.py               # Команды (generate, init, etc.)
-│   │   └── formatters.py             # TextFormatter, JsonFormatter
+│   │   ├── main.py                  # typer app (генерация, watch, init) + sub-apps
+│   │   ├── config_cmds.py           # mg config show/validate
+│   │   ├── model_cmds.py            # mg model validate
+│   │   ├── gen_cmds.py              # mg gen list
+│   │   └── formatters.py            # TextFormatter, JsonFormatter
 │   ├── core/
 │   │   ├── __init__.py
-│   │   ├── model.py                  # SourceModel, Entity, Field, Constraints (Pydantic)
-│   │   ├── parser.py                 # Parser, YamlParser
-│   │   └── composition.py            # Merge, resolve imports/extends
+│   │   ├── model.py                 # SourceModel, Entity, Field, Constraints, ...
+│   │   ├── parser.py                # Parser, RawDocument
+│   │   ├── composition.py           # imports/extends, merge (ADR-0001)
+│   │   ├── validator.py             # semantic валидация (Diagnostic)
+│   │   └── naming.py                # NamingStyle, transform()
 │   ├── config/
 │   │   ├── __init__.py
-│   │   ├── app_config.py             # AppConfig (pydantic-settings)
-│   │   ├── generator_rules.py        # GeneratorRules, GeneratorRulesLoader
-│   │   ├── logging.py                # setup_logging(), get_logger()
-│   │   └── schemas/
-│   │       └── metacofig.schema.json # JSON Schema для .mg.yaml
+│   │   ├── app_config.py            # AppConfig
+│   │   ├── generator_rules.py       # GeneratorRules, GeneratorRulesLoader
+│   │   └── logging.py               # setup_logging(), get_logger() — ЕДИНСТВЕННАЯ точка
 │   ├── engine/
 │   │   ├── __init__.py
-│   │   ├── engine.py                 # Engine orchestration
-│   │   ├── plugin_loader.py          # PluginLoader
-│   │   └── artifact_writer.py        # ArtifactWriter
+│   │   ├── engine.py                # Engine orchestration
+│   │   ├── plugin_loader.py         # PluginLoader (generators + formats)
+│   │   ├── format_registry.py       # FormatRegistry
+│   │   └── artifact_writer.py       # ArtifactWriter (validate paths, on_conflict, atomic, manifest)
 │   ├── interfaces/
 │   │   ├── __init__.py
-│   │   └── generator.py              # GeneratorPlugin, GenerationResult, etc.
+│   │   ├── generator.py             # GeneratorPlugin, GeneratorInput, GenerationContext, Artifact
+│   │   └── formats.py               # FormatPlugin
 │   ├── watch/
 │   │   ├── __init__.py
-│   │   ├── watcher.py                # Watcher, DebounceHandler
-│   │   └── cache.py                  # CacheStrategy (interface)
+│   │   ├── watcher.py               # Watcher (lazy watchdog), DebounceHandler
+│   │   └── cache.py                 # CacheStrategy (future)
 │   └── utils/
 │       ├── __init__.py
-│       └── logging.py
+│       └── exceptions.py            # ConfigValidationError, CyclicImportError, ...
 ├── tests/
 │   ├── unit/
 │   │   ├── test_parser.py
-│   │   ├── test_composition.py
-│   │   └── test_config.py
+│   │   ├── test_composition.py      # каждый пункт ADR-0001
+│   │   ├── test_validator.py
+│   │   ├── test_config.py
+│   │   └── test_naming.py
+│   ├── property/
+│   │   └── test_parser.py           # hypothesis: не падает на мусоре; round-trip
 │   ├── integration/
 │   │   └── test_generate.py
-│   └── fixtures/
-│       └── models/
+│   ├── golden/
+│   │   ├── fixtures/models/         # входные модели
+│   │   ├── fixtures/expected/       # ожидаемые артефакты
+│   │   └── test_golden.py           # diff-based regression
+│   └── conftest.py
 ├── docs/
-│   ├── requirements/
+│   ├── requirements/                # ТЗ (index, v1.0, v1.1)
 │   ├── system-design/
-│   └── user-guide/
+│   └── adr/                         # 0001-composition-merge-semantics.md
 ├── pyproject.toml
 ├── README.md
 └── LICENSE
 ```
 
-### 9.2 Пример плагина
+---
 
+## 11. Тестирование (охват в 1.1)
+
+### 11.1 Priorities
+
+1. **Golden-file**: fixtures → expected artifacts (главная защита от регрессии артефактов).
+2. Merge-семантика ADR-0001 — тест на каждое правило (1–12 из таблицы решений).
+3. **Null-matrix** — 4 валидных состояния + запрещённые combos с кодом.
+4. Parser: simple / imports / entity.extends / cycle / depth / unknown format / unknown version.
+5. Integration CLI: полный цикл, exit codes, --strict, --var, --dry-run.
+
+### 11.2 Property-based (перезаписана формулировка)
+
+```python
+@given(st.dictionaries(keys, values))       # ЛЮБОЙ dict
+def test_never_crashes_on_arbitrary_input(data):
+    """Parser на произвольном dict не падает (только PyYAML/pydantic ошибки)."""
+    with pytest.raises((ValidationError, ConfigError)) if invalid else None: ...
+
+@given(valid_model_data())                   # стратегия строит валидные модели
+def test_round_trip(data) -> None:
+    model = SourceModel.model_validate(data)
+    assert SourceModel.model_validate(model.model_dump()) == model
 ```
-my-generator/                         # pip пакет
-├── src/my_generator/
-│   ├── __init__.py                   # MyGenerator (GeneratorPlugin)
-│   ├── renderer.py                   # Логика рендеринга
-│   └── templates/                    # Шаблоны
-│       ├── entity.j2
-│       └── index.j2
-├── tests/
-├── pyproject.toml                    # entry point
-└── README.md
-```
+
+Стратегия валидных данных — комбинирует: email → entity names/fields/types/enums/constraints (правила null-matrix учитываются).
 
 ---
 
-## 10. Тестирование
-
-### 10.1 Структура тестов
-
-```python
-# tests/unit/test_parser.py
-class TestParser:
-    def test_parse_simple_model(self):
-        """Парсинг простой модели."""
-        ...
-
-    def test_parse_with_imports(self):
-        """Парсинг с imports."""
-        ...
-
-    def test_parse_with_extends(self):
-        """Парсинг с extends."""
-        ...
-
-    def test_cyclic_import_error(self):
-        """Ошибка при циклических imports."""
-        ...
-
-# tests/unit/test_composition.py
-class TestComposition:
-    def test_merge_entities(self):
-        """Мерж сущностей из разных файлов."""
-        ...
-
-    def test_inheritance_fields(self):
-        """Наследование полей через extends."""
-        ...
-```
-
-### 10.2 Property-based тесты
-
-```python
-# tests/property/test_parser.py
-from hypothesis import given, strategies as st
-
-class TestParserPropertyBased:
-    @given(st.dictionaries(st.text(), st.text()))
-    def test_valid_yaml_parsing(self, data):
-        """Любой валидный YAML парсится без падения."""
-        ...
-
-    @given(valid_model_data())
-    def test_round_trip(self, data):
-        """Модель → YAML → модель консистентна."""
-        ...
-```
-
-### 10.3 Integration тесты
-
-```python
-# tests/integration/test_generate.py
-class TestGenerate:
-    def test_full_pipeline(self, tmp_path):
-        """Полный цикл: модель → генерация → артефакты."""
-        # Создаём модель
-        # Создаём .mg.yaml
-        # Запускаем mg generate
-        # Проверяем артефакты
-        ...
-```
-
----
-
-## 11. Зависимости (pyproject.toml)
+## 12. Зависимости (pyproject.toml)
 
 ```toml
 [project]
 name = "metadata-generator"
 version = "0.1.0"
 description = "CLI tool for metadata-driven code generation"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "typer>=0.12.0",
-    "pydantic>=2.5.0",
-    "pydantic-settings>=2.1.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
     "pyyaml>=6.0.1",
-    "watchdog>=3.0.0",
     "rich>=13.7.0",
+    "watchdog>=4.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.4.0",
+    "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
-    "hypothesis>=6.92.0",
-    "ruff>=0.1.0",
-    "mypy>=1.7.0",
+    "hypothesis>=6.100.0",
+    "ruff>=0.4.0",
+    "mypy>=1.8.0",
 ]
 
 [project.scripts]
 mg = "metadata_generator.cli.main:app"
 
-[project.entry-points."metadata_generator.generators"]
-# Плагины подключаются через свои пакеты
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 ```
+
+> `watchdog` — lazy-import в `watch/watcher.py`; CLI без `mg watch` не платит стартовой ценой.
+> v1.0 не включает встроенных генераторов и, соответственно, `[project.entry-points]` — entry points регистрируют архивные плагины.
 
 ---
 
-*Версия документа: 1.0*  
-*Дата: 2025-11-03*
+## 13. Проектировочные решения (v1.1, сводка)
+
+| Решение | Причина | Где |
+|---------|---------|-----|
+| Заголовок документа: только `format` + `version` | Наследование формата — зона формат-плагина; нет двойного extends | ТЗ §3.4 |
+| Сущности изолированы (без relations в базе) | Нейтральность ядра | ТЗ §1 |
+| Два типа плагинов (generators, formats) | Реестр форматов расширяем | §6 |
+| Вход генератора — цельная срезанная модель | Cross-entity артефакты (barrel, миграции) | ТЗ §6.1 |
+| App-related плагину не передаётся | Чистый публичный контракт | §2.1 |
+| Имена файлов задаёт плагин, ядро валидирует пути | Нет двух источников имен | §8.1 |
+| `naming_convention` — подсказка в context | Не переименовывать модель молча | §2.6 |
+| Плагин `api_version` | Обратная совместимость контракта | §6.1 |
+| Atomic write + manifest cleanup | Безопасная запись и зачистка | §8 |
+| Локальные плагины через pip -e, не sys.path | Стандарт, без хаков | §6.3 |
+| Логи в stderr/file, CLI-вывод в stdout (rich) | Совместимость с `--format json` | §5.3 |
