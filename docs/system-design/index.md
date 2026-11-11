@@ -1305,7 +1305,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "hypothesis>=6.100.0",
     "ruff>=0.4.0",
-    "mypy>=1.8.0",
+    "pyrefly>=1.4.0",
 ]
 
 [project.scripts]
@@ -1327,16 +1327,21 @@ build-backend = "hatchling.build"
 line-length = 100
 target-version = "py311"
 
-[tool.mypy]
-python_version = "3.11"
-strict = true
-warn_unused_ignores = true
+[tool.pyrefly]
+python-version = "3.11"
+preset = "strict"
+project-includes = ["src", "tests", "tools"]
+search-path = ["src", "."]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 ```
 
+- Типизация проверяется **Pyrefly** (`preset = "strict"`), см. [ADR-0002](../adr/0002-type-checker-pyrefly.md).
+  mypy не входит в блокирующий CI; `py.typed` сохраняет совместимость с другими чекерами.
+- Dev/CI используют **uv** (`uv sync --extra dev`, `uv run`), `uv.lock` коммитится.
+  Для установки пакета пользователями остаётся `pip install metadata-generator`.
 - `watchdog` — **optional extra** `[watch]`, lazy-import в `watch/watcher.py`; без `mg watch` пакет не требуется.
 - `ruamel.yaml` (YAML 1.2) вместо PyYAML: duplicate keys → ошибка, корректные `yes/no`, даты.
 - Пакет поставляет `py.typed` (PEP 561); публичный API — `__all__` в `__init__.py`.

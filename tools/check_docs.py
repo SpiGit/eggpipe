@@ -24,6 +24,7 @@ import fnmatch
 import json
 import re
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote
@@ -35,13 +36,21 @@ REQUIRED_FILES = (
     ".gitattributes",
     ".gitignore",
     ".github/workflows/docs.yml",
+    ".github/workflows/ci.yml",
     "AGENTS.md",
     "README.md",
     "opencode.json",
+    "pyproject.toml",
+    "uv.lock",
     "tools/check_docs.py",
+    "src/metadata_generator/__init__.py",
+    "src/metadata_generator/py.typed",
+    "tests/test_check_docs.py",
+    "tests/test_package.py",
     "docs/requirements/index.md",
     "docs/system-design/index.md",
     "docs/adr/0001-composition-merge-semantics.md",
+    "docs/adr/0002-type-checker-pyrefly.md",
     ".opencode/agents/spec-reviewer.md",
     ".opencode/commands/spec-check.md",
     ".opencode/commands/spec-release.md",
@@ -54,6 +63,8 @@ FRONTMATTER_DIRS = (
     ".opencode/commands",
     ".opencode/skills",
 )
+FrontmatterValue = str | list[dict[str, str]]
+Frontmatter = dict[str, FrontmatterValue]
 
 
 @dataclass(frozen=True)
@@ -73,7 +84,15 @@ class Finding:
         return f"{location}: {self.level}: {self.code} {self.message}"
 
 
-def iter_outside_fences(text: str):
+@dataclass(frozen=True)
+class VersionRow:
+    version: str
+    status: str
+    link: str | None
+    line: int
+
+
+def iter_outside_fences(text: str) -> Iterator[tuple[int, str]]:
     """Yield (line_number, line) for lines outside fenced code blocks."""
     fence: str | None = None
     for number, line in enumerate(text.splitlines(), 1):
@@ -96,7 +115,7 @@ def clean_scalar(value: str) -> str:
     return value
 
 
-def parse_frontmatter(text: str) -> tuple[dict, str] | None:
+def parse_frontmatter(text: str) -> tuple[Frontmatter, str] | None:
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         return None
@@ -108,7 +127,7 @@ def parse_frontmatter(text: str) -> tuple[dict, str] | None:
     if closing is None:
         return None
 
-    data: dict = {}
+    data: Frontmatter = {}
     current: str | None = None
     for raw in lines[1:closing]:
         if not raw.strip() or raw.lstrip().startswith("#"):
@@ -116,17 +135,20 @@ def parse_frontmatter(text: str) -> tuple[dict, str] | None:
         if raw.startswith((" ", "\t")):
             match = re.match(r"^\s+-\s+([A-Za-z0-9_-]+):\s*(.*)$", raw)
             if match and current:
-                if not isinstance(data.get(current), list):
-                    data[current] = []
-                item = data[current]
+                current_value = data.get(current)
+                if not isinstance(current_value, list):
+                    current_value = []
+                    data[current] = current_value
                 key, value = match.group(1), clean_scalar(match.group(2))
-                if not item or key in item[-1]:
-                    item.append({})
-                item[-1][key] = value
+                if not current_value or key in current_value[-1]:
+                    current_value.append({})
+                current_value[-1][key] = value
                 continue
             nested = re.match(r"^\s+([A-Za-z0-9_-]+):\s*(.*)$", raw)
-            if nested and current and isinstance(data.get(current), list) and data[current]:
-                data[current][-1][nested.group(1)] = clean_scalar(nested.group(2))
+            if nested and current:
+                current_value = data.get(current)
+                if isinstance(current_value, list) and current_value:
+                    current_value[-1][nested.group(1)] = clean_scalar(nested.group(2))
             continue
         match = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", raw)
         if match:
@@ -145,7 +167,7 @@ class Checker:
         self.strict = strict
         self.findings: list[Finding] = []
         self.checked_files = 0
-        self.versions: list[dict] = []
+        self.versions: list[VersionRow] = []
         self.current_version: str | None = None
 
     def add(self, level: str, code: str, path: Path, line: int | None, message: str) -> None:
@@ -164,7 +186,7 @@ class Checker:
             self.error("DOC001", path, None, f"не удалось прочитать файл: {exc}")
             return None
 
-    def markdown_files(self):
+    def markdown_files(self) -> Iterator[Path]:
         for path in sorted(self.root.rglob("*.md")):
             relative = path.relative_to(self.root)
             if any(part in SKIP_PARTS for part in relative.parts):
@@ -198,7 +220,7 @@ class Checker:
     def check_markdown_structure(self, path: Path, text: str, require_h1: bool = True) -> None:
         headings = 0
         fence: str | None = None
-        for number, line in enumerate(text.splitlines(), 1):
+        for line in text.splitlines():
             match = re.match(r"^\s*(`{3,}|~{3,})", line)
             if match:
                 marker = match.group(1)
@@ -251,19 +273,19 @@ class Checker:
                 continue
             link = re.search(r"\]\(([^)]+)\)", cells[3])
             self.versions.append(
-                {
-                    "version": cells[0],
-                    "status": cells[2].replace("*", ""),
-                    "link": link.group(1) if link else None,
-                    "line": number,
-                }
+                VersionRow(
+                    version=cells[0],
+                    status=cells[2].replace("*", ""),
+                    link=link.group(1) if link else None,
+                    line=number,
+                )
             )
 
         if not self.versions:
             self.error("DOC110", index, None, "не найден реестр версий ТЗ")
             return
 
-        current = [item for item in self.versions if "Актуальная" in item["status"]]
+        current = [item for item in self.versions if "Актуальная" in item.status]
         if len(current) != 1:
             self.error(
                 "DOC111",
@@ -272,31 +294,31 @@ class Checker:
                 f"ожидалась одна актуальная версия ТЗ, найдено: {len(current)}",
             )
         else:
-            self.current_version = current[0]["version"]
+            self.current_version = current[0].version
 
         for item in self.versions:
-            if "Актуальная" not in item["status"] and "Замещена" not in item["status"]:
+            if "Актуальная" not in item.status and "Замещена" not in item.status:
                 self.warning(
                     "DOC112",
                     index,
-                    item["line"],
-                    f"неизвестный статус версии {item['version']}: {item['status']}",
+                    item.line,
+                    f"неизвестный статус версии {item.version}: {item.status}",
                 )
-            if not item["link"]:
+            if not item.link:
                 self.error(
                     "DOC113",
                     index,
-                    item["line"],
-                    f"нет ссылки на файл версии {item['version']}",
+                    item.line,
+                    f"нет ссылки на файл версии {item.version}",
                 )
                 continue
-            target = (index.parent / item["link"]).resolve()
+            target = (index.parent / item.link).resolve()
             if not target.is_file():
                 self.error(
                     "DOC114",
                     index,
-                    item["line"],
-                    f"файл версии {item['version']} не найден: {item['link']}",
+                    item.line,
+                    f"файл версии {item.version} не найден: {item.link}",
                 )
 
     def check_version_references(self) -> None:
@@ -332,14 +354,17 @@ class Checker:
             self.error("DOC131", path, None, "неверный или отсутствующий $schema")
 
         for index, entry in enumerate(config.get("instructions", [])):
-            if isinstance(entry, str) and not re.match(r"^https?://", entry):
-                if not (self.root / entry).exists():
-                    self.error(
-                        "DOC132",
-                        path,
-                        None,
-                        f"instructions[{index}] не существует: {entry}",
-                    )
+            if (
+                isinstance(entry, str)
+                and not re.match(r"^https?://", entry)
+                and not (self.root / entry).exists()
+            ):
+                self.error(
+                    "DOC132",
+                    path,
+                    None,
+                    f"instructions[{index}] не существует: {entry}",
+                )
 
         rules = config.get("permissions", [])
         if not isinstance(rules, list):
@@ -374,15 +399,15 @@ class Checker:
         ]
 
         for item in self.versions:
-            if "Замещена" not in item["status"]:
+            if "Замещена" not in item.status:
                 continue
-            relative = f"docs/requirements/v{item['version']}.md"
+            relative = f"docs/requirements/v{item.version}.md"
             if not any(fnmatch.fnmatch(relative, rule["resource"]) for rule in deny_edits):
                 self.error(
                     "DOC136",
                     path,
                     None,
-                    f"историческая версия v{item['version']} не защищена deny-правилом",
+                    f"историческая версия v{item.version} не защищена deny-правилом",
                 )
 
         if self.current_version:
@@ -422,7 +447,7 @@ class Checker:
                 elif "skills" in path.parts:
                     self.check_skill(path, data)
 
-    def check_agent(self, path: Path, data: dict) -> None:
+    def check_agent(self, path: Path, data: Frontmatter) -> None:
         if data.get("mode") not in {"primary", "subagent", "all"}:
             self.error("DOC144", path, None, "mode агента должен быть primary/subagent/all")
         if path.name != "spec-reviewer.md":
@@ -441,11 +466,11 @@ class Checker:
             ):
                 self.error("DOC146", path, None, f"spec-reviewer должен запрещать {action}")
 
-    def check_command(self, path: Path, data: dict) -> None:
+    def check_command(self, path: Path, data: Frontmatter) -> None:
         if path.name == "spec-check.md" and data.get("agent") != "spec-reviewer":
             self.error("DOC147", path, None, "spec-check должен запускаться через spec-reviewer")
 
-    def check_skill(self, path: Path, data: dict) -> None:
+    def check_skill(self, path: Path, data: Frontmatter) -> None:
         if path.name != "SKILL.md":
             self.error("DOC148", path, None, "skill должен называться SKILL.md")
             return
@@ -509,10 +534,10 @@ class Checker:
         known = set(re.findall(r"MG\d{3}", text))
         targets = [
             self.root / "docs/system-design/index.md",
-            self.root / "docs/adr/0001-composition-merge-semantics.md",
             self.root / "README.md",
             self.root / "AGENTS.md",
         ]
+        targets.extend(sorted((self.root / "docs/adr").glob("*.md")))
         targets.extend(sorted((self.root / ".opencode").rglob("*.md")))
         for path in targets:
             text = self.read(path)

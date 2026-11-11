@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "metadata-generator"
+version = "0.1.0"
+description = "CLI tool and library for metadata-driven code generation"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+dependencies = [
+    "typer>=0.12.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    "ruamel.yaml>=0.18.6",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+watch = ["watchdog>=4.0.0"]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "hypothesis>=6.100.0",
+    "ruff>=0.4.0",
+    "pyrefly>=1.4.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/metadata_generator"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "tools"]
+extend-exclude = ["docs", "*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = [
+    "RUF001", # русские строки: кириллица похожа на латиницу
+    "RUF002", # русские docstring
+    "RUF003", # русские комментарии
+]
+
+[tool.pyrefly]
+python-version = "3.11"
+preset = "strict"
+project-includes = ["src", "tests", "tools"]
+search-path = ["src", "."]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+pythonpath = ["src", "."]
+filterwarnings = ["error"]
+markers = [
+    "slow: длительные тесты (performance, большие фикстуры)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["metadata_generator"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true

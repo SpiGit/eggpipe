@@ -118,17 +118,37 @@ pip install -e ./plugins/my-generator
 mg gen list
 ```
 
+## Разработка
+
+```bash
+uv sync --extra dev
+
+uv run ruff check .
+uv run ruff format --check src tests tools
+uv run pyrefly check
+uv run pytest --cov
+uv run python tools/check_docs.py --strict
+```
+
+Dev/CI используют [uv](https://docs.astral.sh/uv/) и закоммиченный `uv.lock`.
+Для установки пакета пользователями остаётся `pip install metadata-generator`.
+
+Типизация — [Pyrefly](https://pyrefly.org/) в strict-режиме (встроенная поддержка Pydantic v2).
+mypy не входит в блокирующий CI; решение зафиксировано в
+[ADR-0002](./docs/adr/0002-type-checker-pyrefly.md).
+
 ## Документация
 
 Проверка согласованности документации:
 
 ```bash
-python tools/check_docs.py --strict
+uv run python tools/check_docs.py --strict
 ```
 
 - [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.2
 - [System Design](./docs/system-design/index.md)
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
+- [ADR-0002: type checker — Pyrefly](./docs/adr/0002-type-checker-pyrefly.md)
 - [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
 
 ## Статус
