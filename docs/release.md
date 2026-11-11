@@ -39,11 +39,25 @@ Workflow `.github/workflows/release.yml`:
 
 Для PyPI настроить trusted publisher:
 
-- owner/repository: репозиторий проекта;
-- workflow: `release.yml`;
-- environment: `pypi`.
+1. Убедиться, что имя `metadata-generator` доступно на PyPI.
+2. PyPI → **Publishing** → **Add a new pending publisher**:
+   - PyPI project name: `metadata-generator`;
+   - owner: GitHub-владелец репозитория;
+   - repository: имя репозитория;
+   - workflow name: `release.yml`;
+   - environment: `pypi`.
+3. GitHub → **Settings → Environments** → создать environment `pypi`.
+   Секреты не нужны: используется OIDC (`id-token: write`).
+4. GitHub → **Settings → Secrets and variables → Actions → Variables**:
+   добавить `PYPI_PUBLISH=true`.
+5. Запушить тег:
+
+   ```bash
+   git push origin v0.1.0
+   ```
 
 Без `PYPI_PUBLISH=true` артефакты публикуются только в GitHub Release.
+Эти шаги нельзя выполнить из репозитория: нужны доступы к PyPI и настройкам GitHub.
 
 ## После релиза
 
