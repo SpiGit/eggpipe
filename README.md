@@ -116,6 +116,9 @@ mg watch model.yaml
 # Разработка своего плагина — editable install
 pip install -e ./plugins/my-generator
 mg gen list
+
+# Локальный плагин без установки (v0.3)
+mg generate --plugin ./my_plugin.py
 ```
 
 ## Разработка
@@ -166,5 +169,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** ядро v0.1 и composition v0.2 готовы: imports/extends, discovery, merge по ADR-0001,
-`sources[].input`, MG014, cleanup и CLI. Следующий этап — v0.3: format-плагины, watch и JSON.
+**Стадия:** v0.3 готов: format-плагины, `mg watch`, JSON-отчёт, provenance и `--plugin`.
+Ядро и CLI можно готовить к первому релизу; дальше — стабилизация и backlog P1/P2.

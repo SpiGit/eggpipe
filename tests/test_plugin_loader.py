@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any, ClassVar
+
 import pytest
 
-from metadata_generator import GenerationResult, GeneratorInput, GeneratorPlugin
+from metadata_generator import (
+    GenerationResult,
+    GeneratorInput,
+    GeneratorPlugin,
+    ModelDocument,
+    SourceModel,
+)
 from metadata_generator.engine import plugin_loader
+from metadata_generator.interfaces.formats import FormatPlugin
 
 
 class DemoGenerator(GeneratorPlugin):
@@ -25,12 +35,26 @@ class BrokenGenerator(GeneratorPlugin):
 
 
 class EntryPoint:
-    def __init__(self, name: str, value: type[GeneratorPlugin]) -> None:
+    def __init__(self, name: str, value: type[GeneratorPlugin] | type[FormatPlugin]) -> None:
         self.name = name
         self.value = value
 
-    def load(self) -> type[GeneratorPlugin]:
+    def load(self) -> type[GeneratorPlugin] | type[FormatPlugin]:
         return self.value
+
+
+class CustomFormat(FormatPlugin):
+    format_names: ClassVar[list[str]] = ["custom"]
+    supported_versions: ClassVar[list[str]] = ["1.0"]
+    primitive_types: ClassVar[set[str]] = {"string"}
+
+    def parse(self, raw: dict[str, Any], base_path: Path) -> ModelDocument:
+        return ModelDocument(
+            format="custom",
+            version="1.0",
+            path=base_path,
+            model=SourceModel(),
+        )
 
 
 def test_load_generators(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -41,3 +65,34 @@ def test_load_generators(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
     assert set(plugin_loader.load_generators()) == {"demo"}
+
+
+def test_load_formats_and_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        if group == plugin_loader.FORMAT_GROUP:
+            return [EntryPoint("custom", CustomFormat)]
+        return []
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    formats = plugin_loader.load_formats()
+    assert [item.format_names for item in formats] == [["custom"]]
+    registry = plugin_loader.build_format_registry()
+    assert registry.get("custom").format_names == ["custom"]
+
+
+def test_load_local_generators(tmp_path: Path) -> None:
+    module = tmp_path / "local_plugin.py"
+    module.write_text(
+        """\
+from metadata_generator import GenerationResult, GeneratorInput, GeneratorPlugin
+
+class Local(GeneratorPlugin):
+    id = "local"
+    name = "Local"
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult()
+""",
+        encoding="utf-8",
+    )
+    assert set(plugin_loader.load_local_generators([module])) == {"local"}

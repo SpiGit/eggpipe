@@ -14,15 +14,21 @@ from metadata_generator.core.parser import Parser
 from metadata_generator.core.validator import validate_document
 from metadata_generator.engine.artifact_writer import ArtifactWriter
 from metadata_generator.engine.engine import Engine
-from metadata_generator.engine.format_registry import FormatRegistry
-from metadata_generator.engine.plugin_loader import GENERATOR_GROUP, load_generators
+from metadata_generator.engine.plugin_loader import (
+    GENERATOR_GROUP,
+    build_format_registry,
+    load_generators,
+    load_local_generators,
+)
 from metadata_generator.engine.report import EngineReport
+from metadata_generator.interfaces.generator import GeneratorPlugin
 from metadata_generator.utils.exceptions import (
     ConfigValidationError,
     DocumentError,
     MetadataGeneratorError,
 )
 from metadata_generator.version import __version__
+from metadata_generator.watch.watcher import run_watch
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="Metadata Generator")
 config_app = typer.Typer(no_args_is_help=True, help="Конфигурация")
@@ -83,6 +89,13 @@ def _parse_variables(values: list[str] | None) -> dict[str, str]:
     return result
 
 
+def _load_generators(plugins: list[Path] | None) -> dict[str, GeneratorPlugin]:
+    generators = dict(load_generators())
+    if plugins:
+        generators.update(load_local_generators(plugins))
+    return generators
+
+
 def _print_report(
     report: EngineReport,
     *,
@@ -136,6 +149,7 @@ def _run_engine(
     models: list[Path] | None,
     config: Path | None,
     generator: list[str] | None,
+    plugins: list[Path] | None,
     output: Path | None,
     variables: list[str] | None,
     plan: bool,
@@ -170,6 +184,7 @@ def _run_engine(
         config_dir=config_dir,
         source_paths=models,
         variables=_parse_variables(variables),
+        generators=_load_generators(plugins),
     )
     if check:
         report = engine.check()
@@ -195,6 +210,7 @@ def generate(
     ] = None,
     config: ConfigOption = None,
     generator: GeneratorOption = None,
+    plugin: Annotated[list[Path] | None, typer.Option("--plugin")] = None,
     output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
     variable: Annotated[list[str] | None, typer.Option("--var")] = None,
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
@@ -218,6 +234,7 @@ def generate(
             models=models,
             config=config,
             generator=generator,
+            plugins=plugin,
             output=output,
             variables=variable,
             plan=plan or dry_run,
@@ -251,6 +268,83 @@ def init(
         encoding="utf-8",
     )
     typer.echo(f"created {path}")
+
+
+@app.command()
+def watch(
+    models: Annotated[
+        list[Path] | None, typer.Argument(help="Модели (по умолчанию sources)")
+    ] = None,
+    config: ConfigOption = None,
+    generator: GeneratorOption = None,
+    plugin: Annotated[list[Path] | None, typer.Option("--plugin")] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
+    variable: Annotated[list[str] | None, typer.Option("--var")] = None,
+    strict: Annotated[bool, typer.Option("--strict")] = False,
+    include_disabled: Annotated[bool, typer.Option("--include-disabled")] = False,
+    allow_outside_imports: Annotated[bool, typer.Option("--allow-outside-imports")] = False,
+    output_format: Annotated[str, typer.Option("--output-format")] = "text",
+    ignore: Annotated[str | None, typer.Option("--ignore")] = None,
+    quiet: Annotated[bool, typer.Option("--quiet", "-q")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
+    debounce: Annotated[int, typer.Option("--debounce")] = 300,
+) -> None:
+    """Watch-режим: перегенерация при изменении sources."""
+    try:
+        path = config or GeneratorRulesLoader.discover()
+        if path is None:
+            raise ConfigValidationError("не найден .mg.yaml; укажите --config")
+        path = path.resolve()
+        rules, config_dir = _load_rules(path)
+        rules = _filter_rules(rules, _selected_generators(generator))
+        generators = _load_generators(plugin)
+        output_root = (output or config_dir).resolve()
+        source_paths = [
+            item if item.is_absolute() else (config_dir / item).resolve()
+            for item in (models or [source.path for source in rules.sources])
+        ]
+        ignored_dirs = {(output_root / item.output_dir).resolve() for item in rules.generators}
+
+        def run_once() -> int:
+            current_rules, current_dir = _load_rules(path)
+            current_rules = _filter_rules(current_rules, _selected_generators(generator))
+            app_config = AppConfig(
+                rules_file=path,
+                output_root=output,
+                force=False,
+                include_disabled=include_disabled,
+                allow_outside_imports=allow_outside_imports,
+                quiet=quiet,
+                verbose=verbose,
+            )
+            engine = Engine(
+                app_config,
+                current_rules,
+                config_dir=current_dir,
+                source_paths=models,
+                variables=_parse_variables(variable),
+                generators=generators,
+            )
+            report = engine.generate()
+            return _print_report(
+                report,
+                output_format=output_format,
+                quiet=quiet,
+                verbose=verbose,
+                strict=strict,
+                ignore=ignore,
+            )
+
+        run_watch(
+            config_path=path,
+            source_paths=source_paths,
+            ignored_dirs=ignored_dirs,
+            debounce_ms=debounce,
+            run_once=run_once,
+        )
+    except (ConfigValidationError, DocumentError, MetadataGeneratorError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
 
 
 @config_app.command("show")
@@ -348,7 +442,7 @@ def gen_info(generator_id: str) -> None:
 @format_app.command("list")
 def format_list() -> None:
     """Список форматов."""
-    for item in FormatRegistry().list():
+    for item in build_format_registry().list():
         typer.echo(f"{item.name}\tversions={','.join(item.versions)}")
 
 

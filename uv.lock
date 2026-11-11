@@ -298,6 +298,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "watchdog" },
 ]
 watch = [
     { name = "watchdog" },
@@ -316,6 +317,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0" },
     { name = "typer", specifier = ">=0.12.0" },
     { name = "typing-extensions", specifier = ">=4.10.0" },
+    { name = "watchdog", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "watchdog", marker = "extra == 'watch'", specifier = ">=4.0.0" },
 ]
 provides-extras = ["watch", "dev"]

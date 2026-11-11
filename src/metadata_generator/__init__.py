@@ -27,6 +27,7 @@ from metadata_generator.core.model import (
 )
 from metadata_generator.core.naming import NamingStyle, transform
 from metadata_generator.core.parser import Parser, normalize_version
+from metadata_generator.core.provenance import Provenance, git_provenance
 from metadata_generator.core.slicing import select_slice
 from metadata_generator.core.validator import validate_document, validate_entity_model
 from metadata_generator.engine.engine import Engine
@@ -99,10 +100,12 @@ __all__ = [
     "ModelSlice",
     "NamingStyle",
     "Parser",
+    "Provenance",
     "SourceConfig",
     "SourceModel",
     "UnknownFormatError",
     "__version__",
+    "git_provenance",
     "normalize_version",
     "select_slice",
     "transform",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -113,3 +114,41 @@ def test_generate_with_reference_plugin(tmp_path: Path, monkeypatch: pytest.Monk
     assert result.exit_code == 0
     assert (tmp_path / "out" / "model.json").is_file()
     assert (tmp_path / "out" / ".mg" / "manifests" / "reference.json").is_file()
+
+
+def test_generate_json(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--output-format", "json"])
+    assert result.exit_code == 0
+    report = json.loads(result.stdout)
+    assert report["report_version"] == 1
+    assert report["success"] is True
+
+
+def test_generate_with_local_plugin(tmp_path: Path) -> None:
+    model, rules = project(tmp_path)
+    plugin = tmp_path / "local_plugin.py"
+    plugin.write_text(
+        """\
+from metadata_generator import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
+
+class Local(GeneratorPlugin):
+    id = "local"
+    name = "Local"
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult(artifacts=[Artifact(path="local.txt", content="local\\n")])
+""",
+        encoding="utf-8",
+    )
+    rules.write_text(
+        RULES.replace(
+            "generators: []",
+            "generators:\n  - id: local\n    output_dir: ./out",
+        ),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--plugin", str(plugin)])
+    assert result.exit_code == 0
+    assert (tmp_path / "out" / "local.txt").read_text(encoding="utf-8") == "local\n"
+    assert model.is_file()

@@ -20,13 +20,14 @@ from metadata_generator.core.slicing import select_slice
 from metadata_generator.core.validator import validate_entity_model
 from metadata_generator.engine.artifact_writer import ArtifactWriter, ExecutionPlan
 from metadata_generator.engine.format_registry import FormatRegistry
-from metadata_generator.engine.plugin_loader import load_generators
+from metadata_generator.engine.plugin_loader import build_format_registry, load_generators
 from metadata_generator.engine.report import (
     ArtifactReport,
     EngineReport,
     GeneratorReport,
 )
 from metadata_generator.interfaces.diagnostics import Diagnostic, error, warning
+from metadata_generator.interfaces.formats import EntityModelFormat
 from metadata_generator.interfaces.generator import (
     GenerationContext,
     GenerationResult,
@@ -66,7 +67,7 @@ class Engine:
         self.config = config
         self.rules = rules
         self.config_dir = (config_dir or Path.cwd()).resolve()
-        self.registry = formats or FormatRegistry()
+        self.registry = formats or build_format_registry()
         self.parser = Parser(self.registry)
         self.generators = dict(generators) if generators is not None else load_generators()
         self.source_paths = source_paths
@@ -98,7 +99,13 @@ class Engine:
         if self.rules.diagnostics.stale_dates:
             diagnostics.extend(_stale_date_diagnostics(result.documents))
         model = result.model
-        diagnostics.extend(validate_entity_model(model))
+        format_plugin = self.registry.get(result.format)
+        diagnostics.extend(
+            validate_entity_model(model, primitive_types=format_plugin.primitive_types)
+        )
+        if not isinstance(format_plugin, EntityModelFormat):
+            for document in result.documents:
+                diagnostics.extend(format_plugin.validate(document))
         if _has_errors(diagnostics):
             return self._report(False, 1, diagnostics, [], started)
 

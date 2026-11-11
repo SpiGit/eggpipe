@@ -19,6 +19,8 @@
   project-root boundary и `--allow-outside-imports`.
 - Cleanup owned-артефактов (`off|prompt|enabled`), `--clean`, MG050.
 - `sources[].input` и MG014 (`updated_at`).
+- v0.3: format-плагины из entry points, `mg watch`, JSON-отчёт, provenance-утилита,
+  `--plugin` для локальной разработки.
 - Каталог диагностик `docs/reference/diagnostics.md`.
 - ТЗ v1.2: модель `ModelDocument` → `SourceModel` → `ModelSlice`, контракты плагинов,
   ownership/manifest, CLI и диагностики.
