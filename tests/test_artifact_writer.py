@@ -129,6 +129,19 @@ def test_lock(tmp_path: Path) -> None:
         pass
 
 
+def test_symlink_escape_is_rejected(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    outside = tmp_path / "outside"
+    output.mkdir()
+    outside.mkdir()
+    try:
+        (output / "link").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink недоступен на платформе")
+    plan = plan_for(output, Artifact(path="link/escape.txt", content="x"))
+    assert plan.diagnostics[0].code == "MG040"
+
+
 def test_cleanup_off_keeps_stale_entries(tmp_path: Path) -> None:
     output = tmp_path / "out"
     write(output, plan_for(output, Artifact(path="old.txt", content="old")))

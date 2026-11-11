@@ -32,6 +32,7 @@ def run_watch(
     ignored_dirs: set[Path],
     debounce_ms: int,
     run_once: Callable[[], int],
+    stop_event: threading.Event | None = None,
 ) -> int:
     try:
         from watchdog.events import FileSystemEventHandler
@@ -81,9 +82,12 @@ def run_watch(
     observer.start()
     try:
         while observer.is_alive():
-            time.sleep(0.2)
+            if stop_event is not None and stop_event.is_set():
+                break
+            time.sleep(0.05)
     except KeyboardInterrupt:
-        observer.stop()
+        pass
+    observer.stop()
     observer.join()
     return 0
 
