@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-11
+
 ### Added
 
 - Ядро v0.1, первый слой: `ModelDocument`/`SourceModel`/`ModelSlice`, `FieldDef`, `EnumDef`,
@@ -13,7 +15,7 @@
 - Writer: ownership, per-generator manifest, atomic write, lock, `--plan`/`--check`.
 - `Engine` (`build()`/`generate()`/`check()`), `GeneratorPlugin` и контракты генераторов.
 - CLI `mg`: `generate`, `init`, `config show/validate`, `model validate`, `gen list/info`,
-  `format list`, `clean` (placeholder до v0.2).
+  `format list`, `clean`.
 - Reference-плагин `examples/reference-generator` и golden-тест.
 - v0.2: composition — `imports`, `entity.extends`, discovery каталогов, merge по ADR-0001,
   project-root boundary и `--allow-outside-imports`.
@@ -30,6 +32,7 @@
 - Provenance на уровне entity: `Entity.source` заполняется парсером, исключён из сериализации;
   `git_provenance()` доступен плагинам.
 - Docs-site: `mkdocs.yml`, `docs/index.md`, сборка `mkdocs build --strict` в CI.
+- Property-based тесты (Hypothesis) для парсера и round-trip; determinism-тест повторной генерации.
 - Backlog P1/P2: `mg model schema`, `mg config schema`, единая точка logging,
   интерактивный `mg clean --yes`, устойчивый plugin loader с issues, флаги watch.
 - Каталог диагностик `docs/reference/diagnostics.md`.

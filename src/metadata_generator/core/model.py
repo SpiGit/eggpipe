@@ -76,6 +76,22 @@ class FieldDef(BaseModel):
         # UNSET не сериализуется в JSON как значение; ключ удаляется model_serializer.
         return None if value is UNSET else value
 
+    @model_validator(mode="after")
+    def _coerce_temporal_default(self) -> FieldDef:
+        if self.type == "date" and isinstance(self.default, str):
+            try:
+                return self.model_copy(update={"default": date.fromisoformat(self.default)})
+            except ValueError:
+                return self
+        if self.type == "datetime" and isinstance(self.default, str):
+            try:
+                return self.model_copy(
+                    update={"default": datetime.fromisoformat(self.default.replace("Z", "+00:00"))}
+                )
+            except ValueError:
+                return self
+        return self
+
     @model_serializer(mode="wrap")
     def _serialize(self, handler: Callable[[Any], dict[str, Any]]) -> dict[str, Any]:
         data = handler(self)

@@ -9,6 +9,7 @@
 - [ADR](adr/index.md) — принятые архитектурные решения.
 - [Руководство по плагинам](plugin-guide.md) — генераторы и форматы.
 - [Каталог диагностик](reference/diagnostics.md) — коды MGxxx.
+- [Релиз](release.md) — чек-лист и публикация.
 - [Ревью проекта](reviews/2026-11-10-project-review.md) — P0/P1/P2 backlog.
 
 ## Быстрый старт

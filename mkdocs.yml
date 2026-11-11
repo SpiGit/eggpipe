@@ -25,6 +25,7 @@ nav:
       - 0006 — format extension: adr/0006-format-extension.md
   - Плагины: plugin-guide.md
   - Диагностики: reference/diagnostics.md
+  - Релиз: release.md
   - Ревью: reviews/2026-11-10-project-review.md
 
 markdown_extensions:

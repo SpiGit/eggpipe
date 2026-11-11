@@ -176,6 +176,7 @@ uv run python tools/check_docs.py --strict
 - [Changelog](./CHANGELOG.md)
 - [Каталог диагностик](./docs/reference/diagnostics.md)
 - [Руководство по плагинам](./docs/plugin-guide.md)
+- [Релиз](./docs/release.md)
 - [Reference generator](./examples/reference-generator/README.md)
 
 ## Лицензия

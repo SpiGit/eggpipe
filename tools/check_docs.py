@@ -66,6 +66,7 @@ REQUIRED_FILES = (
     "docs/index.md",
     "docs/reference/diagnostics.md",
     "docs/plugin-guide.md",
+    "docs/release.md",
     "mkdocs.yml",
     ".opencode/agents/spec-reviewer.md",
     ".opencode/commands/spec-check.md",
