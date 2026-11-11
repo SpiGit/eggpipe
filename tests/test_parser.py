@@ -43,12 +43,15 @@ def code(path: Path) -> str:
 
 
 def test_parse_valid_document(tmp_path: Path) -> None:
-    document = Parser().parse_document(write(tmp_path, VALID))
+    path = write(tmp_path, VALID)
+    document = Parser().parse_document(path)
     assert document.format == "entity-model"
     assert document.version == "1.0"
     assert document.model.name == "Demo"
     assert document.model.entity("User").fields[0].default is UNSET
     assert document.model.entity("User").fields[1].default is UNSET
+    assert document.model.entity("User").source == path
+    assert "source" not in document.model.entity("User").model_dump()
 
 
 def test_numeric_version_is_normalized(tmp_path: Path) -> None:

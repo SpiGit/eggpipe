@@ -98,6 +98,20 @@ sql-model = "my_package.formats:SqlModelFormat"
 - `sources` — пути source-документов;
 - `format`, `format_version`, `run_id`, `config_dir`.
 
+## Provenance
+
+`Entity.source` содержит путь к документу, из которого пришла сущность (заполняется парсером,
+исключён из `model_dump`/JSON Schema). Для git-метаданных используйте:
+
+```python
+from metadata_generator import git_provenance
+
+provenance = git_provenance(entity.source) if entity.source else None
+```
+
+`git_provenance` возвращает commit hash и дату последнего коммита файла. Значения не попадают
+в артефакты автоматически — это решение генератора.
+
 ## Версионирование
 
 `api_version` повышается только при breaking change контракта. Несовместимый плагин не ломает

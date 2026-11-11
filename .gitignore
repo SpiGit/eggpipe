@@ -49,6 +49,9 @@ MANIFEST
 # Logs
 *.log
 
+# Docs site
+site/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -27,6 +27,9 @@
   ADR-0006 (format extension) и индекс ADR.
 - `UNSET` больше не сериализуется как `default: null` — ключ опускается.
 - `on_conflict: error` теперь даёт MG041 для любого существующего файла; `mg clean` берёт lock.
+- Provenance на уровне entity: `Entity.source` заполняется парсером, исключён из сериализации;
+  `git_provenance()` доступен плагинам.
+- Docs-site: `mkdocs.yml`, `docs/index.md`, сборка `mkdocs build --strict` в CI.
 - Backlog P1/P2: `mg model schema`, `mg config schema`, единая точка logging,
   интерактивный `mg clean --yes`, устойчивый plugin loader с issues, флаги watch.
 - Каталог диагностик `docs/reference/diagnostics.md`.

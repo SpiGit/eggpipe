@@ -83,3 +83,26 @@ jobs:
 
       - name: Verify artifacts
         run: uv run python tools/check_wheel.py dist
+
+  docs-site:
+    name: Build documentation site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --frozen --extra dev
+
+      - name: Build docs
+        run: uv run mkdocs build --strict

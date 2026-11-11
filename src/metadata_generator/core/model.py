@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
 from pydantic import (
@@ -102,6 +103,7 @@ class Entity(BaseModel):
     extends: str | ExtendsRef | None = None
     fields: tuple[FieldDef, ...] = ()
     metadata: dict[str, Any] = Field(default_factory=dict)
+    source: Path | None = Field(default=None, exclude=True, repr=False)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 

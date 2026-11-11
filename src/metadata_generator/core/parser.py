@@ -7,6 +7,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from metadata_generator.core.document import ModelDocument
+from metadata_generator.core.model import SourceModel
 from metadata_generator.engine.format_registry import FormatRegistry
 from metadata_generator.utils.exceptions import (
     DocumentError,
@@ -66,7 +67,17 @@ class Parser:
             raise
         except ValidationError as exc:
             raise DocumentError("MG028", path, str(exc)) from exc
-        return document.model_copy(update={"path": path})
+        model = SourceModel(
+            name=document.model.name,
+            description=document.model.description,
+            metadata=document.model.metadata,
+            entities=tuple(
+                entity.model_copy(update={"source": path}) for entity in document.model.entities
+            ),
+            enums=document.model.enums,
+            types=document.model.types,
+        )
+        return document.model_copy(update={"path": path, "model": model})
 
 
 __all__ = ["Parser", "normalize_version"]

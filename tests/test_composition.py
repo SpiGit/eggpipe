@@ -66,6 +66,8 @@ def test_imports_merge_and_extends(tmp_path: Path) -> None:
     assert [field.name for field in post.fields] == ["id", "created_at", "title"]
     assert post.fields[0].type == "string"
     assert post.extends is None
+    assert post.source == main
+    assert result.model.entity("Audit").source == tmp_path / "base.yaml"
     assert result.model.entity("Audit").fields[0].type == "integer"
 
 
