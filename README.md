@@ -120,6 +120,12 @@ mg gen list
 
 ## Документация
 
+Проверка согласованности документации:
+
+```bash
+python tools/check_docs.py --strict
+```
+
 - [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.2
 - [System Design](./docs/system-design/index.md)
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
