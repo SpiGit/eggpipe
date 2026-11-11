@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+from dataclasses import dataclass
 from importlib.metadata import entry_points
 from pathlib import Path
 
@@ -15,23 +16,51 @@ GENERATOR_GROUP = "metadata_generator.generators"
 FORMAT_GROUP = "metadata_generator.formats"
 
 
-def load_generators() -> dict[str, GeneratorPlugin]:
+@dataclass(frozen=True)
+class PluginIssue:
+    entry_point: str
+    message: str
+
+
+def load_generators_with_issues() -> tuple[dict[str, GeneratorPlugin], list[PluginIssue]]:
     result: dict[str, GeneratorPlugin] = {}
-    for entry_point in entry_points(group=GENERATOR_GROUP):
+    issues: list[PluginIssue] = []
+    entries = sorted(entry_points(group=GENERATOR_GROUP), key=lambda item: item.name)
+    for entry_point in entries:
         try:
             loaded = entry_point.load()
             plugin = loaded() if isinstance(loaded, type) else loaded
-        except Exception:
+        except Exception as exc:
+            issues.append(PluginIssue(entry_point.name, f"не удалось загрузить: {exc}"))
             continue
         if not isinstance(plugin, GeneratorPlugin):
+            issues.append(PluginIssue(entry_point.name, "не является GeneratorPlugin"))
             continue
         if plugin.api_version != "1":
+            issues.append(
+                PluginIssue(
+                    entry_point.name,
+                    f"несовместимый api_version: {plugin.api_version}",
+                )
+            )
             continue
-        config_id = plugin.id
-        if entry_point.name != config_id:
+        if entry_point.name != plugin.id:
+            issues.append(
+                PluginIssue(
+                    entry_point.name,
+                    f"id плагина {plugin.id!r} не совпадает с entry point",
+                )
+            )
             continue
-        result[config_id] = plugin
-    return result
+        if plugin.id in result:
+            issues.append(PluginIssue(entry_point.name, f"дубликат id генератора: {plugin.id}"))
+            continue
+        result[plugin.id] = plugin
+    return result, issues
+
+
+def load_generators() -> dict[str, GeneratorPlugin]:
+    return load_generators_with_issues()[0]
 
 
 def load_formats() -> list[FormatPlugin]:
@@ -84,8 +113,10 @@ def load_local_generators(paths: list[Path]) -> dict[str, GeneratorPlugin]:
 __all__ = [
     "FORMAT_GROUP",
     "GENERATOR_GROUP",
+    "PluginIssue",
     "build_format_registry",
     "load_formats",
     "load_generators",
+    "load_generators_with_issues",
     "load_local_generators",
 ]

@@ -67,6 +67,22 @@ def test_load_generators(monkeypatch: pytest.MonkeyPatch) -> None:
     assert set(plugin_loader.load_generators()) == {"demo"}
 
 
+def test_generator_issues(monkeypatch: pytest.MonkeyPatch) -> None:
+    entries = [
+        EntryPoint("demo", DemoGenerator),
+        EntryPoint("wrong-name", DemoGenerator),
+        EntryPoint("broken", BrokenGenerator),
+    ]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    plugins, issues = plugin_loader.load_generators_with_issues()
+    assert set(plugins) == {"demo"}
+    assert {item.entry_point for item in issues} == {"wrong-name", "broken"}
+
+
 def test_load_formats_and_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_entry_points(*, group: str) -> list[EntryPoint]:
         if group == plugin_loader.FORMAT_GROUP:

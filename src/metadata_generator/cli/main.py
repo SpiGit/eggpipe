@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import warnings
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -10,6 +12,8 @@ import typer
 
 from metadata_generator.config.app_config import AppConfig
 from metadata_generator.config.generator_rules import GeneratorRules, GeneratorRulesLoader
+from metadata_generator.config.logging import setup_logging
+from metadata_generator.core.document import ModelDocument
 from metadata_generator.core.parser import Parser
 from metadata_generator.core.validator import validate_document
 from metadata_generator.engine.artifact_writer import ArtifactWriter
@@ -18,6 +22,7 @@ from metadata_generator.engine.plugin_loader import (
     GENERATOR_GROUP,
     build_format_registry,
     load_generators,
+    load_generators_with_issues,
     load_local_generators,
 )
 from metadata_generator.engine.report import EngineReport
@@ -178,6 +183,7 @@ def _run_engine(
         quiet=quiet,
         verbose=verbose,
     )
+    setup_logging(app_config)
     engine = Engine(
         app_config,
         rules,
@@ -286,13 +292,16 @@ def watch(
     strict: Annotated[bool, typer.Option("--strict")] = False,
     include_disabled: Annotated[bool, typer.Option("--include-disabled")] = False,
     allow_outside_imports: Annotated[bool, typer.Option("--allow-outside-imports")] = False,
+    force: Annotated[bool, typer.Option("--force")] = False,
     output_format: Annotated[str, typer.Option("--output-format")] = "text",
     ignore: Annotated[str | None, typer.Option("--ignore")] = None,
     quiet: Annotated[bool, typer.Option("--quiet", "-q")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
+    no_color: Annotated[bool, typer.Option("--no-color")] = False,
     debounce: Annotated[int, typer.Option("--debounce")] = 300,
 ) -> None:
     """Watch-режим: перегенерация при изменении sources."""
+    del no_color
     try:
         path = config or GeneratorRulesLoader.discover()
         if path is None:
@@ -314,12 +323,13 @@ def watch(
             app_config = AppConfig(
                 rules_file=path,
                 output_root=output,
-                force=False,
+                force=force,
                 include_disabled=include_disabled,
                 allow_outside_imports=allow_outside_imports,
                 quiet=quiet,
                 verbose=verbose,
             )
+            setup_logging(app_config)
             engine = Engine(
                 app_config,
                 current_rules,
@@ -381,6 +391,30 @@ def config_validate(config: ConfigOption = None) -> None:
     typer.echo("OK")
 
 
+@config_app.command("schema")
+def config_schema(
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+) -> None:
+    """Вывести JSON Schema .mg.yaml."""
+    _print_schema(_safe_schema(GeneratorRules), output)
+
+
+def _safe_schema(model: type[Any]) -> dict[str, Any]:
+    # UNSET не является JSON-значением; default исключается из схемы.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return model.model_json_schema()
+
+
+def _print_schema(schema: dict[str, Any], output: Path | None) -> None:
+    text = json.dumps(schema, ensure_ascii=False, indent=2)
+    if output is not None:
+        output.write_text(text + "\n", encoding="utf-8")
+        typer.echo(str(output))
+    else:
+        typer.echo(text)
+
+
 def _redact(values: dict[str, str]) -> dict[str, str]:
     secret_markers = ("token", "secret", "password")
     return {
@@ -418,13 +452,23 @@ def model_validate(
     raise typer.Exit(code=0 if not any(item.level == "error" for item in diagnostics) else 1)
 
 
+@model_app.command("schema")
+def model_schema(
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+) -> None:
+    """Вывести JSON Schema документа модели."""
+    _print_schema(_safe_schema(ModelDocument), output)
+
+
 @gen_app.command("list")
 def gen_list(
     show_all: Annotated[bool, typer.Option("--all")] = False,
 ) -> None:
     """Список генераторов из entry points."""
     del show_all
-    plugins = load_generators()
+    plugins, issues = load_generators_with_issues()
+    for issue in issues:
+        typer.echo(f"warning: {issue.entry_point}: {issue.message}", err=True)
     if not plugins:
         typer.echo("no generators")
         return
@@ -460,12 +504,17 @@ def clean(
     yes: Annotated[bool, typer.Option("--yes")] = False,
 ) -> None:
     """Удалить unchanged owned-артефакты из manifest."""
-    del yes
     try:
         rules, config_dir = _load_rules(config)
     except MetadataGeneratorError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
+    if not dry_run and not yes:
+        if not sys.stdin.isatty():
+            typer.echo("error: в non-tty нужен --yes", err=True)
+            raise typer.Exit(code=2)
+        if not typer.confirm("Удалить unchanged owned-артефакты?"):
+            return
     writer = ArtifactWriter(mg_version=__version__)
     base = (output or config_dir).resolve()
     removed = 0

@@ -118,6 +118,14 @@ mg watch model.yaml
 pip install -e ./plugins/my-generator
 mg gen list
 
+# JSON Schema
+mg model schema
+mg config schema
+
+# Очистка owned-артефактов
+mg clean --dry-run
+mg clean --yes
+
 # Локальный плагин без установки (v0.3)
 mg generate --plugin ./my_plugin.py
 ```

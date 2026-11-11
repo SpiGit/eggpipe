@@ -89,6 +89,26 @@ def test_missing_config(tmp_path: Path) -> None:
     assert result.exit_code == 2
 
 
+def test_model_schema() -> None:
+    result = CliRunner().invoke(app, ["model", "schema"])
+    assert result.exit_code == 0
+    schema = json.loads(result.stdout)
+    assert schema["title"] == "ModelDocument"
+
+
+def test_config_schema() -> None:
+    result = CliRunner().invoke(app, ["config", "schema"])
+    assert result.exit_code == 0
+    schema = json.loads(result.stdout)
+    assert schema["title"] == "GeneratorRules"
+
+
+def test_clean_requires_yes_in_non_tty(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    result = CliRunner().invoke(app, ["clean", "-c", str(rules)])
+    assert result.exit_code == 2
+
+
 class EntryPoint:
     def __init__(self, name: str, value: type[GeneratorPlugin]) -> None:
         self.name = name
