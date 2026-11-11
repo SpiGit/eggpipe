@@ -157,6 +157,7 @@ uv run python tools/check_docs.py --strict
 - [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)
+- [Каталог диагностик](./docs/reference/diagnostics.md)
 
 ## Лицензия
 
@@ -164,4 +165,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** проектирование (draft) — следующий шаг: разработка ядра v0.1 (см. Roadmap в ТЗ v1.2 §13).
+**Стадия:** ядро v0.1 — реализованы модели, YAML-парсер, `entity-model`, валидатор, срезы и naming.
+Следующие слои: writer/manifest/lock, `Engine`, CLI и reference-плагин.

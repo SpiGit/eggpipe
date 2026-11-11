@@ -7,6 +7,10 @@
 
 ### Added
 
+- Ядро v0.1, первый слой: `ModelDocument`/`SourceModel`/`ModelSlice`, `FieldDef`, `EnumDef`,
+  `CustomType`, `UNSET`, YAML-парсер на `ruamel.yaml`, формат `entity-model`, семантический
+  валидатор, срезы с замыканием по enums/types и naming-утилиты.
+- Каталог диагностик `docs/reference/diagnostics.md`.
 - ТЗ v1.2: модель `ModelDocument` → `SourceModel` → `ModelSlice`, контракты плагинов,
   ownership/manifest, CLI и диагностики.
 - System Design v1.2 и ADR-0001 (семантика композиции).

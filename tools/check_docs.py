@@ -58,6 +58,7 @@ REQUIRED_FILES = (
     "docs/system-design/index.md",
     "docs/adr/0001-composition-merge-semantics.md",
     "docs/adr/0002-type-checker-pyrefly.md",
+    "docs/reference/diagnostics.md",
     ".opencode/agents/spec-reviewer.md",
     ".opencode/commands/spec-check.md",
     ".opencode/commands/spec-release.md",
