@@ -1,0 +1,43 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "docs/requirements/index.md"
+  ],
+  "permissions": [
+    {
+      "action": "edit",
+      "resource": "*requirements/v1.0.md",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*requirements/v1.1.md",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git commit *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git reset --hard *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git clean *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git restore *",
+      "effect": "ask"
+    }
+  ]
+}

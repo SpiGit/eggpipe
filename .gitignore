@@ -4,21 +4,11 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# Build artifacts
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
 
 # Virtual environments
 venv/
@@ -32,20 +22,33 @@ ENV/
 *.swo
 
 # Output (сгенерированные файлы)
-output*/
+/output/
+/outputs/
 
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 .tox/
 .nox/
+.hypothesis/
 
 # Distribution
 MANIFEST
 
-# MyPy
+# Type checking / linting
 .mypy_cache/
-
-# uv
 .ruff_cache/
+.pyright/
+
+# metadata-generator runtime (lock, manifests)
+.mg/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
