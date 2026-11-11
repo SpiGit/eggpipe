@@ -2,15 +2,53 @@
 
 | Версия | Дата | Статус | Файл |
 |--------|------|--------|------|
-| 1.1 | 2026-11-10 | **Актуальная** | [v1.1](./v1.1.md) |
+| 1.2 | 2026-11-11 | **Актуальная** | [v1.2](./v1.2.md) |
+| 1.1 | 2026-11-10 | Замещена | [v1.1](./v1.1.md) |
 | 1.0 | 2025-11-03 | Замещена | [v1.0](./v1.0.md) |
 
 ## Структура требований
 
-- [v1.1](./v1.1.md) — рабочая версия (результат ревью v1.0)
+- [v1.2](./v1.2.md) — рабочая версия (результат ревью v1.1, P0-исправления)
+- [v1.1](./v1.1.md) — предыдущая рабочая версия (история)
 - [v1.0](./v1.0.md) — первая рабочая версия (история)
 
 ## Changelog
+
+### v1.2 (2026-11-11)
+
+Результат ревью v1.1 и внесения P0-исправлений (см. [review](../reviews/2026-11-10-project-review.md)). Ключевые изменения:
+
+- **Модель данных:**
+  - Явные этапы `ModelDocument` → `SourceModel` → `ModelSlice`; `imports` поднимаются на уровень документа
+  - `metadata` доступен у entity/field/enum/type/source; `constraints` описаны у поля
+  - `default` использует sentinel `UNSET`: отсутствие ключа отличается от `default: null`
+  - Null-matrix расширена до 12 комбинаций; `required=false, nullable=false, default` не задан — валидное состояние
+  - `extends` получил явную форму `{import, entity}`; разрешён только внутри import-closure своего документа
+  - Удалён `required_by_default`
+- **Форматы:**
+  - `format` и `version` обязательны; неизвестный формат/версия — ошибка без «тихого» default
+  - Один запуск — один формат; импортируемые документы обязаны иметь тот же формат
+  - Формат-плагин объявляет `primitive_types`, `supported_versions` и хуки через `EntityModelFormat`
+- **Композиция и срезы:**
+  - Discovery-правила для каталогов `sources`; project-root boundary для импортов + `--allow-outside-imports`
+  - Финальный срез = пересечение `sources[].input` ∩ `generators[].input` + транзитивное замыкание по enums/types
+  - Дубликаты resolved-путей обрабатываются один раз (Warning MG024)
+- **Плагины:**
+  - Структурированные `Diagnostic` вместо строк; `ClassVar`-контракты; ошибки генератора отбрасывают его артефакты
+  - Публичный API расширен: `Engine`, `EngineReport`, `Diagnostic`, `ModelSlice`, `FieldDef`, `EnumDef`, `AppConfig`, `GeneratorRulesLoader`, `FormatRegistry`
+  - `Field`/`Enum` переименованы в `FieldDef`/`EnumDef`
+- **Запись артефактов:**
+  - Полные правила валидации путей (POSIX, NFC, reserved names, symlink, case-collisions)
+  - Ownership: перезапись/удаление только owned-файлов; для чужих — `--force`
+  - Per-generator manifest `output_dir/.mg/manifests/<id>.json`
+  - `cleanup` по умолчанию `off`; удаляются только неизменённые owned-файлы
+  - Lock `.mg/lock`; `--plan`, `--check` без побочных эффектов
+- **CLI:**
+  - Новые команды: `mg clean`, `mg gen info`, `mg format list`
+  - Новые флаги: `--plan`, `--check`, `--force`, `--yes`, `--include-disabled`, `--allow-outside-imports`
+  - `--format` переименован в `--output-format`; exit code 130 при Ctrl+C
+- **Парсинг:** `ruamel.yaml` (YAML 1.2), duplicate keys — ошибка
+- **Качество:** расширены тесты (contract/security/determinism/cleanup/concurrency), benchmark-методика, CI-матрица 3.11/3.12
 
 ### v1.1 (2026-11-10)
 

@@ -33,12 +33,20 @@ mg watch model.yaml
 ### Как библиотека
 
 ```python
-from metadata_generator import Engine, AppConfig
+from metadata_generator import Engine, AppConfig, GeneratorRulesLoader
 
-# Programmatic API (детали — в System Design §2)
+rules = GeneratorRulesLoader().load(".mg.yaml")
 engine = Engine(AppConfig(), rules)
-results = engine.generate()
+
+report = engine.build()        # парсинг/валидация/генерация без записи
+report = engine.generate()     # build + запись артефактов
+
+if not report.success:
+    for d in report.diagnostics:
+        print(d.code, d.message)
 ```
+
+`Engine` не вызывает `sys.exit`, не настраивает root-logger и не пишет файлы в `build()` — это обычная библиотека. Детали — System Design §2.8.
 
 ### Как библиотека + CLI (рекомендуемый сценарий)
 
@@ -58,14 +66,12 @@ results = engine.generate()
 
    class MyProjectGenerator(GeneratorPlugin):
        api_version = "1"
-
-       @property
-       def id(self) -> str:
-           return "my-project-generator"
+       id = "my-project-generator"
+       name = "My Project Generator"
 
        def generate(self, input: GeneratorInput) -> GenerationResult:
-           # input.model — цельный срез модели (entities/enums/types)
-           # input.context — vars, naming-fit, импортированные файлы
+           # input.model — замкнутый срез модели (ModelSlice: entities/enums/types)
+           # input.context — variables, naming_hint, format, импортированные файлы
            # input.config — блок этого генератора из .mg.yaml
            return GenerationResult(artifacts=[
                Artifact(path="user.py", content=render(input.model.entities...))
@@ -93,11 +99,16 @@ results = engine.generate()
 # Установка (после реализации)
 pip install metadata-generator
 
+# Для watch-режима
+pip install "metadata-generator[watch]"
+
 # Инициализация конфигурации
 mg init
 
 # Генерация
 mg generate model.yaml
+mg generate --plan            # посмотреть план без записи
+mg generate --check           # проверить актуальность (CI)
 
 # Режим watch
 mg watch model.yaml
@@ -109,10 +120,11 @@ mg gen list
 
 ## Документация
 
-- [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.1
+- [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.2
 - [System Design](./docs/system-design/index.md)
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
+- [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
 
 ## Статус
 
-**Стадия:** проектирование (draft) — следующий шаг: разработка ядра v0.1 (см. Roadmap в ТЗ v1.1 §13).
+**Стадия:** проектирование (draft) — следующий шаг: разработка ядра v0.1 (см. Roadmap в ТЗ v1.2 §13).
