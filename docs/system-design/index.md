@@ -1,8 +1,8 @@
 # System Design — Metadata Generator
 
-> Документ реализации для проекта metadata-generator. Соответствует [ТЗ v1.2](../requirements/v1.2.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md).
+> Документ реализации для проекта metadata-generator. Соответствует [ТЗ v1.3](../requirements/v1.3.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md).
 
-*Версия документа: 1.2. Дата: 2026-11-11.*
+*Версия документа: 1.3. Дата: 2026-11-11.*
 
 ---
 
@@ -483,7 +483,7 @@ class GeneratorRules(BaseModel):
 
 Нейминг: `GeneratorRulesLoader` (не `BusinessConfigLoader`), файл `config/generator_rules.py`.
 
-### 3.3 Преимущества Pydantic (с охватом v1.2)
+### 3.3 Преимущества Pydantic (с охватом v1.3)
 
 | Возможность | Как |
 |-------------|-----|
@@ -1225,7 +1225,7 @@ metadata-generator/
 │   │   └── test_golden.py
 │   └── conftest.py
 ├── docs/
-│   ├── requirements/                # ТЗ (index, v1.0, v1.1, v1.2)
+│   ├── requirements/                # ТЗ (index, v1.0, v1.1, v1.2, v1.3)
 │   ├── system-design/
 │   ├── reviews/
 │   ├── adr/                         # 0001-composition-merge-semantics.md
@@ -1245,7 +1245,7 @@ metadata-generator/
 
 ---
 
-## 11. Тестирование (охват v1.2)
+## 11. Тестирование (охват v1.3)
 
 ### 11.1 Приоритеты
 
@@ -1375,7 +1375,7 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v1.2, сводка)
+## 13. Проектировочные решения (v1.3, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|

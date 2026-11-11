@@ -35,6 +35,8 @@
 - Property-based тесты (Hypothesis) для парсера и round-trip; determinism-тест повторной генерации.
 - Backlog P1/P2: `mg model schema`, `mg config schema`, единая точка logging,
   интерактивный `mg clean --yes`, устойчивый plugin loader с issues, флаги watch.
+- ТЗ v1.3: зарегистрированы MG030/MG300, диапазоны кодов и публичный API синхронизированы
+  с реализацией; `Entity.source` и fallback `cleanup: prompt`.
 - Каталог диагностик `docs/reference/diagnostics.md`.
 - ТЗ v1.2: модель `ModelDocument` → `SourceModel` → `ModelSlice`, контракты плагинов,
   ownership/manifest, CLI и диагностики.

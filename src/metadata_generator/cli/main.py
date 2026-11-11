@@ -13,6 +13,7 @@ import typer
 from metadata_generator.config.app_config import AppConfig
 from metadata_generator.config.generator_rules import GeneratorRules, GeneratorRulesLoader
 from metadata_generator.config.logging import setup_logging
+from metadata_generator.core.discovery import discover_sources
 from metadata_generator.core.document import ModelDocument
 from metadata_generator.core.parser import Parser
 from metadata_generator.core.validator import validate_document
@@ -109,6 +110,7 @@ def _print_report(
     verbose: bool,
     strict: bool,
     ignore: str | None,
+    json_lines: bool = False,
 ) -> int:
     ignored = {item.strip() for item in (ignore or "").split(",") if item.strip()}
     diagnostics = [item for item in report.diagnostics if item.code not in ignored]
@@ -125,7 +127,11 @@ def _print_report(
     )
 
     if output_format == "json":
-        typer.echo(json.dumps(report.model_dump(mode="json"), ensure_ascii=False, indent=2))
+        payload = report.model_dump(mode="json")
+        if json_lines:
+            typer.echo(json.dumps(payload, ensure_ascii=False))
+        else:
+            typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
         return exit_code
 
     for item in diagnostics:
@@ -346,6 +352,7 @@ def watch(
                 verbose=verbose,
                 strict=strict,
                 ignore=ignore,
+                json_lines=True,
             )
 
         run_watch(
@@ -366,17 +373,33 @@ def watch(
 @config_app.command("show")
 def config_show(
     config: ConfigOption = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
     show_secrets: Annotated[bool, typer.Option("--show-secrets")] = False,
 ) -> None:
-    """Показать merged config."""
+    """Показать merged config и resolved paths."""
     try:
-        rules, _ = _load_rules(config)
+        rules, config_dir = _load_rules(config)
     except MetadataGeneratorError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
     data = rules.model_dump(mode="json")
     if not show_secrets:
         data["variables"] = _redact(data.get("variables", {}))
+    discovered = discover_sources(rules, config_dir)
+    base = (output or config_dir).resolve()
+    data["resolved"] = {
+        "config_dir": str(config_dir),
+        "sources": [str(path) for path in discovered.paths],
+        "source_diagnostics": [item.model_dump(mode="json") for item in discovered.diagnostics],
+        "output_root": str(base),
+        "generators": [
+            {
+                "id": item.id,
+                "output_dir": str((base / item.output_dir).resolve()),
+            }
+            for item in rules.generators
+        ],
+    }
     typer.echo(json.dumps(data, ensure_ascii=False, indent=2))
 
 

@@ -55,6 +55,7 @@ REQUIRED_FILES = (
     "tests/test_check_wheel.py",
     "tests/test_package.py",
     "docs/requirements/index.md",
+    "docs/requirements/v1.3.md",
     "docs/system-design/index.md",
     "docs/adr/0001-composition-merge-semantics.md",
     "docs/adr/0002-type-checker-pyrefly.md",

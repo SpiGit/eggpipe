@@ -162,7 +162,7 @@ mypy не входит в блокирующий CI; решение зафикс
 uv run python tools/check_docs.py --strict
 ```
 
-- [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.2
+- [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.3
 - [System Design](./docs/system-design/index.md)
 - [ADR index](./docs/adr/index.md)
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)

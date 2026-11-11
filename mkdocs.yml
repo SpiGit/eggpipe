@@ -11,6 +11,7 @@ nav:
   - Home: index.md
   - Требования:
       - Обзор: requirements/index.md
+      - v1.3: requirements/v1.3.md
       - v1.2: requirements/v1.2.md
       - v1.1: requirements/v1.1.md
       - v1.0: requirements/v1.0.md

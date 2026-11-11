@@ -9,8 +9,9 @@ import pytest
 from reference_generator import ReferenceGenerator
 from typer.testing import CliRunner
 
-from metadata_generator.cli.main import app
+from metadata_generator.cli.main import _print_report, app
 from metadata_generator.engine import plugin_loader
+from metadata_generator.engine.report import EngineReport
 from metadata_generator.interfaces.generator import GeneratorPlugin
 
 MODEL = """\
@@ -101,6 +102,34 @@ def test_config_schema() -> None:
     assert result.exit_code == 0
     schema = json.loads(result.stdout)
     assert schema["title"] == "GeneratorRules"
+
+
+def test_config_show_has_resolved_paths(tmp_path: Path) -> None:
+    model, rules = project(tmp_path)
+    result = CliRunner().invoke(app, ["config", "show", "-c", str(rules)])
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert data["resolved"]["config_dir"] == str(tmp_path)
+    assert data["resolved"]["sources"] == [str(model)]
+
+
+def test_json_lines_output(capsys: pytest.CaptureFixture[str]) -> None:
+    report = EngineReport(success=True, exit_code=0, run_id="run")
+    assert (
+        _print_report(
+            report,
+            output_format="json",
+            quiet=False,
+            verbose=False,
+            strict=False,
+            ignore=None,
+            json_lines=True,
+        )
+        == 0
+    )
+    output = capsys.readouterr().out.strip()
+    assert "\n" not in output
+    assert json.loads(output)["run_id"] == "run"
 
 
 def test_clean_requires_yes_in_non_tty(tmp_path: Path) -> None:
