@@ -158,6 +158,7 @@ uv run python tools/check_docs.py --strict
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)
 - [Каталог диагностик](./docs/reference/diagnostics.md)
+- [Reference generator](./examples/reference-generator/README.md)
 
 ## Лицензия
 
@@ -165,5 +166,6 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** ядро v0.1 — реализованы модели, YAML-парсер, `entity-model`, валидатор, срезы и naming.
-Следующие слои: writer/manifest/lock, `Engine`, CLI и reference-плагин.
+**Стадия:** ядро v0.1 готово — модели, YAML-парсер, `entity-model`, валидатор, срезы, naming,
+writer/manifest/lock, `Engine`, CLI `mg`, reference-плагин и golden-тест. Следующий этап — v0.2:
+imports/extends и композиция по ADR-0001.

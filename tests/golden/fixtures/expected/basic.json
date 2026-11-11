@@ -1,0 +1,41 @@
+{
+  "entities": [
+    {
+      "fields": [
+        {
+          "default": "UNSET",
+          "name": "id",
+          "nullable": false,
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "default": "admin",
+          "name": "role",
+          "nullable": false,
+          "required": false,
+          "type": "Role"
+        }
+      ],
+      "name": "User"
+    }
+  ],
+  "enums": [
+    {
+      "name": "Role",
+      "values": [
+        {
+          "name": "admin",
+          "value": "admin"
+        },
+        {
+          "name": "guest",
+          "value": "guest"
+        }
+      ]
+    }
+  ],
+  "format": "entity-model",
+  "types": [],
+  "version": "1.0"
+}

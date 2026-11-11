@@ -35,6 +35,9 @@ dev = [
     "pyrefly>=1.4.0",
 ]
 
+[project.scripts]
+mg = "metadata_generator.cli.main:app"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/metadata_generator"]
 
@@ -68,13 +71,13 @@ ignore = [
 [tool.pyrefly]
 python-version = "3.11"
 preset = "strict"
-project-includes = ["src", "tests", "tools"]
-search-path = ["src", "."]
+project-includes = ["src", "tests", "tools", "examples/reference-generator/src"]
+search-path = ["src", ".", "examples/reference-generator/src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
-pythonpath = ["src", "."]
+pythonpath = ["src", ".", "examples/reference-generator/src"]
 filterwarnings = ["error"]
 markers = [
     "slow: длительные тесты (performance, большие фикстуры)",

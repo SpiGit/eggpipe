@@ -1352,7 +1352,7 @@ addopts = "-ra --strict-markers"
   Для установки пакета пользователями остаётся `pip install metadata-generator`.
 - Сборка проверяется `tools/check_wheel.py`: wheel содержит `py.typed` и LICENSE, метаданные
   зависимостей корректны, sdist не содержит dev-harness; выполняется smoke-install в чистом venv.
-- `[project.scripts]` и команда `mg` появятся вместе с CLI в v0.1; до этого пакет собирается без CLI.
+- Команда `mg` определена в `[project.scripts]` и проверяется при сборке wheel.
 - `watchdog` — **optional extra** `[watch]`, lazy-import в `watch/watcher.py`; без `mg watch` пакет не требуется.
 - `ruamel.yaml` (YAML 1.2) вместо PyYAML: duplicate keys → ошибка, корректные `yes/no`, даты.
 - Пакет поставляет `py.typed` (PEP 561); публичный API — `__all__` в `__init__.py`.

@@ -156,6 +156,15 @@ def check_wheel(path: Path, project: Project) -> None:
         check_metadata(message, project)
         if not any(name.endswith("/licenses/LICENSE") for name in names):
             raise CheckError("в wheel нет LICENSE")
+        entry_points = next(
+            (name for name in names if name.endswith(".dist-info/entry_points.txt")),
+            None,
+        )
+        if entry_points is None:
+            raise CheckError("в wheel нет entry_points.txt")
+        text = archive.read(entry_points).decode("utf-8")
+        if "mg = metadata_generator.cli.main:app" not in text:
+            raise CheckError("в wheel нет console script mg")
 
 
 def check_sdist(path: Path) -> None:
@@ -204,6 +213,8 @@ def smoke_install(wheel: Path, version: str) -> None:
             ],
             "wheel не импортируется или версия не совпадает",
         )
+        script = environment / ("Scripts/mg.exe" if sys.platform == "win32" else "bin/mg")
+        run_checked([str(script), "--help"], "console script mg не работает")
 
 
 def main(argv: list[str] | None = None) -> int:

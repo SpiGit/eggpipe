@@ -40,3 +40,15 @@ class UnknownFormatError(ConfigValidationError):
 
 class LookupError(MetadataGeneratorError):
     """Имя не найдено в модели."""
+
+
+class ArtifactPathError(MetadataGeneratorError):
+    """Некорректный путь или содержимое артефакта."""
+
+
+class ManifestError(MetadataGeneratorError):
+    """Ошибка manifest."""
+
+
+class LockError(MetadataGeneratorError):
+    """output_dir уже используется другим запуском."""

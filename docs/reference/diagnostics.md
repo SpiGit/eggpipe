@@ -36,11 +36,12 @@
 | MG026 | warning | validate | Case-insensitive коллизия имён | реализовано |
 | MG028 | error | parse/validate | Имя не соответствует pattern | реализовано (Pydantic) |
 | MG030 | warning | validate | Функция появится в следующей версии; проигнорирована | реализовано |
-| MG040 | error | write | Некорректный artifact path / content | следующий слой |
-| MG041 | error | write | Ownership-конфликт / `on_conflict: error` | следующий слой |
-| MG042 | error | planning | Дубликат artifact path / case-collision | следующий слой |
-| MG043 | warning | planning | `skip` для не-owned файла | следующий слой |
-| MG050 | warning | cleanup | Changed owned-файл не удалён | следующий слой |
+| MG300 | error | engine | Генератор/запись/check упали или обнаружен drift | реализовано |
+| MG040 | error | write | Некорректный artifact path / content | реализовано |
+| MG041 | error | write | Ownership-конфликт / `on_conflict: error` | реализовано |
+| MG042 | error | planning | Дубликат artifact path / case-collision | реализовано |
+| MG043 | warning | planning | `skip` для не-owned файла | реализовано |
+| MG050 | warning | cleanup | Changed owned-файл не удалён | v0.2 |
 
 ## MG030
 

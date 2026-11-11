@@ -1,0 +1,18 @@
+format: entity-model
+version: "1.0"
+model:
+  entities:
+    - name: User
+      fields:
+        - name: id
+          type: integer
+          required: true
+          description: Identifier
+        - name: role
+          type: Role
+          default: admin
+  enums:
+    - name: Role
+      values:
+        - name: admin
+        - name: guest

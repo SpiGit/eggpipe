@@ -10,6 +10,11 @@
 - Ядро v0.1, первый слой: `ModelDocument`/`SourceModel`/`ModelSlice`, `FieldDef`, `EnumDef`,
   `CustomType`, `UNSET`, YAML-парсер на `ruamel.yaml`, формат `entity-model`, семантический
   валидатор, срезы с замыканием по enums/types и naming-утилиты.
+- Writer: ownership, per-generator manifest, atomic write, lock, `--plan`/`--check`.
+- `Engine` (`build()`/`generate()`/`check()`), `GeneratorPlugin` и контракты генераторов.
+- CLI `mg`: `generate`, `init`, `config show/validate`, `model validate`, `gen list/info`,
+  `format list`, `clean` (placeholder до v0.2).
+- Reference-плагин `examples/reference-generator` и golden-тест.
 - Каталог диагностик `docs/reference/diagnostics.md`.
 - ТЗ v1.2: модель `ModelDocument` → `SourceModel` → `ModelSlice`, контракты плагинов,
   ownership/manifest, CLI и диагностики.

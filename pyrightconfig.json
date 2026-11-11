@@ -1,7 +1,7 @@
 {
-  "include": ["src", "tests", "tools"],
+  "include": ["src", "tests", "tools", "examples/reference-generator/src"],
   "exclude": [".venv", "dist", "build", "**/__pycache__"],
-  "extraPaths": ["src", "."],
+  "extraPaths": ["src", ".", "examples/reference-generator/src"],
   "venvPath": ".",
   "venv": ".venv",
   "pythonVersion": "3.11",
