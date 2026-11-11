@@ -276,18 +276,23 @@ class Engine:
         config: AppConfig,
         rules: GeneratorRules,
         *,
+        config_dir: Path | None = None,
         generators: Mapping[str, GeneratorPlugin] | None = None,
         formats: FormatRegistry | None = None,
+        source_paths: list[Path] | None = None,
+        variables: Mapping[str, str] | None = None,
     ): ...
 
     def build(self) -> EngineReport: ...      # парсинг/валидация/генерация без записи
     def generate(self) -> EngineReport: ...   # build + запись артефактов
+    def check(self) -> EngineReport: ...      # drift без записи; success=false, exit_code=1
 ```
 
 - `Engine` не вызывает `sys.exit` и не настраивает root-logger.
 - Реестры можно инжектировать — для тестов, библиотечного встраивания и reference-плагина.
+- `config_dir` задаёт базу для относительных путей; `source_paths`/`variables` — явные override'ы.
 - `EngineReport` содержит `success`, `run_id`, `diagnostics`, `generators[]`, `artifacts[]`, `timings`, `exit_code`.
-- Config/usage-ошибки бросаются исключениями; ошибки генерации агрегируются в отчёт.
+- Config/usage-ошибки бросаются исключениями; ошибки парсинга и генерации агрегируются в отчёт.
 
 ---
 
@@ -324,6 +329,12 @@ class FieldDef(BaseModel):
     constraints: Constraints | None = None
     metadata: dict[str, Any] = {}
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @field_serializer("default")
+    def _serialize_default(self, value, _info): ...
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler): ...  # опускает ключ default при UNSET
 
 class ExtendsRef(BaseModel):
     import_: str = Field(alias="import")
@@ -408,6 +419,9 @@ class ModelDocument(BaseModel):
 ```
 
 **Индексы.** Карты строятся один раз после создания immutable-модели; мутации и `validate_assignment` исключены. Дубликаты имён проверяются в `validator.py` по спискам (до использования карт), чтобы словарь не «схлопнул» конфликт.
+
+**Сериализация `UNSET`.** `FieldDef` с `UNSET` не выводит ключ `default` в `model_dump()`; явный
+`default: null` выводится как `null`. Это нужно для round-trip и JSON Schema.
 
 **Null-matrix.** Все проверки — в `validator.py` (не в Pydantic), потому что нужны код, локация и уровень:
 

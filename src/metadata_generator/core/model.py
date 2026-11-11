@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_serializer, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    field_serializer,
+    model_serializer,
+    model_validator,
+)
 
 PRIMITIVE_TYPES: frozenset[str] = frozenset(
     {
@@ -63,8 +72,15 @@ class FieldDef(BaseModel):
 
     @field_serializer("default")
     def _serialize_default(self, value: object, _info: object) -> object:
-        # UNSET не сериализуется в JSON как значение; для JSON-схемы это null.
+        # UNSET не сериализуется в JSON как значение; ключ удаляется model_serializer.
         return None if value is UNSET else value
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler: Callable[[Any], dict[str, Any]]) -> dict[str, Any]:
+        data = handler(self)
+        if self.default is UNSET:
+            data.pop("default", None)
+        return data
 
 
 class ExtendsRef(BaseModel):

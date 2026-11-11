@@ -249,7 +249,10 @@ def generate(
             quiet=quiet,
             verbose=verbose,
         )
-    except (ConfigValidationError, DocumentError, MetadataGeneratorError) as exc:
+    except DocumentError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except (ConfigValidationError, MetadataGeneratorError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
@@ -342,7 +345,10 @@ def watch(
             debounce_ms=debounce,
             run_once=run_once,
         )
-    except (ConfigValidationError, DocumentError, MetadataGeneratorError) as exc:
+    except DocumentError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except (ConfigValidationError, MetadataGeneratorError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
@@ -396,7 +402,7 @@ def model_validate(
             diagnostics.extend(validate_document(parser.parse_document(path)))
         except DocumentError as exc:
             typer.echo(f"error: {exc.code}: {exc.message} ({exc.path})", err=True)
-            raise typer.Exit(code=2) from exc
+            raise typer.Exit(code=1) from exc
     if output_format == "json":
         typer.echo(
             json.dumps(
@@ -465,11 +471,15 @@ def clean(
     removed = 0
     for generator in rules.generators:
         output_dir = (base / generator.output_dir).resolve()
-        diagnostics = writer.clean_manifest(
-            output_dir=output_dir,
-            generator_id=generator.id,
-            dry_run=dry_run,
-        )
+        manifest = output_dir / ".mg" / "manifests" / f"{generator.id}.json"
+        if not manifest.is_file():
+            continue
+        with writer.write_lock(output_dir):
+            diagnostics = writer.clean_manifest(
+                output_dir=output_dir,
+                generator_id=generator.id,
+                dry_run=dry_run,
+            )
         for item in diagnostics:
             typer.echo(f"{item.level}: {item.code}: {item.message}", err=True)
         removed += 1

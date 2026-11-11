@@ -17,7 +17,7 @@ watch, JSON-отчёт, provenance, writer/manifest/lock, cleanup, `Engine`, CLI
 
 1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/requirements/index.md` (сейчас `v1.2.md`):
    поведение, контракты, CLI, запись артефактов.
-2. `docs/adr/` — принятые решения (0001 — композиция, 0002 — type checker).
+2. `docs/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension).
 3. `docs/system-design/index.md` — проектирование реализации (классы, потоки, структура).
 4. `docs/requirements/index.md` — реестр версий и changelog.
 5. `README.md` и `.session-context.md` — краткое состояние проекта.

@@ -58,6 +58,11 @@ REQUIRED_FILES = (
     "docs/system-design/index.md",
     "docs/adr/0001-composition-merge-semantics.md",
     "docs/adr/0002-type-checker-pyrefly.md",
+    "docs/adr/0003-null-semantics.md",
+    "docs/adr/0004-ownership-manifest-cleanup.md",
+    "docs/adr/0005-library-api.md",
+    "docs/adr/0006-format-extension.md",
+    "docs/adr/index.md",
     "docs/reference/diagnostics.md",
     "docs/plugin-guide.md",
     ".opencode/agents/spec-reviewer.md",
@@ -541,6 +546,10 @@ class Checker:
         if text is None:
             return
         known = set(re.findall(r"MG\d{3}", text))
+        reference = self.root / "docs/reference/diagnostics.md"
+        reference_text = self.read(reference)
+        if reference_text is not None:
+            known |= set(re.findall(r"MG\d{3}", reference_text))
         targets = [
             self.root / "docs/system-design/index.md",
             self.root / "README.md",

@@ -94,6 +94,8 @@ def test_owned_update_and_skip(tmp_path: Path) -> None:
     write(output, plan_for(output, Artifact(path="a.txt", content="one")))
     plan = plan_for(output, Artifact(path="a.txt", content="two"))
     assert plan.artifacts[0].action == "update"
+    error_plan = plan_for(output, Artifact(path="a.txt", content="two"), on_conflict="error")
+    assert error_plan.diagnostics[0].code == "MG041"
     skipped = plan_for(output, Artifact(path="a.txt", content="three"), on_conflict="skip")
     assert skipped.artifacts[0].action == "skip"
     write(output, skipped)

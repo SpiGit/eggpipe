@@ -40,6 +40,7 @@ engine = Engine(AppConfig(), rules)
 
 report = engine.build()        # парсинг/валидация/генерация без записи
 report = engine.generate()     # build + запись артефактов
+report = engine.check()        # проверить актуальность без записи
 
 if not report.success:
     for d in report.diagnostics:
@@ -155,8 +156,13 @@ uv run python tools/check_docs.py --strict
 
 - [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.2
 - [System Design](./docs/system-design/index.md)
+- [ADR index](./docs/adr/index.md)
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
 - [ADR-0002: type checker — Pyrefly](./docs/adr/0002-type-checker-pyrefly.md)
+- [ADR-0003: null-семантика](./docs/adr/0003-null-semantics.md)
+- [ADR-0004: ownership и cleanup](./docs/adr/0004-ownership-manifest-cleanup.md)
+- [ADR-0005: library API](./docs/adr/0005-library-api.md)
+- [ADR-0006: расширение формата](./docs/adr/0006-format-extension.md)
 - [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)

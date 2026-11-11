@@ -23,6 +23,10 @@
   `--plugin` для локальной разработки.
 - Стабилизация: integration-тест watch, contract-тесты плагинов, security-тест symlink,
   руководство `docs/plugin-guide.md`.
+- ADR-0003 (null-семантика/UNSET), ADR-0004 (ownership/cleanup), ADR-0005 (library API),
+  ADR-0006 (format extension) и индекс ADR.
+- `UNSET` больше не сериализуется как `default: null` — ключ опускается.
+- `on_conflict: error` теперь даёт MG041 для любого существующего файла; `mg clean` берёт lock.
 - Каталог диагностик `docs/reference/diagnostics.md`.
 - ТЗ v1.2: модель `ModelDocument` → `SourceModel` → `ModelSlice`, контракты плагинов,
   ownership/manifest, CLI и диагностики.

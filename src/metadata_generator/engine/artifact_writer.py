@@ -134,6 +134,16 @@ class ArtifactWriter:
                 )
                 continue
 
+            if on_conflict == "error":
+                plan.diagnostics.append(
+                    error(
+                        "MG041",
+                        "on_conflict: error — файл уже существует",
+                        path=normalized,
+                    )
+                )
+                continue
+
             is_owned = normalized in owned
             if is_owned:
                 if on_conflict == "skip":

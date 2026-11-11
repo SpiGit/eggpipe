@@ -26,6 +26,14 @@ def test_unset_differs_from_explicit_null() -> None:
     assert unset != explicit_null
 
 
+def test_unset_is_omitted_from_dump() -> None:
+    unset = FieldDef(name="value", type="string")
+    explicit_null = FieldDef(name="value", type="string", nullable=True, default=None)
+    assert "default" not in unset.model_dump()
+    assert "default" in explicit_null.model_dump()
+    assert explicit_null.model_dump()["default"] is None
+
+
 def test_models_are_frozen() -> None:
     field = FieldDef(name="value", type="string")
     with pytest.raises(ValidationError):
