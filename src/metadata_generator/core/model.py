@@ -5,8 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-import pydantic as pyd
-from pydantic import ConfigDict, PrivateAttr, field_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_serializer, model_validator
 
 PRIMITIVE_TYPES: frozenset[str] = frozenset(
     {
@@ -36,7 +35,7 @@ UNSET = _Unset()
 DefaultValue = str | int | float | bool | date | datetime | None
 
 
-class Constraints(pyd.BaseModel):
+class Constraints(BaseModel):
     min: int | float | date | datetime | None = None
     max: int | float | date | datetime | None = None
     min_length: int | None = None
@@ -46,15 +45,15 @@ class Constraints(pyd.BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class FieldDef(pyd.BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+class FieldDef(BaseModel):
+    name: str = Field(..., pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
     type: str
     description: str | None = None
     required: bool = False
     nullable: bool = False
     default: DefaultValue | _Unset = UNSET
     constraints: Constraints | None = None
-    metadata: dict[str, Any] = pyd.Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(
         extra="forbid",
@@ -68,8 +67,8 @@ class FieldDef(pyd.BaseModel):
         return None if value is UNSET else value
 
 
-class ExtendsRef(pyd.BaseModel):
-    import_: str = pyd.Field(alias="import")
+class ExtendsRef(BaseModel):
+    import_: str = Field(alias="import")
     entity: str
 
     model_config = ConfigDict(
@@ -79,46 +78,46 @@ class ExtendsRef(pyd.BaseModel):
     )
 
 
-class Entity(pyd.BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+class Entity(BaseModel):
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     description: str | None = None
     version: str | int | None = None
     updated_at: date | datetime | None = None
     extends: str | ExtendsRef | None = None
     fields: tuple[FieldDef, ...] = ()
-    metadata: dict[str, Any] = pyd.Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class EnumValue(pyd.BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+class EnumValue(BaseModel):
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     value: str | int | None = None
     description: str | None = None
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class EnumDef(pyd.BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+class EnumDef(BaseModel):
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     description: str | None = None
     values: tuple[EnumValue, ...] = ()
-    metadata: dict[str, Any] = pyd.Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class CustomType(pyd.BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+class CustomType(BaseModel):
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     description: str | None = None
     base: str
     constraints: Constraints | None = None
-    metadata: dict[str, Any] = pyd.Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class _IndexedModel(pyd.BaseModel):
+class _IndexedModel(BaseModel):
     """Immutable модель с индексами по именам."""
 
     entities: tuple[Entity, ...] = ()
@@ -164,10 +163,10 @@ class ModelSlice(_IndexedModel):
 class SourceModel(ModelSlice):
     name: str | None = None
     description: str | None = None
-    metadata: dict[str, Any] = pyd.Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class InputSelection(pyd.BaseModel):
+class InputSelection(BaseModel):
     """Выбор подмножества модели; None/пусто = все."""
 
     entities: tuple[str, ...] | None = None

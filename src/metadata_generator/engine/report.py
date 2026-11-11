@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from typing import Literal
 
-import pydantic as pyd
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from metadata_generator.interfaces.diagnostics import Diagnostic
 
 
-class ArtifactReport(pyd.BaseModel):
+class ArtifactReport(BaseModel):
     path: str
     status: Literal["create", "update", "skip", "error", "drift"]
     sha256: str | None = None
@@ -18,24 +17,24 @@ class ArtifactReport(pyd.BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class GeneratorReport(pyd.BaseModel):
+class GeneratorReport(BaseModel):
     id: str
     status: Literal["ok", "error", "skipped"]
     duration_ms: int
-    artifacts: list[ArtifactReport] = pyd.Field(default_factory=list)
+    artifacts: list[ArtifactReport] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class EngineReport(pyd.BaseModel):
+class EngineReport(BaseModel):
     report_version: int = 1
     success: bool
     exit_code: int
     run_id: str
-    diagnostics: list[Diagnostic] = pyd.Field(default_factory=list)
-    generators: list[GeneratorReport] = pyd.Field(default_factory=list)
-    artifacts: list[ArtifactReport] = pyd.Field(default_factory=list)
-    timings: dict[str, int] = pyd.Field(default_factory=dict)
+    diagnostics: list[Diagnostic] = Field(default_factory=list)
+    generators: list[GeneratorReport] = Field(default_factory=list)
+    artifacts: list[ArtifactReport] = Field(default_factory=list)
+    timings: dict[str, int] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 

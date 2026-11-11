@@ -15,8 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
-import pydantic as pyd
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from metadata_generator.interfaces.diagnostics import Diagnostic, error, warning
 from metadata_generator.interfaces.generator import Artifact
@@ -36,7 +35,7 @@ WIN_RESERVED = {
 }
 
 
-class ManifestArtifact(pyd.BaseModel):
+class ManifestArtifact(BaseModel):
     path: str
     sha256: str
     skipped: bool = False
@@ -44,14 +43,14 @@ class ManifestArtifact(pyd.BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class Manifest(pyd.BaseModel):
+class Manifest(BaseModel):
     manifest_version: int = 1
     generator: str
     mg_version: str
     plugin_version: str
     format: dict[str, str]
     generated_at: datetime
-    artifacts: list[ManifestArtifact] = pyd.Field(default_factory=list)
+    artifacts: list[ManifestArtifact] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -281,7 +280,7 @@ class ArtifactWriter:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             return Manifest.model_validate(data)
-        except (OSError, json.JSONDecodeError, pyd.ValidationError) as exc:
+        except (OSError, json.JSONDecodeError, ValidationError) as exc:
             raise ManifestError(f"не удалось прочитать manifest {path}: {exc}") from exc
 
     @contextmanager
@@ -340,7 +339,7 @@ def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _write_json_atomic(path: Path, value: pyd.BaseModel) -> None:
+def _write_json_atomic(path: Path, value: BaseModel) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(

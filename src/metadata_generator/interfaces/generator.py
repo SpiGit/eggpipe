@@ -6,8 +6,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import ClassVar, Literal
 
-import pydantic as pyd
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from metadata_generator.config.generator_rules import GeneratorConfig
 from metadata_generator.core.model import ModelSlice
@@ -15,7 +14,7 @@ from metadata_generator.core.naming import NamingStyle
 from metadata_generator.interfaces.diagnostics import Diagnostic
 
 
-class ImportedFile(pyd.BaseModel):
+class ImportedFile(BaseModel):
     name: str
     path: Path
     content: bytes
@@ -26,11 +25,11 @@ class ImportedFile(pyd.BaseModel):
         return self.content.decode(encoding)
 
 
-class GenerationContext(pyd.BaseModel):
-    variables: dict[str, str] = pyd.Field(default_factory=dict)
+class GenerationContext(BaseModel):
+    variables: dict[str, str] = Field(default_factory=dict)
     naming_hint: NamingStyle | None = None
-    imports: dict[str, ImportedFile] = pyd.Field(default_factory=dict)
-    sources: list[Path] = pyd.Field(default_factory=list)
+    imports: dict[str, ImportedFile] = Field(default_factory=dict)
+    sources: list[Path] = Field(default_factory=list)
     format: str
     format_version: str
     run_id: str
@@ -39,17 +38,17 @@ class GenerationContext(pyd.BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class Artifact(pyd.BaseModel):
+class Artifact(BaseModel):
     path: str
     content: str
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class GenerationResult(pyd.BaseModel):
-    artifacts: list[Artifact] = pyd.Field(default_factory=list)
-    warnings: list[Diagnostic] = pyd.Field(default_factory=list)
-    errors: list[Diagnostic] = pyd.Field(default_factory=list)
+class GenerationResult(BaseModel):
+    artifacts: list[Artifact] = Field(default_factory=list)
+    warnings: list[Diagnostic] = Field(default_factory=list)
+    errors: list[Diagnostic] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -58,7 +57,7 @@ class GenerationResult(pyd.BaseModel):
         return not self.errors
 
 
-class GeneratorInput(pyd.BaseModel):
+class GeneratorInput(BaseModel):
     model: ModelSlice
     config: GeneratorConfig
     context: GenerationContext

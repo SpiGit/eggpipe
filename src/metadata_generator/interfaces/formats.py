@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, ClassVar, Literal
 
-import pydantic as pyd
+from pydantic import ValidationError
 from typing_extensions import override
 
 from metadata_generator.core.document import ImportSpec, ModelDocument
@@ -47,7 +47,7 @@ class EntityModelFormat(FormatPlugin):
         model_data = {key: value for key, value in model_raw.items() if key != "imports"}
         try:
             model = SourceModel.model_validate(model_data)
-        except pyd.ValidationError as exc:
+        except ValidationError as exc:
             raise DocumentError("MG028", base_path, _format_validation_error(exc)) from exc
 
         document = ModelDocument(
@@ -105,7 +105,7 @@ class EntityModelFormat(FormatPlugin):
         return tuple(result)
 
 
-def _format_validation_error(exc: pyd.ValidationError) -> str:
+def _format_validation_error(exc: ValidationError) -> str:
     parts = []
     for item in exc.errors():
         location = ".".join(str(part) for part in item["loc"])

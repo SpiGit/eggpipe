@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-import pydantic as pyd
+from pydantic import BaseModel, ConfigDict
 
 
-class DiagnosticLocation(pyd.BaseModel):
+class DiagnosticLocation(BaseModel):
     """Где именно возникла диагностика."""
 
     file: Path | None = None
@@ -16,10 +16,10 @@ class DiagnosticLocation(pyd.BaseModel):
     field: str | None = None
     path: str | None = None
 
-    model_config = pyd.ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class Diagnostic(pyd.BaseModel):
+class Diagnostic(BaseModel):
     """Диагностика валидации; код стабилен и документируется."""
 
     level: Literal["warning", "error"]
@@ -27,7 +27,7 @@ class Diagnostic(pyd.BaseModel):
     message: str
     location: DiagnosticLocation | None = None
 
-    model_config = pyd.ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
 
 def error(

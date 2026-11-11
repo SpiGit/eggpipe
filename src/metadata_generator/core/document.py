@@ -5,13 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal
 
-import pydantic as pyd
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from metadata_generator.core.model import SourceModel
 
 
-class ImportSpec(pyd.BaseModel):
+class ImportSpec(BaseModel):
     path: str
     alias: str | None = None
     kind: Literal["yaml", "resource"]
@@ -19,13 +18,13 @@ class ImportSpec(pyd.BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class ModelDocument(pyd.BaseModel):
+class ModelDocument(BaseModel):
     format: str
     version: str
     path: Path
     imports: tuple[ImportSpec, ...] = ()
     model: SourceModel
-    metadata: dict[str, Any] = pyd.Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 

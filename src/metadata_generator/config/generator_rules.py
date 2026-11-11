@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-import pydantic as pyd
-from pydantic import ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from metadata_generator.core.model import InputSelection
 from metadata_generator.core.naming import NamingStyle
@@ -18,14 +17,14 @@ class InputSlice(InputSelection):
     """Совместимое имя выбора input из System Design."""
 
 
-class GeneratorConfig(pyd.BaseModel):
-    id: str = pyd.Field(..., pattern=r"^[a-z][a-z0-9-]*$")
+class GeneratorConfig(BaseModel):
+    id: str = Field(..., pattern=r"^[a-z][a-z0-9-]*$")
     enabled: bool = True
-    input: InputSlice = pyd.Field(default_factory=InputSlice)
+    input: InputSlice = Field(default_factory=InputSlice)
     output_dir: Path
     on_conflict: Literal["overwrite", "skip", "error"] = "overwrite"
     cleanup: Literal["off", "prompt", "enabled"] = "off"
-    options: dict[str, object] = pyd.Field(default_factory=dict)
+    options: dict[str, object] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -37,31 +36,31 @@ class GeneratorConfig(pyd.BaseModel):
         return value
 
 
-class DefaultsConfig(pyd.BaseModel):
+class DefaultsConfig(BaseModel):
     naming_convention: NamingStyle | None = None
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class SourceConfig(pyd.BaseModel):
+class SourceConfig(BaseModel):
     path: Path
-    input: InputSlice = pyd.Field(default_factory=InputSlice)
+    input: InputSlice = Field(default_factory=InputSlice)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class DiagnosticsConfig(pyd.BaseModel):
+class DiagnosticsConfig(BaseModel):
     stale_dates: bool = False
     ignore: frozenset[str] = frozenset()
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class GeneratorRules(pyd.BaseModel):
+class GeneratorRules(BaseModel):
     version: Literal["1.0"]
-    defaults: DefaultsConfig = pyd.Field(default_factory=DefaultsConfig)
-    diagnostics: DiagnosticsConfig = pyd.Field(default_factory=DiagnosticsConfig)
-    variables: dict[str, str] = pyd.Field(default_factory=dict)
+    defaults: DefaultsConfig = Field(default_factory=DefaultsConfig)
+    diagnostics: DiagnosticsConfig = Field(default_factory=DiagnosticsConfig)
+    variables: dict[str, str] = Field(default_factory=dict)
     sources: tuple[SourceConfig, ...] = ()
     generators: tuple[GeneratorConfig, ...] = ()
 
@@ -78,7 +77,7 @@ class GeneratorRulesLoader:
             raise ConfigValidationError(f"{path}: {exc.code}: {exc.message}") from exc
         try:
             return GeneratorRules.model_validate(data)
-        except pyd.ValidationError as exc:
+        except ValidationError as exc:
             raise ConfigValidationError(f"{path}: {exc}") from exc
 
     @classmethod

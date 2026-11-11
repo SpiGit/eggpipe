@@ -315,7 +315,7 @@ class Constraints(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class FieldDef(BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+    name: str = Field(..., pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
     type: str
     description: str | None = None
     required: bool = False
@@ -326,12 +326,12 @@ class FieldDef(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class ExtendsRef(BaseModel):
-    import_: str = pyd.Field(alias="import")
+    import_: str = Field(alias="import")
     entity: str
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
 class Entity(BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     description: str | None = None
     version: str | int | None = None
     updated_at: date | datetime | None = None
@@ -341,20 +341,20 @@ class Entity(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class EnumValue(BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     value: str | int | None = None
     description: str | None = None
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class EnumDef(BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     description: str | None = None
     values: tuple[EnumValue, ...] = ()
     metadata: dict[str, Any] = {}
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class CustomType(BaseModel):
-    name: str = pyd.Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     description: str | None = None
     base: str
     constraints: Constraints | None = None
@@ -430,7 +430,7 @@ class InputSlice(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class GeneratorConfig(BaseModel):
-    id: str = pyd.Field(..., pattern=r"^[a-z][a-z0-9-]*$")
+    id: str = Field(..., pattern=r"^[a-z][a-z0-9-]*$")
     enabled: bool = True
     input: InputSlice = InputSlice()
     output_dir: Path                    # относительный путь

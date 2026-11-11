@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pydantic as pyd
+from pydantic import ValidationError
 
 from metadata_generator.core.document import ModelDocument
 from metadata_generator.engine.format_registry import FormatRegistry
@@ -64,7 +64,7 @@ class Parser:
             document = plugin.parse(raw, base_path=path.parent)
         except DocumentError:
             raise
-        except pyd.ValidationError as exc:
+        except ValidationError as exc:
             raise DocumentError("MG028", path, str(exc)) from exc
         return document.model_copy(update={"path": path})
 
