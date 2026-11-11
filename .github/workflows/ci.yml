@@ -37,7 +37,7 @@ jobs:
           enable-cache: true
 
       - name: Install
-        run: uv sync --extra dev --python ${{ matrix.python-version }}
+        run: uv sync --frozen --extra dev --python ${{ matrix.python-version }}
 
       - name: Lint
         run: uv run ruff check .
@@ -57,3 +57,29 @@ jobs:
         with:
           name: coverage
           path: coverage.xml
+
+  package:
+    name: Build and verify package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --frozen --extra dev
+
+      - name: Build
+        run: uv build
+
+      - name: Verify artifacts
+        run: uv run python tools/check_wheel.py dist

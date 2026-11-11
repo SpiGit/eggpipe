@@ -32,6 +32,7 @@
 | `docs/system-design/index.md` | System Design |
 | `docs/adr/` | Принятые архитектурные решения |
 | `docs/reviews/` | Ревью и backlog P1/P2 |
+| `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE` | Процесс разработки, история и лицензия |
 | `docs/reference/` | Справочники (появятся при реализации) |
 
 ## Правила версионирования
@@ -73,6 +74,7 @@
 - [ ] `uv run python tools/check_docs.py --strict` проходит без ошибок.
 - [ ] `uv run ruff check .`, `uv run ruff format --check src tests tools`, `uv run pyrefly check`
       и `uv run pytest` проходят.
+- [ ] `uv build` и `uv run python tools/check_wheel.py dist` проходят.
 - [ ] `git diff` просмотрен; в diff нет случайных файлов и переформатирования.
 - [ ] Для документации тесты не применимы; для кода — указано, какие проверки запускались.
 
@@ -83,7 +85,9 @@
 - `uv run python tools/check_docs.py --strict` — проверка ссылок, версий, harness и терминов.
 - `uv run ruff check .` / `uv run ruff format --check src tests tools` — линтер и форматирование.
 - `uv run pyrefly check` — строгая проверка типов (Pydantic v2 поддерживается нативно).
+- `basedpyright`/Pyright читают `pyrightconfig.json`; основной CI-чекер — Pyrefly.
 - `uv run pytest --cov` — тесты и покрытие (порог 80%).
+- `uv build` + `uv run python tools/check_wheel.py dist` — сборка и проверка wheel/sdist.
 - `/spec-check [фокус]` — read-only проверка согласованности документации.
 - `/spec-release <версия>` — подготовка новой версии ТЗ и синхронизация документов.
 - `/adr-new <название>` — создание нового ADR по шаблону.

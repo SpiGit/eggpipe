@@ -128,6 +128,8 @@ uv run ruff format --check src tests tools
 uv run pyrefly check
 uv run pytest --cov
 uv run python tools/check_docs.py --strict
+uv build
+uv run python tools/check_wheel.py dist
 ```
 
 Dev/CI используют [uv](https://docs.astral.sh/uv/) и закоммиченный `uv.lock`.
@@ -136,6 +138,9 @@ Dev/CI используют [uv](https://docs.astral.sh/uv/) и закоммич
 Типизация — [Pyrefly](https://pyrefly.org/) в strict-режиме (встроенная поддержка Pydantic v2).
 mypy не входит в блокирующий CI; решение зафиксировано в
 [ADR-0002](./docs/adr/0002-type-checker-pyrefly.md).
+
+Для basedpyright/Pyright в корне лежит `pyrightconfig.json` (src-layout, `extraPaths`, `.venv`).
+Перед проверкой выполните `uv sync --extra dev`.
 
 ## Документация
 
@@ -150,6 +155,12 @@ uv run python tools/check_docs.py --strict
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
 - [ADR-0002: type checker — Pyrefly](./docs/adr/0002-type-checker-pyrefly.md)
 - [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
+- [Contributing](./CONTRIBUTING.md)
+- [Changelog](./CHANGELOG.md)
+
+## Лицензия
+
+[MIT](./LICENSE).
 
 ## Статус
 

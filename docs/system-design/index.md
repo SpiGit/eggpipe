@@ -1216,7 +1216,13 @@ metadata-generator/
 │   ├── reviews/
 │   ├── adr/                         # 0001-composition-merge-semantics.md
 │   └── reference/                   # diagnostics.md (при реализации)
+├── tools/
+│   ├── check_docs.py                # проверка документации
+│   └── check_wheel.py               # проверка wheel/sdist + smoke-install
+├── .github/workflows/               # docs, ci, release
 ├── pyproject.toml
+├── pyrightconfig.json               # basedpyright/Pyright: src-layout, extraPaths, .venv
+├── uv.lock
 ├── README.md
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
@@ -1282,7 +1288,8 @@ name = "metadata-generator"
 version = "0.1.0"
 description = "CLI tool and library for metadata-driven code generation"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -1340,8 +1347,12 @@ addopts = "-ra --strict-markers"
 
 - Типизация проверяется **Pyrefly** (`preset = "strict"`), см. [ADR-0002](../adr/0002-type-checker-pyrefly.md).
   mypy не входит в блокирующий CI; `py.typed` сохраняет совместимость с другими чекерами.
+- Для basedpyright/Pyright в корне лежит `pyrightconfig.json`: src-layout, `extraPaths` и `.venv`.
 - Dev/CI используют **uv** (`uv sync --extra dev`, `uv run`), `uv.lock` коммитится.
   Для установки пакета пользователями остаётся `pip install metadata-generator`.
+- Сборка проверяется `tools/check_wheel.py`: wheel содержит `py.typed` и LICENSE, метаданные
+  зависимостей корректны, sdist не содержит dev-harness; выполняется smoke-install в чистом venv.
+- `[project.scripts]` и команда `mg` появятся вместе с CLI в v0.1; до этого пакет собирается без CLI.
 - `watchdog` — **optional extra** `[watch]`, lazy-import в `watch/watcher.py`; без `mg watch` пакет не требуется.
 - `ruamel.yaml` (YAML 1.2) вместо PyYAML: duplicate keys → ошибка, корректные `yes/no`, даты.
 - Пакет поставляет `py.typed` (PEP 561); публичный API — `__all__` в `__init__.py`.

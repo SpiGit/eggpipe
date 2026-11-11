@@ -7,6 +7,8 @@ name = "metadata-generator"
 version = "0.1.0"
 description = "CLI tool and library for metadata-driven code generation"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -34,6 +36,19 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/metadata_generator"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/.opencode",
+    "/.session-context.md",
+    "/opencode.json",
+    "/AGENTS.md",
+    "/.editorconfig",
+    "/.gitattributes",
+    "/.gitignore",
+    "/uv.lock",
+]
 
 [tool.ruff]
 line-length = 100
