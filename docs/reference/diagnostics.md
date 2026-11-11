@@ -21,7 +21,7 @@
 | MG011 | warning | validate | `required=true` + `nullable=true` | реализовано |
 | MG012 | warning | validate | Entity.name не в PascalCase | реализовано |
 | MG013 | warning | validate | Неиспользуемый enum/type | реализовано |
-| MG014 | warning | validate | `updated_at` старше mtime файла (opt-in) | future |
+| MG014 | warning | validate | `updated_at` старше mtime файла (opt-in) | реализовано |
 | MG015 | warning | validate | Пустой description у required-поля | реализовано |
 | MG016 | error | validate | `default` не приводится к итоговому типу | реализовано |
 | MG017 | error | validate | `default` нарушает constraints/enum | реализовано |

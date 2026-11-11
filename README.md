@@ -167,4 +167,4 @@ uv run python tools/check_docs.py --strict
 ## Статус
 
 **Стадия:** ядро v0.1 и composition v0.2 готовы: imports/extends, discovery, merge по ADR-0001,
-cleanup и CLI. Остались `sources[].input`, MG014 и этап v0.3 (format-плагины, watch, JSON).
+`sources[].input`, MG014, cleanup и CLI. Следующий этап — v0.3: format-плагины, watch и JSON.

@@ -6,8 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from metadata_generator import Composition, GeneratorConfig, GeneratorRules, Parser, SourceConfig
-from metadata_generator.core.discovery import discover_sources
+from metadata_generator import (
+    Composition,
+    GeneratorConfig,
+    GeneratorRules,
+    InputSelection,
+    Parser,
+    SourceConfig,
+)
+from metadata_generator.core.discovery import SourceGroup, discover_sources
 from metadata_generator.utils.exceptions import DocumentError
 
 
@@ -163,3 +170,39 @@ def test_discover_directory_and_skip_output(tmp_path: Path) -> None:
     discovered = discover_sources(rules, tmp_path)
     assert [path.name for path in discovered.paths] == ["a.yaml", "b.yaml"]
     assert discovered.diagnostics == []
+
+
+def test_source_input_filters_own_source(tmp_path: Path) -> None:
+    main = write(
+        tmp_path / "main.yaml",
+        doc(
+            """\
+  entities:
+    - name: A
+    - name: B
+  enums:
+    - name: E
+      values:
+        - name: x
+  types:
+    - name: T
+      base: string
+"""
+        ),
+    )
+    result = Composition(Parser(), project_root=tmp_path).resolve(
+        [main],
+        [SourceGroup(paths=(main,), input=InputSelection(entities=("B",), enums=(), types=("T",)))],
+    )
+    assert [item.name for item in result.model.entities] == ["B"]
+    assert [item.name for item in result.model.enums] == ["E"]
+    assert [item.name for item in result.model.types] == ["T"]
+
+
+def test_source_input_unknown_name(tmp_path: Path) -> None:
+    main = write(tmp_path / "main.yaml", doc("  entities:\n    - name: A\n"))
+    result = Composition(Parser(), project_root=tmp_path).resolve(
+        [main],
+        [SourceGroup(paths=(main,), input=InputSelection(entities=("Missing",)))],
+    )
+    assert result.diagnostics[0].code == "MG018"

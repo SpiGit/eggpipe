@@ -5,14 +5,17 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from metadata_generator.core.discovery import SourceGroup
 from metadata_generator.core.document import ImportSpec, ModelDocument
 from metadata_generator.core.model import (
+    CustomType,
     Entity,
+    EnumDef,
     ExtendsRef,
     SourceModel,
 )
 from metadata_generator.core.parser import Parser
-from metadata_generator.interfaces.diagnostics import Diagnostic
+from metadata_generator.interfaces.diagnostics import Diagnostic, error
 from metadata_generator.interfaces.generator import ImportedFile
 from metadata_generator.utils.exceptions import DocumentError
 
@@ -54,13 +57,18 @@ class Composition:
         self.project_root = project_root.resolve()
         self.allow_outside = allow_outside
 
-    def resolve(self, sources: list[Path]) -> CompositionResult:
+    def resolve(
+        self,
+        sources: list[Path],
+        groups: list[SourceGroup] | None = None,
+    ) -> CompositionResult:
         if not sources:
             raise DocumentError("MG000", None, "нет источников модели")
         state = ResolveState(
             project_root=self.project_root,
             allow_outside=self.allow_outside,
         )
+        diagnostics: list[Diagnostic] = []
         root_format: str | None = None
         root_version: str | None = None
         for source in sources:
@@ -79,13 +87,19 @@ class Composition:
                 )
 
         resolved = self._resolve_extends(state)
+        selections = self._selections(state, groups, diagnostics)
         entities: list[Entity] = []
+        enums: list[EnumDef] = []
+        types: list[CustomType] = []
         seen_entities: set[str] = set()
         seen_enums: set[str] = set()
         seen_types: set[str] = set()
         for path in state.order:
             document = state.cache[path]
+            entity_names, enum_names, type_names = selections.get(path, (None, None, None))
             for entity in document.model.entities:
+                if entity_names is not None and entity.name not in entity_names:
+                    continue
                 if entity.name in seen_entities:
                     raise DocumentError(
                         "MG002",
@@ -95,6 +109,8 @@ class Composition:
                 seen_entities.add(entity.name)
                 entities.append(resolved[path][entity.name])
             for enum in document.model.enums:
+                if enum_names is not None and enum.name not in enum_names:
+                    continue
                 if enum.name in seen_enums:
                     raise DocumentError(
                         "MG002",
@@ -102,7 +118,10 @@ class Composition:
                         f"дубликат имени enum после композиции: {enum.name}",
                     )
                 seen_enums.add(enum.name)
+                enums.append(enum)
             for custom_type in document.model.types:
+                if type_names is not None and custom_type.name not in type_names:
+                    continue
                 if custom_type.name in seen_types:
                     raise DocumentError(
                         "MG002",
@@ -110,14 +129,15 @@ class Composition:
                         f"дубликат имени type после композиции: {custom_type.name}",
                     )
                 seen_types.add(custom_type.name)
+                types.append(custom_type)
 
         first = state.cache[sources[0].resolve()]
         model = SourceModel(
             name=first.model.name,
             description=first.model.description,
             entities=tuple(entities),
-            enums=tuple(item for path in state.order for item in state.cache[path].model.enums),
-            types=tuple(item for path in state.order for item in state.cache[path].model.types),
+            enums=tuple(enums),
+            types=tuple(types),
         )
         return CompositionResult(
             model=model,
@@ -125,7 +145,36 @@ class Composition:
             documents=tuple(state.cache[path] for path in state.order),
             format=first.format,
             version=first.version,
+            diagnostics=diagnostics,
         )
+
+    def _selections(
+        self,
+        state: ResolveState,
+        groups: list[SourceGroup] | None,
+        diagnostics: list[Diagnostic],
+    ) -> dict[Path, tuple[set[str] | None, set[str] | None, set[str] | None]]:
+        result: dict[Path, tuple[set[str] | None, set[str] | None, set[str] | None]] = {}
+        if not groups:
+            return result
+        for group in groups:
+            documents = [
+                state.cache[path.resolve()] for path in group.paths if path.resolve() in state.cache
+            ]
+            if not documents:
+                continue
+            entities = [item.name for document in documents for item in document.model.entities]
+            enums = [item.name for document in documents for item in document.model.enums]
+            types = [item.name for document in documents for item in document.model.types]
+            location = group.paths[0].resolve() if group.paths else None
+            selection = (
+                _selected(group.input.entities, entities, "entities", location, diagnostics),
+                _selected(group.input.enums, enums, "enums", location, diagnostics),
+                _selected(group.input.types, types, "types", location, diagnostics),
+            )
+            for path in group.paths:
+                result.setdefault(path.resolve(), selection)
+        return result
 
     def _visit(
         self,
@@ -309,3 +358,25 @@ class Composition:
 
 
 __all__ = ["Composition", "CompositionResult"]
+
+
+def _selected(
+    requested: tuple[str, ...] | None,
+    available: list[str],
+    label: str,
+    path: Path | None,
+    diagnostics: list[Diagnostic],
+) -> set[str] | None:
+    if not requested:
+        return None
+    available_set = set(available)
+    for name in requested:
+        if name not in available_set:
+            diagnostics.append(
+                error(
+                    "MG018",
+                    f"неизвестное имя в sources[].input.{label}: {name}",
+                    file=path,
+                )
+            )
+    return set(requested)

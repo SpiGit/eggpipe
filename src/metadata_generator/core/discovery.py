@@ -6,15 +6,23 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from metadata_generator.config.generator_rules import GeneratorRules
+from metadata_generator.core.model import InputSelection
 from metadata_generator.interfaces.diagnostics import Diagnostic, error, warning
 from metadata_generator.utils.yaml import YamlLoadError, load_yaml
 
 SKIP_PARTS = {".git", ".mg", "__pycache__", ".venv", "node_modules"}
 
 
+@dataclass(frozen=True)
+class SourceGroup:
+    paths: tuple[Path, ...]
+    input: InputSelection
+
+
 @dataclass
 class DiscoveredSources:
     paths: list[Path] = field(default_factory=list)
+    groups: list[SourceGroup] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)
 
 
@@ -31,6 +39,7 @@ def discover_sources(rules: GeneratorRules, config_dir: Path) -> DiscoveredSourc
             )
             continue
         candidates = [root] if root.is_file() else _walk_directory(root, output_dirs)
+        group_paths: list[Path] = []
         for candidate in candidates:
             if root.is_dir() and not _is_model_document(candidate):
                 result.diagnostics.append(
@@ -49,6 +58,9 @@ def discover_sources(rules: GeneratorRules, config_dir: Path) -> DiscoveredSourc
                 continue
             seen.add(canonical)
             result.paths.append(canonical)
+            group_paths.append(canonical)
+        if group_paths:
+            result.groups.append(SourceGroup(paths=tuple(group_paths), input=source.input))
     return result
 
 
@@ -78,4 +90,4 @@ def _walk_directory(root: Path, output_dirs: set[Path]) -> list[Path]:
     return sorted(found, key=lambda path: path.as_posix())
 
 
-__all__ = ["DiscoveredSources", "discover_sources"]
+__all__ = ["DiscoveredSources", "SourceGroup", "discover_sources"]

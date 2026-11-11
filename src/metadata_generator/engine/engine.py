@@ -6,12 +6,14 @@ import time
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from metadata_generator.config.app_config import AppConfig
 from metadata_generator.config.generator_rules import GeneratorConfig, GeneratorRules
 from metadata_generator.core.composition import Composition, CompositionResult
-from metadata_generator.core.discovery import discover_sources
+from metadata_generator.core.discovery import SourceGroup, discover_sources
+from metadata_generator.core.document import ModelDocument
 from metadata_generator.core.model import SourceModel
 from metadata_generator.core.parser import Parser
 from metadata_generator.core.slicing import select_slice
@@ -78,7 +80,7 @@ class Engine:
         started = time.perf_counter()
         self._pending = []
         diagnostics: list[Diagnostic] = []
-        sources = self._source_paths(diagnostics)
+        sources, source_groups = self._source_paths(diagnostics)
         if not sources:
             return self._report(False, 1, diagnostics, [], started)
         composition = Composition(
@@ -87,11 +89,14 @@ class Engine:
             allow_outside=self.config.allow_outside_imports,
         )
         try:
-            result = composition.resolve(sources)
+            result = composition.resolve(sources, source_groups)
         except DocumentError as exc:
             diagnostics.append(error(exc.code, exc.message, file=exc.path))
             return self._report(False, 1, diagnostics, [], started)
         self._composition = result
+        diagnostics.extend(result.diagnostics)
+        if self.rules.diagnostics.stale_dates:
+            diagnostics.extend(_stale_date_diagnostics(result.documents))
         model = result.model
         diagnostics.extend(validate_entity_model(model))
         if _has_errors(diagnostics):
@@ -214,17 +219,22 @@ class Engine:
             }
         )
 
-    def _source_paths(self, diagnostics: list[Diagnostic]) -> list[Path]:
+    def _source_paths(
+        self, diagnostics: list[Diagnostic]
+    ) -> tuple[list[Path], list[SourceGroup] | None]:
         if self.source_paths is not None:
-            return [
-                path if path.is_absolute() else (self.config_dir / path).resolve()
-                for path in self.source_paths
-            ]
+            return (
+                [
+                    path if path.is_absolute() else (self.config_dir / path).resolve()
+                    for path in self.source_paths
+                ],
+                None,
+            )
         if not self.rules.sources:
             raise ConfigValidationError("в .mg.yaml нет sources")
         discovered = discover_sources(self.rules, self.config_dir)
         diagnostics.extend(discovered.diagnostics)
-        return discovered.paths
+        return discovered.paths, discovered.groups
 
     def _run_generator(
         self,
@@ -329,6 +339,32 @@ class Engine:
 
 def _plugin_version(plugin: GeneratorPlugin) -> str:
     return str(getattr(plugin, "__version__", "1"))
+
+
+def _stale_date_diagnostics(
+    documents: tuple[ModelDocument, ...],
+) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    for document in documents:
+        file_date = datetime.fromtimestamp(document.path.stat().st_mtime, tz=UTC).date()
+        for entity in document.model.entities:
+            if entity.updated_at is None:
+                continue
+            updated: date = (
+                entity.updated_at.date()
+                if isinstance(entity.updated_at, datetime)
+                else entity.updated_at
+            )
+            if updated < file_date:
+                diagnostics.append(
+                    warning(
+                        "MG014",
+                        f"updated_at {updated.isoformat()} старше mtime {file_date.isoformat()}",
+                        file=document.path,
+                        entity=entity.name,
+                    )
+                )
+    return diagnostics
 
 
 def _has_errors(diagnostics: list[Diagnostic]) -> bool:
