@@ -1,7 +1,18 @@
 {
-  "include": ["src", "tests", "tools", "examples/reference-generator/src"],
+  "include": [
+    "src",
+    "tests",
+    "tools",
+    "examples/reference-generator/src",
+    "examples/tpc-h-generator/src"
+  ],
   "exclude": [".venv", "dist", "build", "**/__pycache__"],
-  "extraPaths": ["src", ".", "examples/reference-generator/src"],
+  "extraPaths": [
+    "src",
+    ".",
+    "examples/reference-generator/src",
+    "examples/tpc-h-generator/src"
+  ],
   "venvPath": ".",
   "venv": ".venv",
   "pythonVersion": "3.11",

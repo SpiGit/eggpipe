@@ -106,6 +106,7 @@ class Engine:
         if not isinstance(format_plugin, EntityModelFormat):
             for document in result.documents:
                 diagnostics.extend(format_plugin.validate(document))
+        diagnostics = self._filter_ignored(diagnostics)
         if _has_errors(diagnostics):
             return self._report(False, 1, diagnostics, [], started)
 
@@ -153,7 +154,12 @@ class Engine:
                 )
         success = not _has_errors(diagnostics)
         return self._report(
-            success, 0 if success else 1, diagnostics, generators, started, artifacts
+            success,
+            0 if success else 1,
+            self._filter_ignored(diagnostics),
+            generators,
+            started,
+            artifacts,
         )
 
     def generate(self) -> EngineReport:
@@ -323,6 +329,10 @@ class Engine:
     def _output_dir(self, generator_config: GeneratorConfig) -> Path:
         base = self.config.output_root or self.config_dir
         return (base / generator_config.output_dir).resolve()
+
+    def _filter_ignored(self, diagnostics: list[Diagnostic]) -> list[Diagnostic]:
+        ignored = self.rules.diagnostics.ignore
+        return [item for item in diagnostics if item.code not in ignored]
 
     def _report(
         self,

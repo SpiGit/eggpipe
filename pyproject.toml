@@ -33,6 +33,7 @@ dependencies = [
 
 [project.optional-dependencies]
 watch = ["watchdog>=4.0.0"]
+jinja = ["jinja2>=3.1.0"]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
@@ -41,6 +42,7 @@ dev = [
     "pyrefly>=1.4.0",
     "watchdog>=4.0.0",
     "mkdocs>=1.6.0",
+    "jinja2>=3.1.0",
 ]
 
 [project.scripts]
@@ -79,13 +81,29 @@ ignore = [
 [tool.pyrefly]
 python-version = "3.11"
 preset = "strict"
-project-includes = ["src", "tests", "tools", "examples/reference-generator/src"]
-search-path = ["src", ".", "examples/reference-generator/src"]
+project-includes = [
+    "src",
+    "tests",
+    "tools",
+    "examples/reference-generator/src",
+    "examples/tpc-h-generator/src",
+]
+search-path = [
+    "src",
+    ".",
+    "examples/reference-generator/src",
+    "examples/tpc-h-generator/src",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
-pythonpath = ["src", ".", "examples/reference-generator/src"]
+pythonpath = [
+    "src",
+    ".",
+    "examples/reference-generator/src",
+    "examples/tpc-h-generator/src",
+]
 filterwarnings = ["error"]
 markers = [
     "slow: длительные тесты (performance, большие фикстуры)",

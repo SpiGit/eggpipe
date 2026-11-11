@@ -13,6 +13,7 @@ from pydantic import (
     Field,
     PrivateAttr,
     field_serializer,
+    field_validator,
     model_serializer,
     model_validator,
 )
@@ -122,6 +123,17 @@ class Entity(BaseModel):
     source: Path | None = Field(default=None, exclude=True, repr=False)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @field_validator("updated_at", mode="before")
+    @classmethod
+    def _coerce_updated_at(cls, value: object) -> object:
+        # Pydantic smart union разбирает полночь ISO-datetime как date; сохраняем тип.
+        if isinstance(value, str) and ("T" in value or " " in value):
+            try:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                return value
+        return value
 
 
 class EnumValue(BaseModel):

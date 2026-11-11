@@ -1,0 +1,123 @@
+format: entity-model
+version: '1.0'
+model:
+  entities:
+  - name: LineItem
+    metadata:
+      postgres:
+        table: lineitem
+        primary_key:
+        - l_orderkey
+        - l_linenumber
+        foreign_keys:
+        - columns:
+          - l_orderkey
+          references:
+            table: orders
+            columns:
+            - o_orderkey
+        - columns:
+          - l_partkey
+          - l_suppkey
+          references:
+            table: partsupp
+            columns:
+            - ps_partkey
+            - ps_suppkey
+    fields:
+    - name: l_orderkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: l_partkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: l_suppkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: l_linenumber
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: l_quantity
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: l_extendedprice
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: l_discount
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: l_tax
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: l_returnflag
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(1)
+    - name: l_linestatus
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(1)
+    - name: l_shipdate
+      type: date
+      required: true
+      metadata:
+        postgres:
+          type: date
+    - name: l_commitdate
+      type: date
+      required: true
+      metadata:
+        postgres:
+          type: date
+    - name: l_receiptdate
+      type: date
+      required: true
+      metadata:
+        postgres:
+          type: date
+    - name: l_shipinstruct
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(25)
+    - name: l_shipmode
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(10)
+    - name: l_comment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(44)

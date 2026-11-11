@@ -1,0 +1,60 @@
+format: entity-model
+version: '1.0'
+model:
+  entities:
+  - name: Supplier
+    metadata:
+      postgres:
+        table: supplier
+        primary_key:
+        - s_suppkey
+        foreign_keys:
+        - columns:
+          - s_nationkey
+          references:
+            table: nation
+            columns:
+            - n_nationkey
+    fields:
+    - name: s_suppkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: s_name
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(25)
+    - name: s_address
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(40)
+    - name: s_nationkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: s_phone
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(15)
+    - name: s_acctbal
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: s_comment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(101)

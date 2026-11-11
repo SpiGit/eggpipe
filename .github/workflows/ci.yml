@@ -39,11 +39,14 @@ jobs:
       - name: Install
         run: uv sync --frozen --extra dev --python ${{ matrix.python-version }}
 
+      - name: Install example plugin
+        run: uv pip install -e examples/tpc-h-generator
+
       - name: Lint
         run: uv run ruff check .
 
       - name: Format check
-        run: uv run ruff format --check src tests tools
+        run: uv run ruff format --check src tests tools examples
 
       - name: Type check
         run: uv run pyrefly check --output-format github

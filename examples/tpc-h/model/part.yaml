@@ -1,0 +1,65 @@
+format: entity-model
+version: '1.0'
+model:
+  entities:
+  - name: Part
+    metadata:
+      postgres:
+        table: part
+        primary_key:
+        - p_partkey
+    fields:
+    - name: p_partkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: p_name
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(55)
+    - name: p_mfgr
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(25)
+    - name: p_brand
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(10)
+    - name: p_type
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(25)
+    - name: p_size
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: p_container
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(10)
+    - name: p_retailprice
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: p_comment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(23)

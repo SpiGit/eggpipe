@@ -1,0 +1,42 @@
+format: entity-model
+version: '1.0'
+model:
+  entities:
+  - name: Nation
+    metadata:
+      postgres:
+        table: nation
+        primary_key:
+        - n_nationkey
+        foreign_keys:
+        - columns:
+          - n_regionkey
+          references:
+            table: region
+            columns:
+            - r_regionkey
+    fields:
+    - name: n_nationkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: n_name
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(25)
+    - name: n_regionkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: n_comment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(152)

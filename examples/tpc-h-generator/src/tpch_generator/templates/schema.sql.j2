@@ -1,0 +1,17 @@
+{% macro column_line(column, comma) %}    {{ column.name }} {{ column.sql_type }}{% if not column.nullable %} NOT NULL{% endif %}{{ comma }}{% endmacro %}
+{% for table in tables %}
+CREATE TABLE {% if schema %}{{ schema }}.{% endif %}{{ table.name }} (
+{% for column in table.columns %}
+{{ column_line(column, "," if not loop.last or table.primary_key else "") }}
+{% endfor %}
+{% if table.primary_key %}
+    CONSTRAINT {{ table.name }}_pkey PRIMARY KEY ({{ table.primary_key | join(", ") }})
+{% endif %}
+);
+
+{% endfor %}
+{% for table in tables %}
+{% for foreign_key in table.foreign_keys %}
+ALTER TABLE {% if schema %}{{ schema }}.{% endif %}{{ table.name }} ADD CONSTRAINT {{ table.name }}_{{ foreign_key.columns | join("_") }}_fkey FOREIGN KEY ({{ foreign_key.columns | join(", ") }}) REFERENCES {% if schema %}{{ schema }}.{% endif %}{{ foreign_key.table }} ({{ foreign_key.references | join(", ") }});
+{% endfor %}
+{% endfor %}

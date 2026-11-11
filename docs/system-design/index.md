@@ -1188,6 +1188,7 @@ metadata-generator/
 │   │   ├── __init__.py
 │   │   ├── watcher.py               # Watcher (lazy watchdog), DebounceHandler
 │   │   └── cache.py                 # CacheStrategy (future)
+│   ├── templating.py                # optional Jinja2 helper (extra [jinja])
 │   └── utils/
 │       ├── __init__.py
 │       ├── yaml.py                  # load_yaml() поверх ruamel.yaml

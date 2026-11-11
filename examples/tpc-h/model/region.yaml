@@ -1,0 +1,29 @@
+format: entity-model
+version: '1.0'
+model:
+  entities:
+  - name: Region
+    metadata:
+      postgres:
+        table: region
+        primary_key:
+        - r_regionkey
+    fields:
+    - name: r_regionkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: r_name
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(25)
+    - name: r_comment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(152)

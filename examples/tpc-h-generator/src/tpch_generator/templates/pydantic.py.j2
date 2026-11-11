@@ -1,0 +1,26 @@
+{% macro field_line(field) %}    {{ field.name }}: {{ field.annotation }}{% if field.optional %} | None{% endif %}{% if field.constraints %} = Field({% if field.optional %}default=None, {% endif %}{% for name, value in field.constraints.items() %}{{ name }}={{ value }}{% if not loop.last %}, {% endif %}{% endfor %}){% elif field.optional %} = None{% endif %}{% endmacro %}
+{% set has_date = "date" in annotations %}
+{% set has_datetime = "datetime" in annotations %}
+{% set has_decimal = "Decimal" in annotations %}
+{% if has_date or has_datetime %}
+from datetime import {{ "date, datetime" if has_date and has_datetime else ("date" if has_date else "datetime") }}
+{% endif %}
+{% if has_decimal %}
+from decimal import Decimal
+{% endif %}
+{% if has_date or has_datetime or has_decimal %}
+
+{% endif %}
+from pydantic import BaseModel, ConfigDict, Field
+
+
+{% for entity in entities %}
+class {{ entity.name }}(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+{% for field in entity.fields %}
+{{ field_line(field) }}
+{% endfor %}
+
+
+{% endfor %}
+__all__ = [{% for entity in entities %}"{{ entity.name }}"{% if not loop.last %}, {% endif %}{% endfor %}]

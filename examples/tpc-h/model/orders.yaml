@@ -1,0 +1,72 @@
+format: entity-model
+version: '1.0'
+model:
+  entities:
+  - name: Orders
+    metadata:
+      postgres:
+        table: orders
+        primary_key:
+        - o_orderkey
+        foreign_keys:
+        - columns:
+          - o_custkey
+          references:
+            table: customer
+            columns:
+            - c_custkey
+    fields:
+    - name: o_orderkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: o_custkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: o_orderstatus
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(1)
+    - name: o_totalprice
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: o_orderdate
+      type: date
+      required: true
+      metadata:
+        postgres:
+          type: date
+    - name: o_orderpriority
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(15)
+    - name: o_clerk
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(15)
+    - name: o_shippriority
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: o_comment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(79)

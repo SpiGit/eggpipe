@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
+
 import pytest
 from pydantic import ValidationError
 
@@ -70,3 +72,17 @@ def test_source_model_metadata_is_independent() -> None:
     second = SourceModel()
     first.metadata["x"] = 1
     assert second.metadata == {}
+
+
+def test_entity_updated_at_round_trip_preserves_type() -> None:
+    moment = datetime(2000, 1, 1, 0, 0)
+    model = SourceModel(entities=(Entity(name="User", updated_at=moment),))
+    restored = SourceModel.model_validate(model.model_dump(mode="json"))
+    assert restored.entities[0].updated_at == moment
+    assert isinstance(restored.entities[0].updated_at, datetime)
+
+    day = date(2000, 1, 1)
+    model = SourceModel(entities=(Entity(name="User", updated_at=day),))
+    restored = SourceModel.model_validate(model.model_dump(mode="json"))
+    assert restored.entities[0].updated_at == day
+    assert type(restored.entities[0].updated_at) is date

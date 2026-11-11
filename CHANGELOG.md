@@ -37,6 +37,10 @@
   интерактивный `mg clean --yes`, устойчивый plugin loader с issues, флаги watch.
 - ТЗ v1.3: зарегистрированы MG030/MG300, диапазоны кодов и публичный API синхронизированы
   с реализацией; `Entity.source` и fallback `cleanup: prompt`.
+- TPC-H example: 8 таблиц, PostgreSQL DDL и Pydantic-модели; варианты одного/split генератора
+  на одном наборе `model/`; Jinja2-шаблоны с `options.templates_dir`.
+- Опциональный `metadata_generator.templating` (extra `[jinja]`): загрузка Jinja2-окружения
+  и `render_template`, ядро не импортирует Jinja2 при старте.
 - Каталог диагностик `docs/reference/diagnostics.md`.
 - ТЗ v1.2: модель `ModelDocument` → `SourceModel` → `ModelSlice`, контракты плагинов,
   ownership/manifest, CLI и диагностики.
@@ -48,4 +52,6 @@
 - Delivery harness: сборка wheel/sdist, проверка артефактов и release-workflow.
 - MIT License.
 
-Ядро v0.1 и CLI `mg` ещё не реализованы.
+### Fixed
+
+- `Entity.updated_at` сохраняет `datetime` при JSON round-trip, включая значения на полночь.

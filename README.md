@@ -103,6 +103,9 @@ pip install metadata-generator
 # Для watch-режима
 pip install "metadata-generator[watch]"
 
+# Для Jinja2-helper в плагинах
+pip install "metadata-generator[jinja]"
+
 # Инициализация конфигурации
 mg init
 
@@ -177,6 +180,7 @@ uv run python tools/check_docs.py --strict
 - [Каталог диагностик](./docs/reference/diagnostics.md)
 - [Руководство по плагинам](./docs/plugin-guide.md)
 - [Релиз](./docs/release.md)
+- [TPC-H example](./examples/tpc-h/README.md)
 - [Reference generator](./examples/reference-generator/README.md)
 
 ## Лицензия

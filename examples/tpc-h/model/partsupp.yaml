@@ -1,0 +1,55 @@
+format: entity-model
+version: '1.0'
+model:
+  entities:
+  - name: PartSupp
+    metadata:
+      postgres:
+        table: partsupp
+        primary_key:
+        - ps_partkey
+        - ps_suppkey
+        foreign_keys:
+        - columns:
+          - ps_partkey
+          references:
+            table: part
+            columns:
+            - p_partkey
+        - columns:
+          - ps_suppkey
+          references:
+            table: supplier
+            columns:
+            - s_suppkey
+    fields:
+    - name: ps_partkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: ps_suppkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: ps_availqty
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: ps_supplycost
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: ps_comment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(199)

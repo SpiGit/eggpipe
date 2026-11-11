@@ -1,0 +1,66 @@
+format: entity-model
+version: '1.0'
+model:
+  entities:
+  - name: Customer
+    metadata:
+      postgres:
+        table: customer
+        primary_key:
+        - c_custkey
+        foreign_keys:
+        - columns:
+          - c_nationkey
+          references:
+            table: nation
+            columns:
+            - n_nationkey
+    fields:
+    - name: c_custkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: c_name
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(25)
+    - name: c_address
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(40)
+    - name: c_nationkey
+      type: integer
+      required: true
+      metadata:
+        postgres:
+          type: integer
+    - name: c_phone
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(15)
+    - name: c_acctbal
+      type: float
+      required: true
+      metadata:
+        postgres:
+          type: decimal(15,2)
+    - name: c_mktsegment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: char(10)
+    - name: c_comment
+      type: string
+      required: true
+      metadata:
+        postgres:
+          type: varchar(117)

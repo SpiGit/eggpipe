@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "metadata-generator-tpch-example"
+version = "0.1.0"
+description = "TPC-H PostgreSQL DDL and Pydantic generators for metadata-generator"
+requires-python = ">=3.11"
+dependencies = ["metadata-generator", "jinja2>=3.1"]
+
+[project.entry-points."metadata_generator.generators"]
+tpch = "tpch_generator:TpchGenerator"
+tpch-ddl = "tpch_generator:TpchDdlGenerator"
+tpch-pydantic = "tpch_generator:TpchPydanticGenerator"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tpch_generator"]

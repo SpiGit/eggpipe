@@ -98,6 +98,36 @@ sql-model = "my_package.formats:SqlModelFormat"
 - `sources` — пути source-документов;
 - `format`, `format_version`, `run_id`, `config_dir`.
 
+## Шаблоны
+
+Ядро не предоставляет шаблонизатор: движок выбирает плагин (ТЗ §7). Для Jinja2 доступен
+опциональный helper `metadata_generator.templating` (extra `[jinja]`):
+
+```bash
+pip install "metadata-generator[jinja]"
+```
+
+```python
+from metadata_generator.templating import jinja_environment, render_template
+
+environment = jinja_environment(
+    package="my_generator",             # шаблоны внутри wheel: my_generator/templates/
+    templates_dir=config.options.get("templates_dir"),
+    config_dir=input.context.config_dir,
+)
+content = render_template(environment, "schema.sql.j2", entities=entities)
+```
+
+- helper только создаёт окружение (`PackageLoader` или `FileSystemLoader`,
+  `StrictUndefined`) и превращает ошибки Jinja2 в `TemplateError`;
+- `templates_dir` имеет приоритет над `package`; относительный путь разрешается от
+  `config_dir`;
+- отсутствие Jinja2, каталога или шаблона — `TemplateError`; генератор может отобразить
+  её в `MG300`;
+- `jinja2` не входит в основные зависимости и не импортируется ядром при старте.
+
+TPC-H example использует этот helper и `options.templates_dir` для override.
+
 ## Provenance
 
 `Entity.source` содержит путь к документу, из которого пришла сущность (заполняется парсером,
