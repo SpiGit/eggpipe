@@ -200,7 +200,8 @@ class ArtifactWriter:
         plugin_version: str,
         format_name: str,
         format_version: str,
-    ) -> None:
+        cleanup: Literal["off", "prompt", "enabled"] = "off",
+    ) -> list[Diagnostic]:
         if plan.has_errors:
             raise ManifestError("нельзя записывать план с ошибками")
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -209,6 +210,7 @@ class ArtifactWriter:
         manifests_dir.mkdir(parents=True, exist_ok=True)
         staging = output_dir / f".mg-staging-{os.getpid()}-{uuid.uuid4().hex}"
         staging.mkdir()
+        diagnostics: list[Diagnostic] = []
         try:
             for item in plan.artifacts:
                 if item.action == "skip":
@@ -235,6 +237,30 @@ class ArtifactWriter:
                             skipped=False,
                         )
                     )
+            current_paths = {str(item.path) for item in plan.artifacts}
+            old = self.load_manifest(output_dir, generator_id)
+            for item in old.artifacts:
+                if item.path in current_paths or item.skipped:
+                    if item.path not in current_paths:
+                        entries.append(item)
+                    continue
+                target = output_dir / item.path
+                if not target.exists():
+                    continue
+                if _sha256_file(target) != item.sha256:
+                    diagnostics.append(
+                        warning(
+                            "MG050",
+                            "изменённый owned-файл не удалён при cleanup",
+                            path=item.path,
+                        )
+                    )
+                    entries.append(item)
+                    continue
+                if cleanup == "enabled":
+                    target.unlink()
+                else:
+                    entries.append(item)
             manifest = Manifest(
                 generator=generator_id,
                 mg_version=self.mg_version,
@@ -246,6 +272,7 @@ class ArtifactWriter:
             _write_json_atomic(manifests_dir / f"{generator_id}.json", manifest)
         finally:
             shutil.rmtree(staging, ignore_errors=True)
+        return diagnostics
 
     def check(
         self,
@@ -265,6 +292,51 @@ class ArtifactWriter:
             actual = _sha256_file(item.target)
             if actual != item.sha256:
                 diagnostics.append(error("MG300", "артефакт устарел (drift)", path=str(item.path)))
+        return diagnostics
+
+    def clean_manifest(
+        self,
+        *,
+        output_dir: Path,
+        generator_id: str,
+        dry_run: bool = False,
+    ) -> list[Diagnostic]:
+        manifest_path = output_dir / ".mg" / "manifests" / f"{generator_id}.json"
+        if not manifest_path.is_file():
+            return []
+        manifest = self.load_manifest(output_dir, generator_id)
+        kept: list[ManifestArtifact] = []
+        diagnostics: list[Diagnostic] = []
+        for item in manifest.artifacts:
+            if item.skipped:
+                kept.append(item)
+                continue
+            target = output_dir / item.path
+            if not target.exists():
+                continue
+            if _sha256_file(target) != item.sha256:
+                diagnostics.append(
+                    warning(
+                        "MG050",
+                        "изменённый owned-файл не удалён при cleanup",
+                        path=item.path,
+                    )
+                )
+                kept.append(item)
+                continue
+            if dry_run:
+                kept.append(item)
+                continue
+            target.unlink()
+        if not dry_run:
+            updated = manifest.model_copy(
+                update={
+                    "generated_at": datetime.now(UTC),
+                    "artifacts": kept,
+                }
+            )
+            manifests_dir = output_dir / ".mg" / "manifests"
+            _write_json_atomic(manifests_dir / f"{generator_id}.json", updated)
         return diagnostics
 
     def load_manifest(self, output_dir: Path, generator_id: str) -> Manifest:

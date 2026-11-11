@@ -9,7 +9,6 @@ import pytest
 from metadata_generator import (
     UNSET,
     Parser,
-    validate_document,
 )
 from metadata_generator.utils.exceptions import DocumentError
 
@@ -87,21 +86,19 @@ def test_non_mapping_root(tmp_path: Path) -> None:
     assert code(write(tmp_path, "- item\n")) == "MG000"
 
 
-def test_imports_are_parsed_and_warned(tmp_path: Path) -> None:
+def test_imports_are_parsed(tmp_path: Path) -> None:
     text = VALID.replace(
         "model:\n",
         "model:\n  imports:\n    - path: ./other.yaml\n    - path: ./icon.svg\n      as: icon\n",
     )
     document = Parser().parse_document(write(tmp_path, text))
     assert [item.kind for item in document.imports] == ["yaml", "resource"]
-    codes = [item.code for item in validate_document(document)]
-    assert "MG030" in codes
 
 
-def test_extends_is_warned(tmp_path: Path) -> None:
+def test_extends_is_parsed(tmp_path: Path) -> None:
     text = VALID.replace(
         "    - name: User\n      fields:\n",
         "    - name: User\n      extends: Base\n      fields:\n",
     )
     document = Parser().parse_document(write(tmp_path, text))
-    assert "MG030" in [item.code for item in validate_document(document)]
+    assert document.model.entity("User").extends == "Base"

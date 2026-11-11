@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from metadata_generator import Artifact
+from metadata_generator import Artifact, Diagnostic
 from metadata_generator.engine.artifact_writer import ArtifactWriter, ExecutionPlan
 from metadata_generator.utils.exceptions import LockError
 
@@ -30,14 +30,15 @@ def plan_for(
     )
 
 
-def write(output: Path, plan: ExecutionPlan) -> None:
-    writer().write(
+def write(output: Path, plan: ExecutionPlan, cleanup: str = "off") -> list[Diagnostic]:
+    return writer().write(
         generator_id="gen",
         output_dir=output,
         plan=plan,
         plugin_version="1.0",
         format_name="entity-model",
         format_version="1.0",
+        cleanup=cleanup,  # type: ignore[arg-type]
     )
 
 
@@ -126,3 +127,52 @@ def test_lock(tmp_path: Path) -> None:
     output = tmp_path / "out"
     with writer().write_lock(output), pytest.raises(LockError), writer().write_lock(output):
         pass
+
+
+def test_cleanup_off_keeps_stale_entries(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(output, plan_for(output, Artifact(path="old.txt", content="old")))
+    write(output, plan_for(output, Artifact(path="new.txt", content="new")))
+    assert (output / "old.txt").is_file()
+    manifest = writer().load_manifest(output, "gen")
+    assert {item.path for item in manifest.artifacts} == {"old.txt", "new.txt"}
+
+
+def test_cleanup_enabled_removes_unchanged_stale(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(output, plan_for(output, Artifact(path="old.txt", content="old")))
+    write(
+        output,
+        plan_for(output, Artifact(path="new.txt", content="new")),
+        cleanup="enabled",
+    )
+    assert not (output / "old.txt").exists()
+    manifest = writer().load_manifest(output, "gen")
+    assert {item.path for item in manifest.artifacts} == {"new.txt"}
+
+
+def test_cleanup_keeps_modified_owned_file(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(output, plan_for(output, Artifact(path="old.txt", content="old")))
+    (output / "old.txt").write_text("user edit", encoding="utf-8")
+    diagnostics = write(
+        output,
+        plan_for(output, Artifact(path="new.txt", content="new")),
+        cleanup="enabled",
+    )
+    assert (output / "old.txt").read_text(encoding="utf-8") == "user edit"
+    assert diagnostics[0].code == "MG050"
+    manifest = writer().load_manifest(output, "gen")
+    assert {item.path for item in manifest.artifacts} == {"old.txt", "new.txt"}
+
+
+def test_clean_manifest(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(output, plan_for(output, Artifact(path="a.txt", content="a")))
+    write(output, plan_for(output, Artifact(path="b.txt", content="b")))
+    diagnostics = writer().clean_manifest(output_dir=output, generator_id="gen", dry_run=False)
+    assert diagnostics == []
+    assert not (output / "a.txt").exists()
+    assert not (output / "b.txt").exists()
+    manifest = writer().load_manifest(output, "gen")
+    assert manifest.artifacts == []

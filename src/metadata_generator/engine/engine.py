@@ -10,11 +10,12 @@ from pathlib import Path
 
 from metadata_generator.config.app_config import AppConfig
 from metadata_generator.config.generator_rules import GeneratorConfig, GeneratorRules
-from metadata_generator.core.document import ModelDocument
+from metadata_generator.core.composition import Composition, CompositionResult
+from metadata_generator.core.discovery import discover_sources
 from metadata_generator.core.model import SourceModel
 from metadata_generator.core.parser import Parser
 from metadata_generator.core.slicing import select_slice
-from metadata_generator.core.validator import validate_document, validate_entity_model
+from metadata_generator.core.validator import validate_entity_model
 from metadata_generator.engine.artifact_writer import ArtifactWriter, ExecutionPlan
 from metadata_generator.engine.format_registry import FormatRegistry
 from metadata_generator.engine.plugin_loader import load_generators
@@ -71,28 +72,28 @@ class Engine:
         self.writer = ArtifactWriter(mg_version=__version__)
         self.run_id = uuid.uuid4().hex
         self._pending: list[_Pending] = []
-        self._documents: list[ModelDocument] = []
+        self._composition: CompositionResult | None = None
 
     def build(self) -> EngineReport:
         started = time.perf_counter()
         self._pending = []
         diagnostics: list[Diagnostic] = []
-        documents = self._parse_sources(diagnostics)
-        if not documents:
+        sources = self._source_paths(diagnostics)
+        if not sources:
             return self._report(False, 1, diagnostics, [], started)
-        self._documents = documents
-        formats = {document.format for document in documents}
-        if len(formats) != 1:
-            diagnostics.append(
-                error("MG007", "в одном запуске смешаны форматы: " + ", ".join(sorted(formats)))
-            )
-        versions = {(document.format, document.version) for document in documents}
-        if len(versions) != 1:
-            diagnostics.append(error("MG008", "в одном запуске смешаны версии формата"))
-        model = _merge_documents(documents)
+        composition = Composition(
+            self.parser,
+            project_root=self.config_dir,
+            allow_outside=self.config.allow_outside_imports,
+        )
+        try:
+            result = composition.resolve(sources)
+        except DocumentError as exc:
+            diagnostics.append(error(exc.code, exc.message, file=exc.path))
+            return self._report(False, 1, diagnostics, [], started)
+        self._composition = result
+        model = result.model
         diagnostics.extend(validate_entity_model(model))
-        for document in documents:
-            diagnostics.extend(item for item in validate_document(document) if item.code == "MG030")
         if _has_errors(diagnostics):
             return self._report(False, 1, diagnostics, [], started)
 
@@ -105,7 +106,7 @@ class Engine:
             if plugin is None:
                 raise ConfigValidationError(f"неизвестный генератор: {generator_config.id}")
             generator_started = time.perf_counter()
-            result, plan = self._run_generator(generator_config, plugin, model, documents)
+            result, plan = self._run_generator(generator_config, plugin, model)
             diagnostics.extend(result.warnings)
             diagnostics.extend(result.errors)
             diagnostics.extend(plan.diagnostics)
@@ -149,16 +150,31 @@ class Engine:
             return report
         diagnostics = list(report.diagnostics)
         generators = list(report.generators)
+        if self._composition is None:
+            return report
         for pending in self._pending:
             try:
+                cleanup = "enabled" if self.config.clean else pending.config.cleanup
+                if cleanup == "prompt":
+                    diagnostics.append(
+                        warning(
+                            "MG030",
+                            "cleanup: prompt без tty; используется off",
+                            path=str(pending.output_dir),
+                        )
+                    )
+                    cleanup = "off"
                 with self.writer.write_lock(pending.output_dir):
-                    self.writer.write(
-                        generator_id=pending.config.id,
-                        output_dir=pending.output_dir,
-                        plan=pending.plan,
-                        plugin_version=_plugin_version(pending.plugin),
-                        format_name=_format_name(self._documents),
-                        format_version=_format_version(self._documents),
+                    diagnostics.extend(
+                        self.writer.write(
+                            generator_id=pending.config.id,
+                            output_dir=pending.output_dir,
+                            plan=pending.plan,
+                            plugin_version=_plugin_version(pending.plugin),
+                            format_name=self._composition.format,
+                            format_version=self._composition.version,
+                            cleanup=cleanup,
+                        )
                     )
             except (LockError, ManifestError, OSError) as exc:
                 diagnostics.append(
@@ -198,25 +214,23 @@ class Engine:
             }
         )
 
-    def _parse_sources(self, diagnostics: list[Diagnostic]) -> list[ModelDocument]:
-        paths = self.source_paths or [self.config_dir / item.path for item in self.rules.sources]
-        if not paths:
+    def _source_paths(self, diagnostics: list[Diagnostic]) -> list[Path]:
+        if self.source_paths is not None:
+            return [
+                path if path.is_absolute() else (self.config_dir / path).resolve()
+                for path in self.source_paths
+            ]
+        if not self.rules.sources:
             raise ConfigValidationError("в .mg.yaml нет sources")
-        documents: list[ModelDocument] = []
-        for path in paths:
-            source = path if path.is_absolute() else (self.config_dir / path)
-            try:
-                documents.append(self.parser.parse_document(source.resolve()))
-            except DocumentError as exc:
-                diagnostics.append(error(exc.code, exc.message, path=str(exc.path or source)))
-        return documents
+        discovered = discover_sources(self.rules, self.config_dir)
+        diagnostics.extend(discovered.diagnostics)
+        return discovered.paths
 
     def _run_generator(
         self,
         generator_config: GeneratorConfig,
         plugin: GeneratorPlugin,
         model: SourceModel,
-        documents: list[ModelDocument],
     ) -> tuple[GenerationResult, ExecutionPlan]:
         try:
             config_diagnostics = plugin.validate_config(generator_config)
@@ -234,12 +248,15 @@ class Engine:
                 ExecutionPlan(),
             )
         slice_, slice_diagnostics = select_slice(model, generator_config.input)
+        if self._composition is None:
+            raise ConfigValidationError("composition не инициализирована")
         context = GenerationContext(
             variables=dict(self.variables),
             naming_hint=self.rules.defaults.naming_convention,
-            sources=[document.path for document in documents],
-            format=_format_name(documents),
-            format_version=_format_version(documents),
+            imports=dict(self._composition.imports),
+            sources=[document.path for document in self._composition.documents],
+            format=self._composition.format,
+            format_version=self._composition.version,
             run_id=self.run_id,
             config_dir=self.config_dir,
         )
@@ -277,18 +294,6 @@ class Engine:
             )
         if not result.success:
             return result, ExecutionPlan()
-        if generator_config.cleanup != "off":
-            result = result.model_copy(
-                update={
-                    "warnings": [
-                        *result.warnings,
-                        warning(
-                            "MG030",
-                            "cleanup появится в следующей версии; параметр проигнорирован",
-                        ),
-                    ]
-                }
-            )
         plan = self.writer.plan(
             generator_id=generator_config.id,
             output_dir=self._output_dir(generator_config),
@@ -320,21 +325,6 @@ class Engine:
             artifacts=artifacts or [],
             timings={"total_ms": int((time.perf_counter() - started) * 1000)},
         )
-
-
-def _merge_documents(documents: list[ModelDocument]) -> SourceModel:
-    entities = tuple(entity for document in documents for entity in document.model.entities)
-    enums = tuple(item for document in documents for item in document.model.enums)
-    types = tuple(item for document in documents for item in document.model.types)
-    return SourceModel(entities=entities, enums=enums, types=types)
-
-
-def _format_name(documents: list[ModelDocument]) -> str:
-    return documents[0].format if documents else ""
-
-
-def _format_version(documents: list[ModelDocument]) -> str:
-    return documents[0].version if documents else ""
 
 
 def _plugin_version(plugin: GeneratorPlugin) -> str:

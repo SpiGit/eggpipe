@@ -12,6 +12,7 @@ from metadata_generator.config.app_config import AppConfig
 from metadata_generator.config.generator_rules import GeneratorRules, GeneratorRulesLoader
 from metadata_generator.core.parser import Parser
 from metadata_generator.core.validator import validate_document
+from metadata_generator.engine.artifact_writer import ArtifactWriter
 from metadata_generator.engine.engine import Engine
 from metadata_generator.engine.format_registry import FormatRegistry
 from metadata_generator.engine.plugin_loader import GENERATOR_GROUP, load_generators
@@ -21,6 +22,7 @@ from metadata_generator.utils.exceptions import (
     DocumentError,
     MetadataGeneratorError,
 )
+from metadata_generator.version import __version__
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="Metadata Generator")
 config_app = typer.Typer(no_args_is_help=True, help="Конфигурация")
@@ -141,6 +143,8 @@ def _run_engine(
     force: bool,
     strict: bool,
     include_disabled: bool,
+    allow_outside_imports: bool,
+    clean: bool,
     output_format: str,
     ignore: str | None,
     quiet: bool,
@@ -155,6 +159,8 @@ def _run_engine(
         output_root=output,
         force=force,
         include_disabled=include_disabled,
+        allow_outside_imports=allow_outside_imports,
+        clean=clean,
         quiet=quiet,
         verbose=verbose,
     )
@@ -197,6 +203,8 @@ def generate(
     force: Annotated[bool, typer.Option("--force")] = False,
     strict: Annotated[bool, typer.Option("--strict")] = False,
     include_disabled: Annotated[bool, typer.Option("--include-disabled")] = False,
+    allow_outside_imports: Annotated[bool, typer.Option("--allow-outside-imports")] = False,
+    clean: Annotated[bool, typer.Option("--clean")] = False,
     output_format: Annotated[str, typer.Option("--output-format")] = "text",
     ignore: Annotated[str | None, typer.Option("--ignore")] = None,
     quiet: Annotated[bool, typer.Option("--quiet", "-q")] = False,
@@ -217,6 +225,8 @@ def generate(
             force=force,
             strict=strict,
             include_disabled=include_disabled,
+            allow_outside_imports=allow_outside_imports,
+            clean=clean,
             output_format=output_format,
             ignore=ignore,
             quiet=quiet,
@@ -344,12 +354,32 @@ def format_list() -> None:
 
 @app.command()
 def clean(
+    config: ConfigOption = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     yes: Annotated[bool, typer.Option("--yes")] = False,
 ) -> None:
-    """Placeholder cleanup до v0.2."""
-    del dry_run, yes
-    typer.echo("warning: MG030: cleanup появится в v0.2; файлы не удалены", err=True)
+    """Удалить unchanged owned-артефакты из manifest."""
+    del yes
+    try:
+        rules, config_dir = _load_rules(config)
+    except MetadataGeneratorError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    writer = ArtifactWriter(mg_version=__version__)
+    base = (output or config_dir).resolve()
+    removed = 0
+    for generator in rules.generators:
+        output_dir = (base / generator.output_dir).resolve()
+        diagnostics = writer.clean_manifest(
+            output_dir=output_dir,
+            generator_id=generator.id,
+            dry_run=dry_run,
+        )
+        for item in diagnostics:
+            typer.echo(f"{item.level}: {item.code}: {item.message}", err=True)
+        removed += 1
+    typer.echo(f"{'planned' if dry_run else 'cleaned'} manifests: {removed}")
 
 
 if __name__ == "__main__":

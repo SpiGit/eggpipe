@@ -15,6 +15,10 @@
 - CLI `mg`: `generate`, `init`, `config show/validate`, `model validate`, `gen list/info`,
   `format list`, `clean` (placeholder до v0.2).
 - Reference-плагин `examples/reference-generator` и golden-тест.
+- v0.2: composition — `imports`, `entity.extends`, discovery каталогов, merge по ADR-0001,
+  project-root boundary и `--allow-outside-imports`.
+- Cleanup owned-артефактов (`off|prompt|enabled`), `--clean`, MG050.
+- `sources[].input` и `updated_at`/MG014 пока не реализованы.
 - Каталог диагностик `docs/reference/diagnostics.md`.
 - ТЗ v1.2: модель `ModelDocument` → `SourceModel` → `ModelSlice`, контракты плагинов,
   ownership/manifest, CLI и диагностики.

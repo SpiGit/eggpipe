@@ -23,7 +23,6 @@ from metadata_generator.interfaces.diagnostics import Diagnostic, error, warning
 
 MAX_TYPE_DEPTH = 10
 MAX_IMPORT_DEPTH = 10
-UNSUPPORTED_FEATURE = "MG030"
 
 
 def validate_entity_model(
@@ -74,26 +73,7 @@ def validate_entity_model(
 
 
 def validate_document(document: ModelDocument) -> list[Diagnostic]:
-    diagnostics = validate_entity_model(document.model, file=document.path)
-    if document.imports:
-        diagnostics.append(
-            warning(
-                UNSUPPORTED_FEATURE,
-                "imports появятся в v0.2; импорты проигнорированы",
-                file=document.path,
-            )
-        )
-    for entity in document.model.entities:
-        if entity.extends is not None:
-            diagnostics.append(
-                warning(
-                    UNSUPPORTED_FEATURE,
-                    f"extends у {entity.name} появится в v0.2; проигнорирован",
-                    file=document.path,
-                    entity=entity.name,
-                )
-            )
-    return diagnostics
+    return validate_entity_model(document.model, file=document.path)
 
 
 def _validate_duplicate_names(
@@ -517,4 +497,4 @@ def _safe_compare(left: object, right: object) -> int:
     return 0
 
 
-__all__ = ["UNSUPPORTED_FEATURE", "validate_document", "validate_entity_model"]
+__all__ = ["validate_document", "validate_entity_model"]

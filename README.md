@@ -166,6 +166,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** ядро v0.1 готово — модели, YAML-парсер, `entity-model`, валидатор, срезы, naming,
-writer/manifest/lock, `Engine`, CLI `mg`, reference-плагин и golden-тест. Следующий этап — v0.2:
-imports/extends и композиция по ADR-0001.
+**Стадия:** ядро v0.1 и composition v0.2 готовы: imports/extends, discovery, merge по ADR-0001,
+cleanup и CLI. Остались `sources[].input`, MG014 и этап v0.3 (format-плагины, watch, JSON).

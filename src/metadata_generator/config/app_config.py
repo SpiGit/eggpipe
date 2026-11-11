@@ -24,6 +24,8 @@ class AppConfig(BaseSettings):
     output_root: Path | None = None
     force: bool = False
     include_disabled: bool = False
+    allow_outside_imports: bool = False
+    clean: bool = False
     debug: bool = False
     verbose: bool = False
     quiet: bool = False

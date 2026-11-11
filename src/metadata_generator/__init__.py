@@ -9,6 +9,7 @@ from metadata_generator.config.generator_rules import (
     GeneratorRulesLoader,
     SourceConfig,
 )
+from metadata_generator.core.composition import Composition, CompositionResult
 from metadata_generator.core.document import ImportSpec, ModelDocument
 from metadata_generator.core.model import (
     PRIMITIVE_TYPES,
@@ -60,6 +61,8 @@ __all__ = [
     "Artifact",
     "ArtifactPathError",
     "ArtifactReport",
+    "Composition",
+    "CompositionResult",
     "ConfigValidationError",
     "Constraints",
     "CustomType",

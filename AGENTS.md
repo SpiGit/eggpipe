@@ -7,9 +7,9 @@
 `metadata-generator` — инструмент, который генерирует артефакты (SQL, Python, TypeScript и т.д.)
 из YAML-описания модели данных. Архитектура: нейтральное ядро + плагины генераторов и форматов.
 
-Сейчас репозиторий содержит документацию, harness и ядро v0.1: модели, YAML-парсер,
-формат `entity-model`, валидатор, срезы, writer/manifest/lock, `Engine`, CLI, reference-плагин
-и golden-тест. Следующий этап — v0.2 (imports/extends, композиция).
+Сейчас репозиторий содержит документацию, harness и ядро v0.1 + composition v0.2: imports/extends,
+discovery, merge по ADR-0001, writer/manifest/lock, cleanup, `Engine`, CLI, reference-плагин
+и golden-тест. Следующий этап — v0.3 (format-плагины, watch, JSON).
 
 ## Источники истины
 
