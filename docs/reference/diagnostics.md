@@ -14,7 +14,7 @@
 | MG004 | error | validate | Тип не входит в primitive_types и не является enum/type | реализовано |
 | MG005 | error | validate | Некорректный regex в `constraints.pattern` | реализовано |
 | MG006 | error | composition | Циклические импорты / глубина > 10 | реализовано |
-| MG007 | error | parse | `format` отсутствует / неизвестен / смешаны форматы | реализовано |
+| MG007 | error | parse | `format` отсутствует / неизвестен | реализовано |
 | MG008 | error | parse | `version` отсутствует / не поддерживается | реализовано |
 | MG009 | error | composition | `extends` не найден / неоднозначен / цикл / глубина > 10 | реализовано |
 | MG010 | error | validate | `nullable=false` + `default=null` | реализовано |
@@ -34,8 +34,14 @@
 | MG024 | warning | discovery | Дубликат resolved-пути | реализовано |
 | MG025 | error | composition | Дубликат alias `as` / отсутствует alias у resource | реализовано (parse) |
 | MG026 | warning | validate | Case-insensitive коллизия имён | реализовано |
+| MG027 | warning | discovery | Пустой каталог модели в `directory-per-model` | v0.4 |
 | MG028 | error | parse/validate | Имя не соответствует pattern | реализовано (Pydantic) |
+| MG029 | error | layers | Некорректная цепочка слоёв / конфликт layer merge | v0.4 |
 | MG030 | warning | cleanup | Неподдерживаемый в текущем окружении режим; проигнорирован | реализовано |
+| MG031 | error | layers | Файл-слой содержит не одну сущность | v0.4 |
+| MG032 | error | resources | Дубликат alias ресурса | v0.4 |
+| MG033 | error | engine | Генератор не поддерживает формат сущности | v0.4 |
+| MG034 | error | formats | Цикл/глубина наследования форматов или конфликт примитивов | v0.4 |
 | MG300 | error | engine | Генератор/запись/check упали или обнаружен drift | реализовано |
 | MG040 | error | write | Некорректный artifact path / content | реализовано |
 | MG041 | error | write | Ownership-конфликт / `on_conflict: error` | реализовано |
@@ -49,3 +55,4 @@
 `cleanup: prompt` без поддерживаемого tty-подтверждения: ядро откатывается к `cleanup: off`.
 
 `MG030` и `MG300` внесены в ТЗ v1.3 §9.1 и отражены в диапазонах §9.3.
+Коды MG027, MG029, MG031–MG034 введены в ТЗ v1.4 для слоёв, форматов и ресурсов.

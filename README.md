@@ -72,7 +72,7 @@ if not report.success:
 
        def generate(self, input: GeneratorInput) -> GenerationResult:
            # input.model — замкнутый срез модели (ModelSlice: entities/enums/types)
-           # input.context — variables, naming_hint, format, импортированные файлы
+           # input.context — variables, naming_hint, formats, импортированные файлы
            # input.config — блок этого генератора из .mg.yaml
            return GenerationResult(artifacts=[
                Artifact(path="user.py", content=render(input.model.entities...))
@@ -165,7 +165,7 @@ mypy не входит в блокирующий CI; решение зафикс
 uv run python tools/check_docs.py --strict
 ```
 
-- [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.3
+- [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.4
 - [System Design](./docs/system-design/index.md)
 - [ADR index](./docs/adr/index.md)
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
@@ -173,6 +173,9 @@ uv run python tools/check_docs.py --strict
 - [ADR-0003: null-семантика](./docs/adr/0003-null-semantics.md)
 - [ADR-0004: ownership и cleanup](./docs/adr/0004-ownership-manifest-cleanup.md)
 - [ADR-0005: library API](./docs/adr/0005-library-api.md)
+- [ADR-0006: расширение формата](./docs/adr/0006-format-extension.md)
+- [ADR-0007: наследование форматов](./docs/adr/0007-format-inheritance.md)
+- [ADR-0008: model units и раскладки источников](./docs/adr/0008-model-units-and-source-layouts.md)
 - [ADR-0006: расширение формата](./docs/adr/0006-format-extension.md)
 - [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
 - [Contributing](./CONTRIBUTING.md)

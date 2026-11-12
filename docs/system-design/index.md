@@ -1,8 +1,8 @@
 # System Design — Metadata Generator
 
-> Документ реализации для проекта metadata-generator. Соответствует [ТЗ v1.3](../requirements/v1.3.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md).
+> Документ реализации для проекта metadata-generator. Соответствует [ТЗ v1.4](../requirements/v1.4.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 1.3. Дата: 2026-11-11.*
+*Версия документа: 1.4. Дата: 2026-11-12.*
 
 ---
 
@@ -54,10 +54,12 @@
 3. GeneratorRulesLoader загружает .mg.yaml
         │
 4. Для каждого source:
-    ├── FormatRegistry выбирает формат (по header `format`, без default)
-    ├── Parser парсит YAML → ModelDocument (imports, entity.extends —
-    │   рекурсивно, правила merge: ADR-0001)
-    └── Validator: структурные (Pydantic) + semantic проверки
+    ├── Discovery: layout (monolith/file-per-model/directory-per-model)
+    ├── FormatRegistry выбирает формат каждого файла-слоя
+    ├── Parser парсит YAML → layer document (imports/extends — ADR-0001)
+    ├── layer_model валидирует слой
+    ├── слои одной модели мержатся по ADR-0008
+    └── full_model валидирует итоговую модель
         │
 5. Composition собирает SourceModel из sources (union),
    валидирует глобальные инварианты (дубликаты имён между source)
@@ -66,6 +68,7 @@
         │
 7. Для каждого генератора:
     ├── Engine вычисляет срез + closure → ModelSlice
+    ├── проверка Entity.format против input_formats (MG033)
     ├── validate_config() → Diagnostic[]
     ├── формирует GeneratorInput (model, context, config)
     ├── Plugin.generate() → GenerationResult
@@ -79,7 +82,7 @@
 
 ## 2. Интерфейсы плагинов
 
-> Публичный API ядра экспортирует **только** эти контракты (из `metadata_generator.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, ImportedFile, SourceModel, ModelSlice, Entity, FieldDef, EnumDef, CustomType, GeneratorConfig, NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig, GeneratorRules, GeneratorRulesLoader, FormatRegistry` и базовые исключения. Всё остальное — внутреннее и может меняться. Пакет поставляет `py.typed`.
+> Публичный API ядра экспортирует **только** эти контракты (из `metadata_generator.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, FormatInfo, ImportedFile, SourceModel, ModelSlice, Entity, FieldDef, EnumDef, CustomType, GeneratorConfig, NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig, GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin, EntityModelFormat, UNSET, PRIMITIVE_TYPES, Constraints` и базовые исключения. Всё остальное — внутреннее и может меняться. Пакет поставляет `py.typed`.
 
 ### 2.1 GeneratorInput — вход генератора
 
@@ -88,7 +91,7 @@ class GeneratorInput(BaseModel):
     """Immutable входные данные генератора."""
     model: ModelSlice            # замкнутый срез: entities/enums/types
     config: GeneratorConfig      # свой блок из .mg.yaml (id, options, output_dir, ...)
-    context: GenerationContext   # variables, format, imports, source paths
+    context: GenerationContext   # variables, formats, imports, source paths
 
     model_config = ConfigDict(frozen=True)
 ```
@@ -104,11 +107,17 @@ class GenerationContext(BaseModel):
     naming_hint: NamingStyle | None     # defaults.naming_convention (подсказка!)
     imports: dict[str, ImportedFile]    # alias (as) → файл
     sources: list[Path]                 # относительные пути source-файлов (провенанс)
-    format: str                         # имя формата документа
-    format_version: str                 # версия схемы формата
+    formats: set[FormatInfo]            # сводка форматов запуска
+    format: str | None = None           # deprecated; None в смешанном запуске
+    format_version: str | None = None   # deprecated
     run_id: str                         # идентификатор запуска
     config_dir: Path                    # каталог .mg.yaml
 
+    model_config = ConfigDict(frozen=True)
+
+class FormatInfo(BaseModel):
+    name: str
+    version: str
     model_config = ConfigDict(frozen=True)
 
 class ImportedFile(BaseModel):
@@ -155,6 +164,8 @@ class GeneratorPlugin(ABC):
     api_version: ClassVar[Literal["1"]]   # ядро проверяет при загрузке
     id: ClassVar[str]                     # совпадает с entry point id
     name: ClassVar[str] = ""              # default → id
+    input_formats: ClassVar[set[str] | None] = None
+                                          # None = любой; set = форматы и наследники
 
     @abstractmethod
     def generate(self, input: GeneratorInput) -> GenerationResult: ...
@@ -162,6 +173,9 @@ class GeneratorPlugin(ABC):
     def validate_config(self, config: GeneratorConfig) -> list[Diagnostic]:
         return []                         # semantic-ошибки конфига генератора
 ```
+
+**Совместимость форматов:** ядро проверяет каждую сущность среза против `input_formats`
+с учётом цепочки `extends`; несовместимость — MG033 до вызова `generate()`.
 
 **Жизненный цикл:** `__init__` → `validate_config()` → `generate()`.
 
@@ -178,7 +192,10 @@ class FormatPlugin(ABC):
     api_version: ClassVar[Literal["1"]]
     format_names: ClassVar[list[str]]          # ["sql-model", ...]
     supported_versions: ClassVar[list[str]]    # ["1.0"]
+    extends: ClassVar[str | None] = None       # базовый формат
     primitive_types: ClassVar[set[str]]        # примитивы формата
+    layer_model: ClassVar[type[BaseModel] | None] = None
+    full_model: ClassVar[type[BaseModel] | None] = None
 
     @abstractmethod
     def parse(self, raw: dict, base_path: Path) -> ModelDocument: ...
@@ -195,6 +212,8 @@ class EntityModelFormat(FormatPlugin):
     format_names = ["entity-model"]
     supported_versions = ["1.0"]
     primitive_types = PRIMITIVE_TYPES
+    layer_model = LayerDocument          # частичная схема слоя
+    full_model = ModelDocument           # итоговая схема
 
     def parse(self, raw: dict, base_path: Path) -> ModelDocument:
         document = build_entity_model_document(raw, base_path)  # header + схема
@@ -212,13 +231,15 @@ class EntityModelFormat(FormatPlugin):
         return []
 ```
 
-- Format-плагин, расширяющий `entity-model`, наследует `EntityModelFormat` и переопределяет `parse_extensions`/`validate_extensions`.
-- Format-плагин с полностью собственной схемой реализует `FormatPlugin` напрямую (без базовой валидации).
-- Header `format`/`version` обязателен; неизвестная версия → MG008.
+- `extends` — одиночное наследование; цикл/глубина > 10 — MG034.
+- `B extends A` — B надмножество A; переименование/удаление полей A запрещено.
+- Расширение может задать свои Pydantic-модели: `BModel(AModel)`.
+- `layer_model` валидирует один файл-слой, `full_model` — итог после merge.
 - `entity-model` зарезервирован; попытка переопределить — Error при регистрации.
-- Дополнительные поля складываются в `metadata` сущности под namespace формата.
-- Один запуск — один формат; смешивание — MG007.
-- `format` и `version` передаются генератору через `GenerationContext`.
+- Дополнительные поля могут быть first-class полями модели; `metadata` остаётся extension point.
+- Формат и версия передаются через `Entity.format` / `Entity.format_version`;
+  сводка — `GenerationContext.formats`.
+- Формат задаётся только файлами модели; `.mg.yaml` его не задаёт.
 
 ### 2.6 NamingStyle
 
@@ -328,6 +349,7 @@ class FieldDef(BaseModel):
     default: str | int | float | bool | date | datetime | None | _Unset = UNSET
     constraints: Constraints | None = None
     metadata: dict[str, Any] = {}
+    source: Path | None = Field(default=None, exclude=True, repr=False)
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     @field_serializer("default")
@@ -349,6 +371,10 @@ class Entity(BaseModel):
     extends: str | ExtendsRef | None = None
     fields: tuple[FieldDef, ...] = ()
     metadata: dict[str, Any] = {}
+    format: str | None = Field(default=None, exclude=True, repr=False)
+    format_version: str | None = Field(default=None, exclude=True, repr=False)
+    source: Path | None = Field(default=None, exclude=True, repr=False)
+    layer_sources: tuple[Path, ...] = Field(default=(), exclude=True, repr=False)
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class EnumValue(BaseModel):
@@ -459,7 +485,17 @@ class DefaultsConfig(BaseModel):
 
 class SourceConfig(BaseModel):
     path: Path
+    layout: Literal["monolith", "file-per-model", "directory-per-model"] | None = None
+    model_dirs: tuple[str, ...] | None = None       # glob/точный список
+    files: tuple[str, ...] | None = None            # glob/точный список
+    resources: tuple[str, ...] = ()                 # glob/точный список
+    models: dict[str, ModelOverride] = {}           # override для каталога
     input: InputSlice = InputSlice()
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+class ModelOverride(BaseModel):
+    files: tuple[str, ...] | None = None
+    resources: tuple[str, ...] = ()
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class DiagnosticsConfig(BaseModel):
@@ -601,7 +637,7 @@ class Composition:
 ```
 
 - `resolve_import` разрешает путь относительно **файла, где объявлен импорт**, и проверяет project root (MG022).
-- `merge_documents` реализует ADR-0001 #1–#5: entities/enums/types объединяются, дубликаты имён → MG002; `model.name/description/metadata` импорта не мержатся.
+- `merge_documents` реализует ADR-0001 #1–#5 с уточнениями ADR-0008: entities/enums/types объединяются, дубликаты имён → MG002; `model.name/description` импорта не мержатся, `metadata` мержится аддитивно.
 - Ресурсы (`kind="resource"`) читаются как bytes и складываются в `state.resources`; дубль alias → MG025.
 - Один resolved-path обрабатывается один раз; повторный импорт/источник не дублирует сущности (MG024 — Warning).
 - `state.resources` попадает в `GenerationContext.imports`.
@@ -610,14 +646,18 @@ class Composition:
 
 ```python
 def merge_entity(parent: Entity, child: Entity) -> Entity:
-    """ADR-0001 #2–#3: parent-поля на своих позициях, override заменяет
-       поле целиком, новые поля child — в конце."""
+    """ADR-0001 #2–#3 + ADR-0008: наследуются поля и атрибуты, metadata мержится."""
     if len({f.name for f in child.fields}) != len(child.fields):
         raise DuplicateFieldError(child.name)                    # MG003
     overrides = {f.name: f for f in child.fields}
     fields = tuple(overrides.pop(f.name, f) for f in parent.fields)
     fields += tuple(f for f in child.fields if f.name in overrides)
-    return child.model_copy(update={"fields": fields, "extends": None})
+    updates = {"fields": fields, "extends": None,
+               "metadata": deep_merge(parent.metadata, child.metadata)}
+    for name in ("description", "version", "updated_at"):
+        if getattr(child, name) is None:
+            updates[name] = getattr(parent, name)
+    return child.model_copy(update=updates)
 ```
 
 Разрешение `extends`:
@@ -638,7 +678,7 @@ def resolve_extends(entity: Entity, scope: ImportScope, stack: tuple[str, ...]) 
 - `ImportScope` — индекс entity по alias и по имени в import-closure документа.
 - Короткое имя допустимо только при уникальном совпадении; иначе MG009.
 - `extends` разрешается только внутри closure своего документа; сущность из другого source — MG009.
-- Наследуются только `fields`; `description`, `version`, `updated_at`, `metadata` остаются child'а.
+- Наследуются `description`, `version`, `updated_at`, `metadata` и `fields`; child переопределяет scalar-атрибуты, metadata мержится аддитивно.
 - Порядок полей детерминирован.
 
 ### 4.4 Validator (semantic, поверх Pydantic)
@@ -706,6 +746,63 @@ def validate(
 - `--strict` повышает warning → error с учётом `rules.diagnostics.ignore`.
 - Pydantic отвечает за структуру; Validator — за семантику (cross-ref'ы, null-matrix, типы, constraints).
 - `validate()` не мутирует модель.
+
+---
+
+## 4.5 Model units и слои форматов
+
+Новая модель сборки (v1.4):
+
+```text
+sources[].layout
+   │
+   ├── monolith
+   │     └── один YAML → ModelDocument (несколько Entity)
+   │
+   ├── file-per-model
+   │     └── каждый YAML → ModelDocument (одна Entity)
+   │
+   └── directory-per-model
+         ├── model_dirs → каталоги моделей
+         ├── files → YAML-слои
+         ├── resources → ImportedFile[]
+         └── для каждой модели:
+               1. если один файл — полный, validate full_model
+               2. если несколько:
+                  ├── базовый файл → validate full_model
+                  ├── дельты → validate layer_model
+                  ├── order by format.extends
+                  ├── merge layers (ADR-0008)
+                  └── validate full_model
+```
+
+`monolith` и `file-per-model` всегда дают полный файл: layer merge не выполняется,
+пользователь пишет данные в конечном формате.
+
+**Инварианты:**
+
+- один файл — один формат; дубликат формата в модели — MG029;
+- форматы слоёв образуют одну цепочку `extends`; иначе MG029;
+- слой содержит ровно одну Entity — MG031;
+- итоговый формат — самый производный; `Entity.format`/`format_version`;
+- пустой каталог модели — Warning MG027;
+- ресурсы не парсятся и не мержатся; alias коллизия — MG032;
+- при смешанных форматах генератор проверяется по каждой Entity через `input_formats`;
+  несовместимость — MG033.
+
+**Merge слоёв** — аддитивный, без переопределений: новые поля/enum-значения/types/metadata-ключи;
+конфликт значений — MG029. Скаляр можно задать только если он не задан в базовом слое.
+
+**List merge:**
+
+- именованные списки (`entities`, `fields`, `enums`, `enum.values`, `types`) мержатся по `name`;
+- порядок базы сохраняется, новые элементы добавляются в конец;
+- существующий элемент мержится рекурсивно; дубликат ключа в одном слое — MG029;
+- rename/delete/reorder не поддерживаются;
+- прочие списки используют `MergePolicy` (`KEYED`, `APPEND`, `UNION`, `ERROR`) из
+  `json_schema_extra={"merge": ..., "merge_key": ...}`;
+- неизвестный список без политики — `ERROR` (MG029);
+- `metadata` списки — `APPEND`, словари — рекурсивно, конфликт скаляров — MG029.
 
 ---
 
@@ -1163,6 +1260,8 @@ metadata-generator/
 │   │   ├── document.py              # ModelDocument, ImportSpec
 │   │   ├── model.py                 # SourceModel, ModelSlice, Entity, FieldDef, EnumDef, CustomType
 │   │   ├── parser.py                # Parser (ruamel.yaml), header, imports
+│   │   ├── discovery.py             # layout, model_dirs/files/resources
+│   │   ├── layers.py                # model unit, layer parse/merge, format chain
 │   │   ├── composition.py           # imports/extends, merge (ADR-0001), closure
 │   │   ├── validator.py             # semantic валидация (Diagnostic)
 │   │   └── naming.py                # NamingStyle, transform()
@@ -1226,7 +1325,7 @@ metadata-generator/
 │   │   └── test_golden.py
 │   └── conftest.py
 ├── docs/
-│   ├── requirements/                # ТЗ (index, v1.0, v1.1, v1.2, v1.3)
+│   ├── requirements/                # ТЗ (index, v1.0, v1.1, v1.2, v1.3, v1.4)
 │   ├── system-design/
 │   ├── reviews/
 │   ├── adr/                         # 0001-composition-merge-semantics.md
@@ -1246,20 +1345,22 @@ metadata-generator/
 
 ---
 
-## 11. Тестирование (охват v1.3)
+## 11. Тестирование (охват v1.4)
 
 ### 11.1 Приоритеты
 
 1. **Golden-file**: fixtures → expected artifacts (главная защита от регрессии артефактов). Так как встроенных генераторов нет, golden-тесты используют **reference-плагин** из `examples/`.
-2. Merge-семантика ADR-0001 — тест на каждое правило (1–16 из таблицы решений).
+2. Merge-семантика ADR-0001 и layer merge ADR-0008 — тесты на каждое правило.
 3. **Null-matrix** — все 12 комбинаций из ТЗ §3.6, включая `UNSET` vs explicit `null`.
 4. Parser: simple / imports / entity.extends / cycle / depth / unknown format / unknown version / duplicate keys / YAML 1.2-скаляры.
-5. Integration CLI: полный цикл, exit codes, `--strict`, `--var`, `--dry-run`/`--plan`/`--check`, `--include-disabled`.
-6. **Contract-тесты plugin API**: reference-generator и reference-format проходят публичный контракт; несовместимый `api_version` ведёт себя по §6.
-7. **Security**: path traversal, symlink-выход из `output_dir`, импорт вне project root, duplicate keys, YAML-алиасы (billion laughs), секреты в логах.
-8. **Cleanup**: modified owned-файл не удаляется (MG050), чужой файл не удаляется, shared `output_dir`, удалённый из конфига генератор.
-9. **Concurrency**: второй запуск при held lock; stale lock.
-10. **Determinism**: повторный запуск даёт идентичные байты; порядок source/artifact/plugin стабилен; артефакты не содержат абсолютных путей.
+5. **Форматы v1.4**: наследование, цикл/глубина, `input_formats`, совместимость генератора, смешанные форматы в запуске (MG033).
+6. **Model units**: `monolith`/`file-per-model`/`directory-per-model`, `model_dirs`/`files`/`resources`, пустой каталог, duplicate format, unrelated formats, layer entity count (MG027/MG029/MG031/MG032).
+7. Integration CLI: полный цикл, exit codes, `--strict`, `--var`, `--dry-run`/`--plan`/`--check`, `--include-disabled`.
+8. **Contract-тесты plugin API**: reference-generator и reference-format проходят публичный контракт; несовместимый `api_version` ведёт себя по §6.
+9. **Security**: path traversal, symlink-выход из `output_dir`, импорт вне project root, duplicate keys, YAML-алиасы (billion laughs), секреты в логах.
+10. **Cleanup**: modified owned-файл не удаляется (MG050), чужой файл не удаляется, shared `output_dir`, удалённый из конфига генератор.
+11. **Concurrency**: второй запуск при held lock; stale lock.
+12. **Determinism**: повторный запуск даёт идентичные байты; порядок source/artifact/plugin стабилен; артефакты не содержат абсолютных путей.
 
 ### 11.2 Property-based
 
@@ -1376,13 +1477,15 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v1.3, сводка)
+## 13. Проектировочные решения (v1.4, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|
 | Явные `ModelDocument` → `SourceModel` → `ModelSlice` | Разная ответственность и гарантии на каждом этапе | ТЗ §3.1, §2.1 |
-| Заголовок документа: `format` + `version` обязательны; `metadata` — extension point | Наследование формата — зона формат-плагина; нет двойного extends | ТЗ §3.4 |
-| Один запуск — один формат | Упрощает реестр, парсер и контекст генератора | ТЗ §3.4 |
+| Заголовок документа: `format` + `version` обязательны; `metadata` — extension point | Наследование формата — зона формат-плагина | ТЗ §3.4 |
+| Форматы могут наследоваться; генератор объявляет `input_formats` | Один генератор для базового формата принимает расширения | ADR-0007, ТЗ §3.4 |
+| Модель = одна сущность; слои форматов мержатся аддитивно | Один входной YAML на сущность без копий под генераторы | ADR-0008, ТЗ §3.5 |
+| Смешанные форматы в запуске; несовместимость — MG033 | Постепенное расширение модели без общего «целевого формата» | ADR-0007 |
 | `UNSET` отличается от `default: null` | Null-matrix должна различать «не задан» и «null» | ТЗ §3.6, §3.1 |
 | Сущности изолированы (без relations в базе) | Нейтральность ядра | ТЗ §1.1 |
 | Два типа плагинов (generators, formats) | Реестр форматов расширяем | §6 |

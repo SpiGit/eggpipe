@@ -17,6 +17,7 @@ class MyGenerator(GeneratorPlugin):
     api_version: ClassVar[Literal["1"]] = "1"
     id = "my-generator"
     name = "My Generator"
+    input_formats = {"entity-model"}   # None = любой формат
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         names = [entity.name for entity in input.model.entities]
@@ -28,7 +29,9 @@ class MyGenerator(GeneratorPlugin):
 Правила:
 
 - `id` совпадает с entry point id; `name` по умолчанию равен id.
+- `input_formats`: `None` — любой формат; `set` — перечисленные форматы и их наследники.
 - Вход immutable: `model` — замкнутый `ModelSlice`, `context` — `GenerationContext`, `config` — блок генератора из `.mg.yaml`.
+- Формат каждой сущности — `entity.format` / `entity.format_version`; сводка — `context.formats`.
 - Плагин **не пишет файлы**; он возвращает `Artifact`.
 - `Artifact.path` — относительный POSIX-путь; `content` — UTF-8, LF, без BOM.
 - Ошибки — структурированные `Diagnostic`, не строки.
@@ -68,7 +71,10 @@ from metadata_generator import EntityModelFormat
 class SqlModelFormat(EntityModelFormat):
     format_names = ["sql-model"]
     supported_versions = ["1.0"]
+    extends = "entity-model"
     primitive_types = {"string", "integer", "decimal", "timestamp"}
+    layer_model = SqlLayer
+    full_model = SqlModel
 
     def parse_extensions(self, document, raw) -> None:
         ...
@@ -82,10 +88,16 @@ class SqlModelFormat(EntityModelFormat):
 sql-model = "my_package.formats:SqlModelFormat"
 ```
 
-- `format` в YAML должен совпадать с `format_names`.
+- `format` в YAML должен совпадать с `format_names`; в `.mg.yaml` формат не задаётся.
 - `entity-model` зарезервирован ядром.
-- `primitive_types` формата используется валидатором.
-- Дополнительные поля складываются в `metadata[<format>]`.
+- `extends` — одиночное наследование; цикл/глубина > 10 — MG034.
+- `B extends A` — B надмножество A; переименование/удаление полей A запрещено.
+- `primitive_types` наследуются; можно добавлять свои.
+- `layer_model` валидирует слой, `full_model` — итоговую модель после merge.
+- Для списков формат объявляет `MergePolicy` через `json_schema_extra`:
+  `KEYED` (по `name`), `APPEND`, `UNION`, `ERROR`. По умолчанию core-списки — `KEYED`,
+  неизвестные списки — `ERROR`.
+- Генератор для базового формата принимает наследников через `input_formats`.
 - `mg format list` показывает зарегистрированные форматы.
 
 ## Контекст генерации
@@ -96,7 +108,9 @@ sql-model = "my_package.formats:SqlModelFormat"
 - `naming_hint` — подсказка `defaults.naming_convention`, не приказ переименовывать;
 - `imports` — resource-файлы по alias;
 - `sources` — пути source-документов;
-- `format`, `format_version`, `run_id`, `config_dir`.
+- `formats` — сводка форматов запуска; формат конкретной сущности — `entity.format`;
+- `format` / `format_version` — deprecated, `None` в смешанном запуске;
+- `run_id`, `config_dir`.
 
 ## Шаблоны
 

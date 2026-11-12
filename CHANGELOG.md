@@ -5,6 +5,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- ТЗ v1.4: наследование форматов, `input_formats`, model units и раскладки источников,
+  layer merge; ADR-0007 и ADR-0008.
+
 ## [0.1.0] - 2026-11-11
 
 ### Added

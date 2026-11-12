@@ -1,6 +1,6 @@
 # ADR-0006: Расширение формата документа
 
-- **Статус:** принято
+- **Статус:** принято (частично уточнено [ADR-0007](./0007-format-inheritance.md) и [ADR-0008](./0008-model-units-and-source-layouts.md))
 - **Дата:** 2026-11-11
 - **Связанные документы:** [ТЗ v1.2 §3.4, §6.3](../requirements/v1.2.md), [System Design §2.5](../system-design/index.md)
 
