@@ -23,16 +23,24 @@
 Новое видение форматов и структуры источников:
 
 - формат-плагины могут расширять формат через одиночное наследование `extends`;
-- `layer_model` для отдельного слоя и `full_model` для итоговой модели;
+- версии форматов независимы; `base_versions` задаёт зависимость, `version` опционален (latest);
+- `schemas[version]` содержит `layer_entity` для отдельного слоя и `full_entity` для итоговой сущности;
 - генератор объявляет `input_formats`; совместимость учитывает наследников;
-- в одном запуске допускаются модели разных форматов; несовместимый генератор — MG033;
+- в одном запуске допускаются модели разных форматов; несовместимый генератор — MG033,
+  pre-flight ошибка всего запуска (exit 2);
 - модель = одна сущность; раскладки `monolith`, `file-per-model`, `directory-per-model`;
 - `directory-per-model`: явные `model_dirs`, `files`, `resources`, слои форматов;
+- ресурсы: top-level `resources` + `models.<dir>.resources`; alias, glob, границы;
 - layer merge аддитивный, без переопределений; `metadata` мержится;
-- list merge: core-списки по `name`, кастомные — `MergePolicy` (`KEYED`/`APPEND`/`UNION`/`ERROR`);
+- list merge: `KEYED` для `fields`, `APPEND` для `types`/`enums`, `UNION`/`ERROR` для кастомных списков;
 - `Entity.format`/`format_version`/`layer_sources`, `FieldDef.source`,
-  `GenerationContext.formats`; `format`/`format_version` deprecated;
-- новые диагностики MG027, MG029, MG031–MG034.
+  `GenerationContext.formats`; `format`/`format_version` удалены;
+- `layout` обязателен; legacy discovery удалён;
+- manifest v2: глобальный `.mg/manifest.json`, `formats` вместо `format`, v1 не поддерживается;
+- `mg clean` работает по глобальному manifest, без `.mg.yaml` и плагинов;
+- `--force` не отбирает файлы у другого generator/location;
+- `input_formats` обязателен для каждого генератора;
+- новые диагностики MG027, MG029, MG031–MG034, MG051.
 
 ### v1.3 (2026-11-11)
 

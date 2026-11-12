@@ -25,44 +25,72 @@
 
 ```python
 format_names: ClassVar[list[str]]
-supported_versions: ClassVar[list[str]]
+supported_versions: ClassVar[list[str]]          # упорядоченный; последняя = latest
 extends: ClassVar[str | None] = None
+base_versions: ClassVar[dict[str, str]] = {}     # B version -> A version
 primitive_types: ClassVar[set[str]]
-layer_model: ClassVar[type[BaseModel] | None] = None
-full_model: ClassVar[type[BaseModel] | None] = None
+schemas: ClassVar[dict[str, FormatSchema]]
 ```
 
 - `extends` — одиночное наследование; множественное наследование не поддерживается.
 - Цикл или глубина цепочки > 10 — Error (MG034).
 - `B extends A` означает, что B — надмножество A. B не переименовывает и не удаляет поля A.
+- `supported_versions` — упорядоченный список; если `version` в документе не указан,
+  используется последняя версия.
+- `base_versions[B_version] = A_version` задаёт зависимость версий. Версии форматов
+  независимы: `entity-model 1.0` и `postgres-model 2.0` — нормально.
+- `schemas` содержит `FormatSchema` для каждой версии; ключи совпадают с `supported_versions`.
 - `primitive_types` наследуются; B может добавлять примитивы, но не переопределять смысл
   унаследованных.
-- `layer_model` — частичная схема одного файла-слоя.
-- `full_model` — итоговая схема после merge; обычно наследует `full_model` базового формата.
+- `layer_entity` — частичная схема одной сущности для файла-слоя, наследует `EntityIdentity`.
+- `full_entity` — итоговая схема сущности после merge; обычно наследует `full_entity` базового формата.
+- Дельта-поля наследуют `FieldIdentity`; полные поля — `FieldDef`.
+- Обязательность новых полей определяет формат: `layer_entity` может быть partial,
+  `full_entity` — complete; итоговая валидация ловит незаполненные обязательные поля.
+- Документ остаётся общим конвертом ядра; first-class document-level поля — future,
+  в v1.4 используются `metadata`.
 - `EntityModelFormat` остаётся базовым классом с готовым parser/validator и hooks.
+
+### 2.1.1. Версии форматов
+
+- Версии форматов независимы.
+- Для дельты B версии `V_B` базовая версия — `B.base_versions[V_B]`.
+- Файл базового формата обязан иметь эту версию; иначе MG034.
+- Для цепочки C → B → A проверка выполняется на каждом шаге.
+- Если версия не указана, берётся latest формата; при конфликте с зависимостью — ошибка
+  с просьбой указать версию явно.
+- `schemas[V].full_entity` должен быть подклассом базовой `full_entity` для
+  `base_versions[V]`; иначе MG034.
+- `primitive_types` B должен быть надмножеством `primitive_types` A; иначе MG034.
+- Итоговый `Entity.format_version` — версия самого производного формата.
 
 ### 2.2. Формат модели
 
 - Модель — одна сущность. Формат модели определяется самым производным слоем.
 - `Entity.format` и `Entity.format_version` доступны генератору и исключены из сериализации,
   как `Entity.source`.
-- `GenerationContext.formats` содержит сводку форматов запуска.
-- `GenerationContext.format` / `format_version` сохранены как deprecated на один minor-релиз;
-  в смешанном запуске они `None`.
+- `GenerationContext.formats` содержит `frozenset[FormatInfo]` — форматы среза.
+- `GenerationContext.format` / `format_version` отсутствуют; формат сущности — `Entity.format`.
 
 ### 2.3. Совместимость генераторов
 
 ```python
 class GeneratorPlugin(ABC):
-    input_formats: ClassVar[set[str] | None] = None
+    input_formats: ClassVar[set[str] | None]
 ```
 
-- `None` — генератор принимает любой формат.
+- `input_formats` обязателен: `None` — явно «любой формат», `set()` — явно «ни один».
+- Отсутствие поля — ошибка plugin contract (MG3xx).
+- `None` — генератор принимает любой формат; `set()` — ни один.
 - `{"entity-model"}` — принимает `entity-model` и всех наследников.
 - `{"postgres-model"}` — принимает только `postgres-model` и его наследников.
-- Совместимость транзитивна по `extends`.
-- Если формат хотя бы одной сущности среза несовместим — Error (MG033) до генерации,
-  артефакты не пишутся.
+- Совместимость транзитивна по `extends`; exact-only режима нет.
+- Если формат хотя бы одной сущности среза несовместим — Error (MG033) до генерации.
+  Это pre-flight ошибка всего запуска: артефакты не пишутся, `--plan`/`--check` падают, exit 2.
+- Ошибки собираются по всем генераторам.
+- `GenerationContext.formats` — форматы среза, не всего запуска.
+- `GenerationContext.format`/`format_version` отсутствуют.
+- Пустой срез: проверка не выполняется, генератор получает пустую модель.
 - В одном запуске допускаются модели разных форматов.
 - Модель парсится один раз; отдельного pipeline на генератор нет.
 
@@ -76,11 +104,11 @@ class GeneratorPlugin(ABC):
 ## 3. Последствия
 
 - Расширение формата становится типизированным: `BModel(AModel)`.
+- Версии форматов независимы; смена версии расширения не требует смены версии базы.
 - Генераторы могут не дублировать код для каждого расширения.
 - Появляется новая диагностика MG033/MG034.
-- `GenerationContext.format` переходит в deprecated.
-- Format-плагины обязаны описать `layer_model`/`full_model` либо явно отключить их
-  (тогда используется базовая схема).
+- `GenerationContext` содержит только `formats` и `Entity.format`.
+- Format-плагины описывают `schemas` и `base_versions`; для одной версии это одна запись.
 
 ## 4. Альтернативы
 

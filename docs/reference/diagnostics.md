@@ -15,7 +15,7 @@
 | MG005 | error | validate | Некорректный regex в `constraints.pattern` | реализовано |
 | MG006 | error | composition | Циклические импорты / глубина > 10 | реализовано |
 | MG007 | error | parse | `format` отсутствует / неизвестен | реализовано |
-| MG008 | error | parse | `version` отсутствует / не поддерживается | реализовано |
+| MG008 | error | parse | `version` не поддерживается | реализовано |
 | MG009 | error | composition | `extends` не найден / неоднозначен / цикл / глубина > 10 | реализовано |
 | MG010 | error | validate | `nullable=false` + `default=null` | реализовано |
 | MG011 | warning | validate | `required=true` + `nullable=true` | реализовано |
@@ -41,13 +41,14 @@
 | MG031 | error | layers | Файл-слой содержит не одну сущность | v0.4 |
 | MG032 | error | resources | Дубликат alias ресурса | v0.4 |
 | MG033 | error | engine | Генератор не поддерживает формат сущности | v0.4 |
-| MG034 | error | formats | Цикл/глубина наследования форматов или конфликт примитивов | v0.4 |
+| MG034 | error | formats | Цикл/глубина наследования, неверный `base_versions`, конфликт схем/примитивов | v0.4 |
 | MG300 | error | engine | Генератор/запись/check упали или обнаружен drift | реализовано |
 | MG040 | error | write | Некорректный artifact path / content | реализовано |
 | MG041 | error | write | Ownership-конфликт / `on_conflict: error` | реализовано |
 | MG042 | error | planning | Дубликат artifact path / case-collision | реализовано |
 | MG043 | warning | planning | `skip` для не-owned файла | реализовано |
-| MG050 | warning | cleanup | Changed owned-файл не удалён | реализовано |
+| MG050 | warning | cleanup | Changed owned-файл не удалён | v0.4 |
+| MG051 | warning | cleanup | Stale generated location в глобальном manifest | v0.4 |
 
 ## MG030
 

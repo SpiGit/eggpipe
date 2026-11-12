@@ -37,8 +37,10 @@
 | `file-per-model` | `path` (каталог), `files` | Один YAML на сущность |
 | `directory-per-model` | `path`, `model_dirs`, `files` | Каталог на сущность, слои и ресурсы |
 
-- `layout` опционален для обратной совместимости: файл → `monolith`, каталог → `file-per-model`.
+- `layout` обязателен для каждого `sources[]`.
+- Для `file-per-model` и `directory-per-model` `files` обязателен.
 - Для `directory-per-model` `model_dirs` и `files` обязательны; скрытых значений по умолчанию нет.
+- `monolith` требует файл в `path`; `files`/`model_dirs` запрещены.
 - `model_dirs`/`files` — glob или точный список.
 - `models.<dir>` переопределяет `files`/`resources` для конкретного каталога.
 - `resources` задаются явно и не парсятся как модель.
@@ -49,9 +51,15 @@
 - Несколько файлов одного формата в модели не поддерживаются (MG029).
 - Форматы слоёв должны образовывать одну цепочку `extends`; иначе MG029.
 - Порядок слоёв вычисляется по `extends`; состав файлов задаётся явно.
-- Базовый файл модели — полный: валидируется `full_model` своего формата.
-- Файлы-дельты после базового валидируются `layer_model` своих форматов.
-- После merge итог — `full_model` самого производного формата.
+- Базовый файл модели — полный: валидируется `full_entity` своего формата.
+- Файлы-дельты после базового валидируются `layer_entity` своих форматов.
+- Версии слоёв независимы по форматам: для дельты B версии `V_B` базовая версия —
+  `B.base_versions[V_B]`.
+- Файл базового формата обязан иметь эту версию; для цепочки проверка на каждом шаге.
+- Если версия не указана, берётся latest своего формата; при конфликте — MG034.
+- Дельта-модели наследуют `EntityIdentity`/`FieldIdentity`; полные — `Entity`/`FieldDef`.
+- Обязательность новых полей определяет формат: partial в `layer_entity`, complete в `full_entity`.
+- После merge итог — `full_entity` самого производного формата.
 - В `monolith`/`file-per-model` файл полный, layer merge нет.
 - Слой-дельта содержит ровно одну сущность (MG031).
 - Пустой каталог модели — Warning (MG027) и пропуск.
@@ -68,14 +76,14 @@
   одинаковое значение допустимо.
 - `metadata` мержится рекурсивно; конфликт скаляров — Error (MG029).
 - Поля: сначала базовые в исходном порядке, затем новые в порядке слоёв.
-- Enum: новые значения добавляются; удаление/переименование запрещено.
-- CustomType: новые типы добавляются; изменение базового типа запрещено.
-- Named lists merge by `name`: `entities`, `fields`, `enums`, `enum.values`, `types`.
-  Base order is preserved; new items append in layer order.
-- Existing items are merged recursively; duplicate key within one layer is MG029.
-- Rename/delete/reorder in layer merge are not supported.
-- Other lists declare `MergePolicy`: `KEYED` (default for named core lists), `APPEND`, `UNION`,
-  `ERROR`. Unknown list without policy is `ERROR` (MG029).
+- `Entity.fields` — `KEYED`: патч существующих полей + новые.
+- `model.enums` — `APPEND`: только новые enum; существующие не меняются.
+- `enum.values` — `APPEND`: только у нового enum; добавление значений в существующий enum
+  в v1.4 не поддерживается.
+- `model.types` — `APPEND`: только новые типы; существующие не меняются.
+- `model.entities` — `KEYED`, но слой обязан содержать одну сущность с тем же именем.
+- `imports` в слоях — `ERROR`.
+- `MergePolicy`: `KEYED`/`APPEND`/`UNION`/`ERROR`; неизвестный список без политики — `ERROR`.
 - `metadata` lists use `APPEND`; dicts merge recursively; scalar conflicts are MG029.
 - Provenance: `Entity.source` — базовый слой, `Entity.layer_sources` — все слои,
   `FieldDef.source` — слой, где поле определено.
@@ -94,9 +102,14 @@ Layer merge (§2.4) строже composition merge: в слоях переопр
 
 ### 2.6. Ресурсы
 
-- Ресурсы задаются явно в `.mg.yaml`.
-- Alias — относительный путь без расширения; можно переопределить через `as`.
+- Top-level `resources` — общие ресурсы, относительно каталога конфига.
+- `models.<dir>.resources` — ресурсы модели, относительно каталога модели.
+- `resources` на уровне `sources` отсутствует.
+- Alias по умолчанию: путь без расширения; для модели — `<model_dir>/<path без расширения>`.
+- `as` — только для одного файла; для glob/каталога запрещён.
 - Коллизия alias — Error (MG032).
+- Точный путь не найден — Error; glob без совпадений — Warning.
+- Границы: общие ресурсы внутри каталога конфига, модельные — внутри каталога модели.
 - Ресурсы доступны через `GenerationContext.imports`, проверяются на path traversal/symlink
   и попадают в watch.
 
@@ -106,8 +119,7 @@ Layer merge (§2.4) строже composition merge: в слоях переопр
 - Слои формата можно добавлять без изменения базовых файлов.
 - Появляются новые диагностики MG027/MG029/MG031/MG032.
 - Нужны новые поля `Entity.format`, `format_version`, `layer_sources`; `FieldDef.source`.
-- `directory-per-model` требует явной конфигурации; старые конфиги продолжают работать
-  через `layout` по умолчанию.
+- `directory-per-model` требует явной конфигурации; `layout` обязателен.
 
 ## 4. Альтернативы
 

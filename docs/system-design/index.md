@@ -57,9 +57,9 @@
     ├── Discovery: layout (monolith/file-per-model/directory-per-model)
     ├── FormatRegistry выбирает формат каждого файла-слоя
     ├── Parser парсит YAML → layer document (imports/extends — ADR-0001)
-    ├── layer_model валидирует слой
+    ├── layer_entity валидирует слой
     ├── слои одной модели мержатся по ADR-0008
-    └── full_model валидирует итоговую модель
+    └── full_entity валидирует итоговую сущность
         │
 5. Composition собирает SourceModel из sources (union),
    валидирует глобальные инварианты (дубликаты имён между source)
@@ -82,7 +82,7 @@
 
 ## 2. Интерфейсы плагинов
 
-> Публичный API ядра экспортирует **только** эти контракты (из `metadata_generator.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, FormatInfo, ImportedFile, SourceModel, ModelSlice, Entity, FieldDef, EnumDef, CustomType, GeneratorConfig, NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig, GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin, EntityModelFormat, UNSET, PRIMITIVE_TYPES, Constraints` и базовые исключения. Всё остальное — внутреннее и может меняться. Пакет поставляет `py.typed`.
+> Публичный API ядра экспортирует **только** эти контракты (из `metadata_generator.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, FormatInfo, FormatSchema, ImportedFile, SourceModel, ModelSlice, Entity, EntityIdentity, FieldIdentity, FieldDef, EnumDef, CustomType, GeneratorConfig, NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig, GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin, EntityModelFormat, MergePolicy, UNSET, PRIMITIVE_TYPES, Constraints` и базовые исключения. Всё остальное — внутреннее и может меняться. Пакет поставляет `py.typed`.
 
 ### 2.1 GeneratorInput — вход генератора
 
@@ -107,9 +107,7 @@ class GenerationContext(BaseModel):
     naming_hint: NamingStyle | None     # defaults.naming_convention (подсказка!)
     imports: dict[str, ImportedFile]    # alias (as) → файл
     sources: list[Path]                 # относительные пути source-файлов (провенанс)
-    formats: set[FormatInfo]            # сводка форматов запуска
-    format: str | None = None           # deprecated; None в смешанном запуске
-    format_version: str | None = None   # deprecated
+    formats: frozenset[FormatInfo]      # форматы среза
     run_id: str                         # идентификатор запуска
     config_dir: Path                    # каталог .mg.yaml
 
@@ -164,8 +162,8 @@ class GeneratorPlugin(ABC):
     api_version: ClassVar[Literal["1"]]   # ядро проверяет при загрузке
     id: ClassVar[str]                     # совпадает с entry point id
     name: ClassVar[str] = ""              # default → id
-    input_formats: ClassVar[set[str] | None] = None
-                                          # None = любой; set = форматы и наследники
+    input_formats: ClassVar[set[str] | None]
+                                          # обязателен: None = любой; set = форматы и наследники
 
     @abstractmethod
     def generate(self, input: GeneratorInput) -> GenerationResult: ...
@@ -176,6 +174,8 @@ class GeneratorPlugin(ABC):
 
 **Совместимость форматов:** ядро проверяет каждую сущность среза против `input_formats`
 с учётом цепочки `extends`; несовместимость — MG033 до вызова `generate()`.
+Это pre-flight ошибка всего запуска: артефакты не пишутся, `--plan`/`--check` падают, exit 2.
+`GenerationContext.formats` содержит форматы среза; `Entity.format` — источник истины.
 
 **Жизненный цикл:** `__init__` → `validate_config()` → `generate()`.
 
@@ -191,11 +191,11 @@ class FormatPlugin(ABC):
     """Контракт формата: минимальный интерфейс для FormatRegistry."""
     api_version: ClassVar[Literal["1"]]
     format_names: ClassVar[list[str]]          # ["sql-model", ...]
-    supported_versions: ClassVar[list[str]]    # ["1.0"]
+    supported_versions: ClassVar[list[str]]    # упорядоченный; последняя = latest
     extends: ClassVar[str | None] = None       # базовый формат
+    base_versions: ClassVar[dict[str, str]] = {}  # B version -> A version
     primitive_types: ClassVar[set[str]]        # примитивы формата
-    layer_model: ClassVar[type[BaseModel] | None] = None
-    full_model: ClassVar[type[BaseModel] | None] = None
+    schemas: ClassVar[dict[str, FormatSchema]] # version -> layer/full entity
 
     @abstractmethod
     def parse(self, raw: dict, base_path: Path) -> ModelDocument: ...
@@ -212,8 +212,7 @@ class EntityModelFormat(FormatPlugin):
     format_names = ["entity-model"]
     supported_versions = ["1.0"]
     primitive_types = PRIMITIVE_TYPES
-    layer_model = LayerDocument          # частичная схема слоя
-    full_model = ModelDocument           # итоговая схема
+    schemas = {"1.0": FormatSchema(layer_entity=LayerEntity, full_entity=Entity)}
 
     def parse(self, raw: dict, base_path: Path) -> ModelDocument:
         document = build_entity_model_document(raw, base_path)  # header + схема
@@ -233,8 +232,15 @@ class EntityModelFormat(FormatPlugin):
 
 - `extends` — одиночное наследование; цикл/глубина > 10 — MG034.
 - `B extends A` — B надмножество A; переименование/удаление полей A запрещено.
+- Версии независимы: `base_versions[B_version] = A_version`.
+- Версия в документе опциональна; нет версии — последняя из `supported_versions`.
+- `schemas[version].full_entity` должен наследовать базовую `full_entity`; иначе MG034.
+- `primitive_types` B — надмножество A; иначе MG034.
 - Расширение может задать свои Pydantic-модели: `BModel(AModel)`.
-- `layer_model` валидирует один файл-слой, `full_model` — итог после merge.
+- `layer_entity` валидирует один файл-слой, `full_entity` — итог после merge.
+- `EntityIdentity` / `FieldIdentity` дают дельта-моделям только identity-поля (`name`).
+- Обязательность новых полей определяет формат: `layer_entity` может быть partial, `full_entity` — complete.
+- Документ остаётся общим конвертом; first-class document-level поля — future, в v1.4 через `metadata`.
 - `entity-model` зарезервирован; попытка переопределить — Error при регистрации.
 - Дополнительные поля могут быть first-class полями модели; `metadata` остаётся extension point.
 - Формат и версия передаются через `Entity.format` / `Entity.format_version`;
@@ -483,19 +489,23 @@ class DefaultsConfig(BaseModel):
     naming_convention: NamingStyle | None = None   # подсказка; None = не задана
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+class ResourceSpec(BaseModel):
+    path: str
+    as_: str | None = Field(default=None, alias="as")
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
 class SourceConfig(BaseModel):
     path: Path
-    layout: Literal["monolith", "file-per-model", "directory-per-model"] | None = None
-    model_dirs: tuple[str, ...] | None = None       # glob/точный список
+    layout: Literal["monolith", "file-per-model", "directory-per-model"]
+    model_dirs: tuple[str, ...] | None = None       # glob/точный список (directory)
     files: tuple[str, ...] | None = None            # glob/точный список
-    resources: tuple[str, ...] = ()                 # glob/точный список
     models: dict[str, ModelOverride] = {}           # override для каталога
     input: InputSlice = InputSlice()
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class ModelOverride(BaseModel):
     files: tuple[str, ...] | None = None
-    resources: tuple[str, ...] = ()
+    resources: tuple[ResourceSpec, ...] = ()
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 class DiagnosticsConfig(BaseModel):
@@ -508,6 +518,7 @@ class GeneratorRules(BaseModel):
     defaults: DefaultsConfig = DefaultsConfig()
     diagnostics: DiagnosticsConfig = DiagnosticsConfig()
     variables: dict[str, str] = {}
+    resources: tuple[ResourceSpec, ...] = ()
     sources: tuple[SourceConfig, ...] = ()
     generators: tuple[GeneratorConfig, ...] = ()
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -767,14 +778,21 @@ sources[].layout
          ├── files → YAML-слои
          ├── resources → ImportedFile[]
          └── для каждой модели:
-               1. если один файл — полный, validate full_model
-               2. если несколько:
-                  ├── базовый файл → validate full_model
-                  ├── дельты → validate layer_model
+               1. resolve version: explicit or latest
+               2. если один файл — полный, validate full_entity
+               3. если несколько:
+                  ├── базовый файл → validate full_entity
+                  ├── дельты → validate layer_entity
                   ├── order by format.extends
+                  ├── check base_versions chain
                   ├── merge layers (ADR-0008)
-                  └── validate full_model
+                  └── validate full_entity
 ```
+
+**Ресурсы:** top-level `resources` — относительно каталога конфига; `models.<dir>.resources` —
+относительно каталога модели. Alias по умолчанию — путь без расширения (для модели с префиксом
+`<dir>/`); `as` только для одного файла; коллизия — MG032. Ресурсы попадают в
+`GenerationContext.imports` и watch.
 
 `monolith` и `file-per-model` всегда дают полный файл: layer merge не выполняется,
 пользователь пишет данные в конечном формате.
@@ -793,15 +811,17 @@ sources[].layout
 **Merge слоёв** — аддитивный, без переопределений: новые поля/enum-значения/types/metadata-ключи;
 конфликт значений — MG029. Скаляр можно задать только если он не задан в базовом слое.
 
-**List merge:**
+**Коллекции и merge:**
 
-- именованные списки (`entities`, `fields`, `enums`, `enum.values`, `types`) мержатся по `name`;
-- порядок базы сохраняется, новые элементы добавляются в конец;
-- существующий элемент мержится рекурсивно; дубликат ключа в одном слое — MG029;
-- rename/delete/reorder не поддерживаются;
-- прочие списки используют `MergePolicy` (`KEYED`, `APPEND`, `UNION`, `ERROR`) из
-  `json_schema_extra={"merge": ..., "merge_key": ...}`;
-- неизвестный список без политики — `ERROR` (MG029);
+- `KEYED` — расширяемый список: патч существующих + новые; `entity.fields`, `model.entities`.
+- `APPEND` — append-only: только новые элементы; `model.enums`, `enum.values`, `model.types`.
+- `UNION` — уникальные скаляры.
+- `ERROR` — фиксированный кортеж; `imports` в слоях.
+- Порядок базы сохраняется, новые элементы добавляются в конец.
+- Существующий элемент `KEYED` мержится рекурсивно; дубликат ключа — MG029.
+- `APPEND`: существующие элементы менять нельзя, повторный ключ — MG029.
+- Политика задаётся через `json_schema_extra={"merge": ..., "merge_key": ...}`;
+  неизвестный список без политики — `ERROR` (MG029).
 - `metadata` списки — `APPEND`, словари — рекурсивно, конфликт скаляров — MG029.
 
 ---
@@ -1108,12 +1128,13 @@ def validate_artifact_path(output_dir: Path, artifact: Artifact) -> Path:
 
 ### 8.2 Planning, ownership и on_conflict
 
-До записи Engine строит `ExecutionPlan`:
+До записи Engine строит `ExecutionPlan` и глобальную карту путей.
 
 ```python
 @dataclass(frozen=True)
 class PlannedArtifact:
     generator_id: str
+    output_dir: Path
     path: PurePosixPath
     action: Literal["create", "update", "skip", "delete", "conflict"]
     sha256: str
@@ -1124,73 +1145,88 @@ class ExecutionPlan:
     conflicts: list[Diagnostic]
 ```
 
-- Загружаются манифесты **каждого** генератора из `output_dir/.mg/manifests/<id>.json`.
-- `owned` = пути из манифеста этого генератора.
-- Если путь уже занят другим генератором в том же запуске/`output_dir` — MG042 до записи.
+- Глобальный manifest `.mg/manifest.json` загружается один раз.
+- Location = `(generator, output_dir)`.
+- `owned` = пути из artifacts этого location.
+- До записи проверяются exact, casefold и prefix-конфликты (`foo` vs `foo/bar`) между
+  всеми планами — MG042.
 - `on_conflict`:
 
-| `on_conflict` | Файл существует и owned | Файл существует и не owned |
+| `on_conflict` | Файл существует и owned текущим location | Файл существует и не owned |
 |---|---|---|
 | `overwrite` (default) | перезаписать | **MG041**, только с `--force` |
 | `skip` | не трогать, записать в manifest с текущим sha256 | не трогать, **не** добавлять в manifest; Warning MG043 |
 | `error` | MG041, генератор не пишет | MG041 |
 
-- `--force` разрешает перезапись не-owned; после записи файл становится owned (попадает в manifest).
-- `--check` сравнивает план с диском и манифестом; drift → exit 1.
+- `--force` разрешает перезапись только **unowned** файла; после записи файл становится owned.
+- `--force` не отбирает файл у другого generator/location: MG041, сначала `mg clean`.
+- `--check` сравнивает план с диском и manifest; drift → exit 1.
 
 ### 8.3 Manifest
 
-Per-generator manifest: `output_dir/.mg/manifests/<generator-id>.json`.
+Один глобальный manifest: `.mg/manifest.json` в каталоге конфига.
 
 ```json
 {
-  "manifest_version": 1,
-  "generator": "oracle-ddl",
-  "mg_version": "0.1.0",
-  "plugin_version": "1.2.0",
-  "format": {"name": "entity-model", "version": "1.0"},
-  "generated_at": "2026-11-11T12:34:56Z",
-  "artifacts": [
-    {"path": "user.sql", "sha256": "...", "skipped": false}
+  "manifest_version": 2,
+  "locations": [
+    {
+      "generator": "oracle-ddl",
+      "output_dir": "output/oracle",
+      "mg_version": "0.1.0",
+      "plugin_version": "1.2.0",
+      "formats": [{"name": "entity-model", "version": "1.0"}],
+      "generated_at": "2026-11-11T12:34:56Z",
+      "artifacts": [{"path": "user.sql", "sha256": "...", "skipped": false}]
+    }
   ]
 }
 ```
 
-- Пишется после успешной записи артефактов генератора, атомарно (staging → `os.replace`).
-- Содержит только артефакты этого генератора.
+- Ключ location — `(generator, output_dir)`.
+- Пишется после успешной записи артефактов каждого генератора, атомарно (temp → `os.replace`).
 - `skipped: true` — ядро не писало файл; cleanup такие записи не удаляет.
-- `.mg/` рекомендуется в `.gitignore`; манифест не предназначен для коммита.
-- `--check` не обновляет манифест.
-- Manifest не является источником «владельца» для чужих файлов.
+- `.mg/` рекомендуется в `.gitignore`; manifest не предназначен для коммита.
+- `--check` и `--plan` не обновляют manifest.
+- Manifest v1 не поддерживается.
 
 ### 8.4 Atomicity и блокировки
 
 ```python
-with staging_dir(output_dir) as staging:
-    write_all(staging, artifacts)          # проверки уже выполнены
-    for path in artifacts:
-        os.replace(staging / path, output_dir / path)
-    write_manifest_atomic(output_dir, manifest)
+with global_lock(config_dir):                 # .mg/lock
+    for generator in generators:
+        with staging_dir(output_dir) as staging:
+            write_all(staging, artifacts)
+            for path in artifacts:
+                os.replace(staging / path, output_dir / path)
+        update_global_manifest(location)      # atomic temp → replace
 ```
 
 - Staging — внутри `output_dir` (та же ФС), имя `.mg-staging-<pid>-<uuid>`.
 - Сначала все проверки конфликтов, потом запись. Ошибка до записи не оставляет файлов.
-- Batch-транзакции нет: при аварии посреди `os.replace` возможен частично обновлённый набор; manifest пишется последним, следующий запуск обнаружит drift по sha256.
+- Batch-транзакции нет: при аварии посреди `os.replace` возможен частично обновлённый набор;
+  manifest обновляется после каждого генератора, следующий запуск обнаружит drift по sha256.
 - Staging удаляется при старте и по сигналу.
-- Lock: `.mg/lock` (O_EXCL, PID, timestamp); второй запуск в тот же `output_dir` — exit 2. Stale-lock — предупреждение + `--force-unlock` (P2). `mg clean` берёт тот же lock.
-- `--dry-run`/`--plan` не создают каталоги, не берут write-lock и не меняют файлы.
+- Lock: глобальный `.mg/lock` (O_EXCL, PID) в каталоге конфига; `generate`/`clean` сериализованы.
+- `--dry-run`/`--plan`/`--check` не создают каталоги, не берут lock и не меняют файлы.
 
 ### 8.5 Cleanup
 
-- Cleanup работает **только с owned-артефактами из манифестов**; не сканирует `output_dir` на «неизвестные» файлы.
-- Записи с `skipped: true` не удаляются никогда — это файлы, которые ядро не писало.
-- Кандидат — запись манифеста (`skipped: false`), которой нет в текущем результате генератора.
-- Cleanup в рамках `generate` — только для **успешно завершившихся** генераторов; упавший генератор свой манифест не трогает.
+- Cleanup работает **только с owned-артефактами из глобального manifest**; не сканирует `output_dir`.
+- `skipped: true` не удаляется никогда — это файлы, которые ядро не писало.
+- Кандидат — запись location (`skipped: false`), которой нет в текущем результате генератора.
+- Cleanup в рамках `generate` — только для текущего location успешно завершившегося генератора.
 - Удаляется только если текущий sha256 совпадает с manifest; иначе Warning MG050, файл сохраняется.
-- `cleanup: off` — default; `prompt` — только tty; `enabled` — удалять неизменённые stale-файлы.
-- `mg generate --clean` — разово `enabled`; `mg clean` — все манифесты; вне tty нужен `--yes`.
-- Не трогает `.git`, `.mg`, скрытые файлы, каталоги и файлы вне `output_dir`.
-- Удалённый из конфига генератор: манифест остаётся, `mg clean` может удалить его неизменённые артефакты.
+- `cleanup: off` — default; `prompt` — fallback off + MG030; `enabled` — удалять unchanged stale.
+- `mg generate --clean` — разово `enabled`.
+- `mg clean`:
+  - работает только по `.mg/manifest.json`, без `.mg.yaml` и плагинов;
+  - обходит все locations, включая удалённые генераторы и старые `output_dir`;
+  - удаляет unchanged owned-артефакты; изменённые — MG050;
+  - удаляет пустые locations; если locations не осталось — удаляет manifest;
+  - `--dry-run` показывает план; вне tty нужен `--yes`.
+- Если `output_dir` изменился, старый location остаётся; при генерации — Warning MG051.
+- Если генератор удалён из конфига, его location остаётся до `mg clean`.
 
 ---
 

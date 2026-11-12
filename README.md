@@ -69,6 +69,7 @@ if not report.success:
        api_version = "1"
        id = "my-project-generator"
        name = "My Project Generator"
+       input_formats = {"entity-model"}   # None = любой формат
 
        def generate(self, input: GeneratorInput) -> GenerationResult:
            # input.model — замкнутый срез модели (ModelSlice: entities/enums/types)
@@ -176,6 +177,7 @@ uv run python tools/check_docs.py --strict
 - [ADR-0006: расширение формата](./docs/adr/0006-format-extension.md)
 - [ADR-0007: наследование форматов](./docs/adr/0007-format-inheritance.md)
 - [ADR-0008: model units и раскладки источников](./docs/adr/0008-model-units-and-source-layouts.md)
+- [ADR-0009: глобальный manifest](./docs/adr/0009-global-manifest-ownership.md)
 - [ADR-0006: расширение формата](./docs/adr/0006-format-extension.md)
 - [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
 - [Contributing](./CONTRIBUTING.md)

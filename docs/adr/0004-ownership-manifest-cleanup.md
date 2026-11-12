@@ -1,6 +1,6 @@
 # ADR-0004: Ownership, manifest и cleanup
 
-- **Статус:** принято
+- **Статус:** принято (уточнено [ADR-0009](./0009-global-manifest-ownership.md))
 - **Дата:** 2026-11-11
 - **Связанные документы:** [ТЗ v1.2 §10](../requirements/v1.2.md), [System Design §8](../system-design/index.md)
 
