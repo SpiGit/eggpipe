@@ -5,7 +5,35 @@
 - установленный пакет с entry point (production/editable install);
 - локальный Python-файл через `--plugin` (dev, v0.3+).
 
-## GeneratorPlugin
+## Генератор через декоратор
+
+Основной способ:
+
+```python
+from metadata_generator import Artifact, GeneratorConfig, GeneratorContext, ModelSlice, generator
+
+
+@generator(id="my-generator", input_formats={"entity-model"})
+def my_generator(
+    model: ModelSlice,
+    context: GenerationContext,
+    config: GeneratorConfig,
+) -> list[Artifact]:
+    names = [entity.name for entity in model.entities]
+    return [Artifact(path="entities.txt", content="\n".join(names) + "\n")]
+```
+
+- `id` опционален: по умолчанию имя функции с `_` → `-`.
+- `input_formats` обязателен.
+- Аргументы инжектятся по аннотациям: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
+- Возврат: `GenerationResult`, `Artifact`, `list[Artifact]` или `tuple[Artifact, ...]`.
+- Entry point указывает на функцию:
+  ```toml
+  [project.entry-points."metadata_generator.generators"]
+  my-generator = "my_package.plugins:my_generator"
+  ```
+
+## GeneratorPlugin (advanced)
 
 ```python
 from typing import ClassVar, Literal

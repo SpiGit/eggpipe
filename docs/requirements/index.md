@@ -26,6 +26,7 @@
 - версии форматов независимы; `base_versions` задаёт зависимость, `version` опционален (latest);
 - `schemas[version]` содержит `layer_entity` для отдельного слоя и `full_entity` для итоговой сущности;
 - генератор объявляет `input_formats`; совместимость учитывает наследников;
+- `@generator` — основной decorator API; классовый `GeneratorPlugin` — advanced;
 - в одном запуске допускаются модели разных форматов; несовместимый генератор — MG033,
   pre-flight ошибка всего запуска (exit 2);
 - модель = одна сущность; раскладки `monolith`, `file-per-model`, `directory-per-model`;

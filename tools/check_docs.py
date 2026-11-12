@@ -66,6 +66,7 @@ REQUIRED_FILES = (
     "docs/adr/0007-format-inheritance.md",
     "docs/adr/0008-model-units-and-source-layouts.md",
     "docs/adr/0009-global-manifest-ownership.md",
+    "docs/adr/0010-decorator-generator-api.md",
     "docs/adr/index.md",
     "docs/index.md",
     "docs/reference/diagnostics.md",

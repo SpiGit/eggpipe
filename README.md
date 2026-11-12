@@ -63,21 +63,18 @@ if not report.success:
 2. Плагин генерации:
    ```python
    # my_project/plugins.py
-   from metadata_generator import GeneratorPlugin, GeneratorInput, GenerationResult, Artifact
+   from metadata_generator import Artifact, GeneratorConfig, GeneratorContext, ModelSlice, generator
 
-   class MyProjectGenerator(GeneratorPlugin):
-       api_version = "1"
-       id = "my-project-generator"
-       name = "My Project Generator"
-       input_formats = {"entity-model"}   # None = любой формат
-
-       def generate(self, input: GeneratorInput) -> GenerationResult:
-           # input.model — замкнутый срез модели (ModelSlice: entities/enums/types)
-           # input.context — variables, naming_hint, formats, импортированные файлы
-           # input.config — блок этого генератора из .mg.yaml
-           return GenerationResult(artifacts=[
-               Artifact(path="user.py", content=render(input.model.entities...))
-           ])
+   @generator(id="my-project-generator", input_formats={"entity-model"})
+   def my_project_generator(
+       model: ModelSlice,
+       context: GenerationContext,
+       config: GeneratorConfig,
+   ) -> list[Artifact]:
+       # model — замкнутый срез модели (entities/enums/types)
+       # context — variables, naming_hint, formats, импортированные файлы
+       # config — блок этого генератора из .mg.yaml
+       return [Artifact(path="user.py", content=render(model.entities))]
    ```
 
 3. Регистрация через entry points:
@@ -178,6 +175,7 @@ uv run python tools/check_docs.py --strict
 - [ADR-0007: наследование форматов](./docs/adr/0007-format-inheritance.md)
 - [ADR-0008: model units и раскладки источников](./docs/adr/0008-model-units-and-source-layouts.md)
 - [ADR-0009: глобальный manifest](./docs/adr/0009-global-manifest-ownership.md)
+- [ADR-0010: decorator API генераторов](./docs/adr/0010-decorator-generator-api.md)
 - [ADR-0006: расширение формата](./docs/adr/0006-format-extension.md)
 - [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
 - [Contributing](./CONTRIBUTING.md)

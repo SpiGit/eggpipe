@@ -82,7 +82,7 @@
 
 ## 2. Интерфейсы плагинов
 
-> Публичный API ядра экспортирует **только** эти контракты (из `metadata_generator.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, FormatInfo, FormatSchema, ImportedFile, SourceModel, ModelSlice, Entity, EntityIdentity, FieldIdentity, FieldDef, EnumDef, CustomType, GeneratorConfig, NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig, GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin, EntityModelFormat, MergePolicy, UNSET, PRIMITIVE_TYPES, Constraints` и базовые исключения. Всё остальное — внутреннее и может меняться. Пакет поставляет `py.typed`.
+> Публичный API ядра экспортирует **только** эти контракты (из `metadata_generator.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, FormatInfo, FormatSchema, ImportedFile, SourceModel, ModelSlice, Entity, EntityIdentity, FieldIdentity, FieldDef, EnumDef, CustomType, GeneratorConfig, NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig, GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin, EntityModelFormat, MergePolicy, generator, UNSET, PRIMITIVE_TYPES, Constraints` и базовые исключения. Всё остальное — внутреннее и может меняться. Пакет поставляет `py.typed`.
 
 ### 2.1 GeneratorInput — вход генератора
 
@@ -151,6 +151,24 @@ class GenerationResult(BaseModel):
 - Binary-артефакты — не-цель v1; `content` только `str`.
 
 ### 2.4 GeneratorPlugin
+
+**Основной API — декоратор `@generator`:**
+
+```python
+@generator(id="tpch", input_formats={"entity-model"})
+def tpch(
+    model: ModelSlice,
+    context: GenerationContext,
+    config: GeneratorConfig,
+) -> list[Artifact]:
+    ...
+```
+
+- декоратор создаёт класс-адаптер `GeneratorPlugin` и регистрирует его;
+- аргументы инжектятся по аннотациям: `ModelSlice`, `GenerationContext`, `GeneratorConfig`;
+- возврат нормализуется: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`;
+- сигнатура проверяется при загрузке плагина;
+- классовый API ниже остаётся advanced-вариантом.
 
 ```python
 from abc import ABC, abstractmethod

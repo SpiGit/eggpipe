@@ -28,6 +28,7 @@ nav:
       - 0007 — format inheritance: adr/0007-format-inheritance.md
       - 0008 — model units/layouts: adr/0008-model-units-and-source-layouts.md
       - 0009 — global manifest: adr/0009-global-manifest-ownership.md
+      - 0010 — generator decorators: adr/0010-decorator-generator-api.md
   - Плагины: plugin-guide.md
   - Диагностики: reference/diagnostics.md
   - Релиз: release.md

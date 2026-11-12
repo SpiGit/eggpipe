@@ -11,3 +11,4 @@
 | [0007](./0007-format-inheritance.md) | Наследование форматов и совместимость генераторов | Принято |
 | [0008](./0008-model-units-and-source-layouts.md) | Model unit, раскладки источников и layer merge | Принято |
 | [0009](./0009-global-manifest-ownership.md) | Глобальный manifest и ownership | Принято |
+| [0010](./0010-decorator-generator-api.md) | Decorator API для генераторов | Принято |
