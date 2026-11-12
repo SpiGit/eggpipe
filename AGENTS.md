@@ -1,10 +1,10 @@
-# AGENTS.md — metadata-generator
+# AGENTS.md — eggpipe
 
 Краткое руководство для агентов. Полные требования — в документах ниже; не дублируй их здесь.
 
 ## Что это за проект
 
-`metadata-generator` — инструмент, который генерирует артефакты (SQL, Python, TypeScript и т.д.)
+`eggpipe` — инструмент, который генерирует артефакты (SQL, Python, TypeScript и т.д.)
 из YAML-описания модели данных. Архитектура: нейтральное ядро + плагины генераторов и форматов.
 
 Сейчас репозиторий содержит документацию, harness и ядро v0.1–v0.3: composition, format-плагины,
@@ -15,7 +15,7 @@ watch, JSON-отчёт, provenance, writer/manifest/lock, cleanup, `Engine`, CLI
 
 Приоритет при расхождении — сверху вниз:
 
-1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/requirements/index.md` (сейчас `v1.4.md`):
+1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/requirements/index.md` (сейчас `v2.0.md`):
    поведение, контракты, CLI, запись артефактов.
 2. `docs/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API).
 3. `docs/system-design/index.md` — проектирование реализации (классы, потоки, структура).
@@ -33,13 +33,16 @@ watch, JSON-отчёт, provenance, writer/manifest/lock, cleanup, `Engine`, CLI
 | `docs/system-design/index.md` | System Design |
 | `docs/adr/` | Принятые архитектурные решения |
 | `docs/reviews/` | Ревью и backlog P1/P2 |
+| `docs/eggpipe.md` | Имя, CLI/конфиг, бренд и идеи лого |
+| `docs/plugin-guide.md` | Руководство по плагинам |
+| `docs/release.md` | Релизный чек-лист |
 | `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE` | Процесс разработки, история и лицензия |
-| `docs/reference/` | Справочники (появятся при реализации) |
+| `docs/reference/` | Справочники (диагностики) |
 
 ## Правила версионирования
 
 - Все версии ТЗ со статусом «Замещена» — история. **Не редактировать.**
-- Новое или изменённое поведение оформляется новой версией ТЗ `v1.x`, а не правкой текущей.
+- Новое или изменённое поведение оформляется новой версией ТЗ `vX.Y`, а не правкой текущей.
 - При выпуске версии обнови: ТЗ, `docs/requirements/index.md` (статус + changelog),
   System Design, README и `.session-context.md`.
 - ADR не переписываются задним числом. Новое архитектурное решение — новый ADR.
@@ -84,7 +87,7 @@ watch, JSON-отчёт, provenance, writer/manifest/lock, cleanup, `Engine`, CLI
 - Dev/CI используют `uv` и закоммиченный `uv.lock`; для пользователей — `pip`.
 - `uv sync --extra dev` — установка dev-окружения.
 - `uv run python tools/check_docs.py --strict` — проверка ссылок, версий, harness и терминов.
-- `uv run ruff check .` / `uv run ruff format --check src tests tools` — линтер и форматирование.
+- `uv run ruff check .` / `uv run ruff format --check src tests tools examples` — линтер и форматирование.
 - `uv run pyrefly check` — строгая проверка типов (Pydantic v2 поддерживается нативно).
 - `basedpyright`/Pyright читают `pyrightconfig.json`; основной CI-чекер — Pyrefly.
 - `uv run pytest --cov` — тесты и покрытие (порог 80%).

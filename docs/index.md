@@ -1,10 +1,13 @@
-# Metadata Generator
+# Eggpipe
 
-Документация проекта `metadata-generator` — генерация артефактов из YAML-описания модели данных.
+Документация проекта `eggpipe` — генерация артефактов из YAML-описания модели данных.
 
 ## Навигация
 
-- [Технические требования](requirements/index.md) — актуальное ТЗ v1.4 и история версий.
+- [Технические требования](requirements/index.md) — актуальное ТЗ v2.0 и история версий.
+- [Eggpipe](eggpipe.md) — выбранное имя, история подбора и идеи для лого.
+- [План v2.0](plan-v2.md) — эпики, зависимости и критерии готовности.
+- [Ревью v2.0](reviews/2026-11-12-v2-review.md) — результаты проверки документации.
 - [System Design](system-design/index.md) — проектирование реализации.
 - [ADR](adr/index.md) — принятые архитектурные решения.
 - [Руководство по плагинам](plugin-guide.md) — генераторы и форматы.
@@ -16,10 +19,10 @@
 
 ```bash
 uv sync --extra dev
-mg model validate ./models/blog.yaml
-mg generate -c .mg.yaml
-mg generate -c .mg.yaml --plan
-mg generate -c .mg.yaml --check
+eggpipe model validate ./models/blog.yaml
+eggpipe generate -c .eggpipe.yaml
+eggpipe generate -c .eggpipe.yaml --plan
+eggpipe generate -c .eggpipe.yaml --check
 ```
 
 Полный README и примеры — в корне репозитория.

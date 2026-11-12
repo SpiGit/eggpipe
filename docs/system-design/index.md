@@ -1,8 +1,8 @@
-# System Design — Metadata Generator
+# System Design — Eggpipe
 
-> Документ реализации для проекта metadata-generator. Соответствует [ТЗ v1.4](../requirements/v1.4.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
+> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.0](../requirements/v2.0.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 1.4. Дата: 2026-11-12.*
+*Версия документа: 2.0. Дата: 2026-11-12.*
 
 ---
 
@@ -12,7 +12,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      metadata-generator (ядро)                   │
+│                      eggpipe (ядро)                   │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │   CLI ──▶ Config ──▶ Engine ──▶ Model Builder                    │
@@ -32,7 +32,7 @@
 | Компонент | Ответственность |
 |-----------|-----------------|
 | **CLI** | Парсинг аргументов, вывод результатов, watch mode |
-| **Config** | AppConfig (CLI → env → .env → defaults) + GeneratorRules (.mg.yaml) |
+| **Config** | AppConfig (CLI → env → .env → defaults) + GeneratorRules (.eggpipe.yaml) |
 | **Engine** | Оркестрация: парсинг → composition → validate → generate → write |
 | **FormatRegistry** | Реестр форматов: встроенный `entity-model` + форматы от формат-плагинов |
 | **Parser** | YAML parse, imports, entity.extends |
@@ -40,8 +40,8 @@
 | **Validator** | Кросс-сущностные проверки: warnings + errors (null-matrix, дубликаты, unused, stale dates) |
 | **Plugin Loader** | Ленивая загрузка плагинов из entry points, проверка `api_version` |
 | **Planning** | План create/update/skip/delete, ownership и конфликты до записи |
-| **Lock** | `.mg/lock` — защита от параллельной записи в один `output_dir` |
-| **Artifact Writer** | Проверка путей, on_conflict, atomic write, per-generator manifest, cleanup |
+| **Lock** | `.eggpipe/lock` — защита от параллельной записи в один `output_dir` |
+| **Artifact Writer** | Проверка путей, on_conflict, atomic write, global manifest, cleanup |
 | **Plugins** | Генераторы (и формат-плагины) — код + шаблоны |
 
 ### 1.2 Поток данных
@@ -51,7 +51,7 @@
         │
 2. AppConfig создаётся (CLI → env → .env → defaults)
         │
-3. GeneratorRulesLoader загружает .mg.yaml
+3. GeneratorRulesLoader загружает .eggpipe.yaml
         │
 4. Для каждого source:
     ├── Discovery: layout (monolith/file-per-model/directory-per-model)
@@ -82,7 +82,7 @@
 
 ## 2. Интерфейсы плагинов
 
-> Публичный API ядра экспортирует **только** эти контракты (из `metadata_generator.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, FormatInfo, FormatSchema, ImportedFile, SourceModel, ModelSlice, Entity, EntityIdentity, FieldIdentity, FieldDef, EnumDef, CustomType, GeneratorConfig, NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig, GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin, EntityModelFormat, MergePolicy, generator, UNSET, PRIMITIVE_TYPES, Constraints` и базовые исключения. Всё остальное — внутреннее и может меняться. Пакет поставляет `py.typed`.
+> Публичный API ядра экспортирует **только** эти контракты (из `eggpipe.__init__`): `GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext, FormatInfo, FormatSchema, ImportedFile, SourceModel, ModelSlice, Entity, EntityIdentity, FieldIdentity, FieldDef, EnumDef, CustomType, GeneratorConfig, NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig, GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin, EntityModelFormat, MergePolicy, generator, Provenance, git_provenance, UNSET, PRIMITIVE_TYPES, Constraints` и базовые исключения. Всё остальное — внутреннее и может меняться. Пакет поставляет `py.typed`.
 
 ### 2.1 GeneratorInput — вход генератора
 
@@ -90,7 +90,7 @@
 class GeneratorInput(BaseModel):
     """Immutable входные данные генератора."""
     model: ModelSlice            # замкнутый срез: entities/enums/types
-    config: GeneratorConfig      # свой блок из .mg.yaml (id, options, output_dir, ...)
+    config: GeneratorConfig      # свой блок из .eggpipe.yaml (id, options, output_dir, ...)
     context: GenerationContext   # variables, formats, imports, source paths
 
     model_config = ConfigDict(frozen=True)
@@ -103,13 +103,13 @@ class GeneratorInput(BaseModel):
 ```python
 class GenerationContext(BaseModel):
     """Контекст генерации; копируется на каждый генератор."""
-    variables: dict[str, str] = {}       # --var ∪ .mg.yaml variables (CLI > config)
+    variables: dict[str, str] = {}       # --var ∪ .eggpipe.yaml variables (CLI > config)
     naming_hint: NamingStyle | None     # defaults.naming_convention (подсказка!)
     imports: dict[str, ImportedFile]    # alias (as) → файл
     sources: list[Path]                 # относительные пути source-файлов (провенанс)
     formats: frozenset[FormatInfo]      # форматы среза
     run_id: str                         # идентификатор запуска
-    config_dir: Path                    # каталог .mg.yaml
+    config_dir: Path                    # каталог .eggpipe.yaml
 
     model_config = ConfigDict(frozen=True)
 
@@ -258,12 +258,12 @@ class EntityModelFormat(FormatPlugin):
 - `layer_entity` валидирует один файл-слой, `full_entity` — итог после merge.
 - `EntityIdentity` / `FieldIdentity` дают дельта-моделям только identity-поля (`name`).
 - Обязательность новых полей определяет формат: `layer_entity` может быть partial, `full_entity` — complete.
-- Документ остаётся общим конвертом; first-class document-level поля — future, в v1.4 через `metadata`.
+- Документ остаётся общим конвертом; first-class document-level поля — future, в v2.0 через `metadata`.
 - `entity-model` зарезервирован; попытка переопределить — Error при регистрации.
 - Дополнительные поля могут быть first-class полями модели; `metadata` остаётся extension point.
 - Формат и версия передаются через `Entity.format` / `Entity.format_version`;
   сводка — `GenerationContext.formats`.
-- Формат задаётся только файлами модели; `.mg.yaml` его не задаёт.
+- Формат задаётся только файлами модели; `.eggpipe.yaml` его не задаёт.
 
 ### 2.6 NamingStyle
 
@@ -277,7 +277,7 @@ class NamingStyle(StrEnum):
 def transform(name: str, style: NamingStyle) -> str: ...
 ```
 
-- `defaults.naming_convention` из `.mg.yaml` — **подсказка**: ядро кладёт её в `context.naming_hint` и никогда не переименовывает канонические имена (Entity.name остаётся как в YAML).
+- `defaults.naming_convention` из `.eggpipe.yaml` — **подсказка**: ядро кладёт её в `context.naming_hint` и никогда не переименовывает канонические имена (Entity.name остаётся как в YAML).
 - Если `naming_convention` не задан, `naming_hint = None` (а не неявный SNAKE).
 - Какую трансформацию куда применить — решает плагин (SQL table → snake, Pydantic class → pascal и т.п.).
 - `transform` обязан быть детерминированным, сохранять цифры и корректно обрабатывать акронимы (`HTTPServer` → `http_server`/`HttpServer`); edge-cases покрываются тестами.
@@ -286,7 +286,7 @@ def transform(name: str, style: NamingStyle) -> str: ...
 
 ```python
 # my-generator/src/my_generator/__init__.py
-from metadata_generator import (
+from eggpipe import (
     GeneratorPlugin, GeneratorInput, GenerationResult, Artifact,
     NamingStyle, transform,
 )
@@ -295,6 +295,7 @@ class MyGenerator(GeneratorPlugin):
     api_version = "1"
     id = "my-generator"
     name = "My Generator"
+    input_formats = {"entity-model"}
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         result = GenerationResult()
@@ -587,10 +588,10 @@ class Parser:
         fmt = data.get("format")
         if not fmt:
             raise DocumentError(MG007, path, "`format` is required")
+        plugin = self.registry.get(fmt)      # UnknownFormatError → MG007
         version = normalize_version(data.get("version"))   # 1.0 → "1.0"
         if version is None:
-            raise DocumentError(MG008, path, "`version` is required")
-        plugin = self.registry.get(fmt)      # UnknownFormatError → MG007
+            version = plugin.supported_versions[-1]        # latest
         if version not in plugin.supported_versions:
             raise DocumentError(MG008, path, f"{fmt} does not support {version}")
         document = plugin.parse(data, base_path=path.parent)
@@ -718,6 +719,10 @@ class DiagnosticLocation(BaseModel):
     entity: str | None = None
     field: str | None = None
     path: str | None = None          # JSON-path внутри документа
+    format: str | None = None
+    version: str | None = None
+    generator: str | None = None
+    artifact: str | None = None
 
 class Diagnostic(BaseModel):
     level: Literal["warning", "error"]
@@ -743,8 +748,8 @@ def validate(
 | MG004 | Неизвестный тип (не primitive формата, не enum/type) | error | validate |
 | MG005 | Некорректный regex в `constraints.pattern` | error | validate |
 | MG006 | Циклический import / depth > 10 | error | composition |
-| MG007 | `format` отсутствует / неизвестен / смешаны форматы | error | parse |
-| MG008 | `version` отсутствует / не поддерживается | error | parse |
+| MG007 | `format` отсутствует / неизвестен | error | parse |
+| MG008 | `version` не поддерживается | error | parse |
 | MG009 | `extends` не найден / неоднозначен / цикл / depth > 10 | error | composition |
 | MG010 | `nullable=false` + `default=null` | error | validate |
 | MG011 | `required=true` + `nullable=true` | warning | validate |
@@ -763,12 +768,28 @@ def validate(
 | MG024 | Дубликат resolved-пути | warning | discovery |
 | MG025 | Дубликат alias `as` | error | composition |
 | MG026 | Case-insensitive коллизия имён | warning | validate |
+| MG027 | Пустой каталог модели | warning | discovery |
 | MG028 | Имя не соответствует pattern | error | Pydantic |
+| MG029 | Некорректная цепочка слоёв / конфликт layer merge | error | layers |
+| MG030 | Неподдерживаемый режим/fallback | warning | engine |
+| MG031 | Файл-слой содержит не одну сущность | error | layers |
+| MG032 | Дубликат alias ресурса | error | resources |
+| MG033 | Генератор не поддерживает формат сущности | error | engine |
+| MG034 | Наследование/версии/схемы форматов | error | formats |
+| MG035 | Дельта не добавляет ничего | warning | layers |
+| MG036 | Glob без совпадений | warning | discovery |
+| MG037 | Неизвестный `models.<dir>` | error | discovery |
+| MG038 | Путь одновременно в `files` и `resources` | error | discovery |
 | MG040 | Некорректный artifact path / content | error | write |
 | MG041 | Ownership-конфликт / `on_conflict: error` | error | write |
-| MG042 | Дубликат artifact path / case-collision | error | planning |
-| MG043 | `skip` для не-owned файла: не трогаем и не присваиваем | warning | planning |
+| MG042 | Дубликат artifact path / case-collision / prefix | error | planning |
+| MG043 | `skip` для не-owned файла | warning | planning |
 | MG050 | Changed owned-файл не удалён при cleanup | warning | cleanup |
+| MG051 | Stale generated location | warning | cleanup |
+| MG052 | Manifest повреждён / версия не поддерживается | error | manifest |
+| MG300 | Генератор/запись/check упали или drift | error | engine |
+| MG301 | Нарушен контракт генератора | error | plugin |
+| MG302 | Неизвестный инжектируемый параметр | error | plugin |
 
 - Pydantic-ошибки маппятся в MG028/MG3xx с локацией.
 - `format_plugin.validate(document)` вызывается после базовой структурной валидации; его `Diagnostic[]` объединяются с ядровыми.
@@ -780,7 +801,7 @@ def validate(
 
 ## 4.5 Model units и слои форматов
 
-Новая модель сборки (v1.4):
+Новая модель сборки (v2.0):
 
 ```text
 sources[].layout
@@ -849,12 +870,12 @@ sources[].layout
 ### 5.1 AppConfig (pydantic-settings, v2-стиль)
 
 ```python
-# metadata_generator/config/app_config.py
+# eggpipe/config/app_config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class AppConfig(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="MG_",
+        env_prefix="EGGPIPE_",
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
@@ -863,7 +884,7 @@ class AppConfig(BaseSettings):
 
     log_level: str = "INFO"
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    log_destination: str = "stderr"       # stderr | stdout | file:./mg.log
+    log_destination: str = "stderr"       # stderr | stdout | file:./eggpipe.log
 
     rules_file: Path | None = None         # -c / --config
 
@@ -873,7 +894,7 @@ class AppConfig(BaseSettings):
     watch_debounce_ms: int = 300
 ```
 
-- Приоритет: CLI-флаги → env → `.env` → defaults. Отдельного app-config-файла нет; `.mg.yaml` — это `GeneratorRules`.
+- Приоритет: CLI-флаги → env → `.env` → defaults. Отдельного app-config-файла нет; `.eggpipe.yaml` — это `GeneratorRules`.
 - `plugins_dir` и `cache_dir` **удалены**: плагины из директорий с ручным `sys.path` не поддерживаются (§6.3); кэш — future.
 - `config_file` переименован в `rules_file`, чтобы не путать с app config.
 - CLI собирает `AppConfig` после парсинга аргументов и передаёт override'ы в `Engine`.
@@ -891,7 +912,7 @@ class GeneratorRulesLoader:
 
     @classmethod
     def discover(cls, start: Path = Path.cwd()) -> Path | None:
-        """Ищет .mg.yaml от start вверх до git-root (или ФС-root)."""
+        """Ищет .eggpipe.yaml от start вверх до git-root (или ФС-root)."""
 ```
 
 - Относительные пути внутри `GeneratorRules` трактуются от `path.parent`.
@@ -904,7 +925,7 @@ class GeneratorRulesLoader:
 ```python
 def setup_logging(config: AppConfig) -> None:
     """Вызывается CLI. Библиотека этого не делает."""
-    logger = logging.getLogger("mg")
+    logger = logging.getLogger("eggpipe")
     logger.setLevel(getattr(logging, config.log_level.upper(), logging.INFO))
     logger.handlers.clear()
     logger.propagate = False
@@ -920,10 +941,10 @@ def setup_logging(config: AppConfig) -> None:
     logger.addHandler(handler)
 
 def get_logger(name: str) -> logging.Logger:
-    return logging.getLogger(f"mg.{name}")
+    return logging.getLogger(f"eggpipe.{name}")
 ```
 
-- В библиотеке `setup_logging()` не вызывается; на `mg`-логгере висит `NullHandler`, `propagate` не ломает logging хоста.
+- В библиотеке `setup_logging()` не вызывается; на `eggpipe`-логгере висит `NullHandler`, `propagate` не ломает logging хоста.
 - Никакого `logging.basicConfig(force=True)`.
 - Логи не попадают на stdout (не ломается `--output-format json`) — только stderr/file.
 - Значения `variables`, похожие на секреты, редактируются в логах и `config show`.
@@ -936,8 +957,8 @@ def get_logger(name: str) -> logging.Logger:
 
 ```python
 class PluginLoader:
-    GROUP_GENERATORS = "metadata_generator.generators"
-    GROUP_FORMATS    = "metadata_generator.formats"
+    GROUP_GENERATORS = "eggpipe.generators"
+    GROUP_FORMATS    = "eggpipe.formats"
     SUPPORTED_API    = frozenset({"1"})
 
     def discover(self) -> list[PluginInfo]:
@@ -951,7 +972,7 @@ class PluginLoader:
 ```
 
 - `PluginInfo`: `id`, `name`, `distribution`, `version`, `api_version`, `status` (`ok|incompatible|error`), `error`.
-- `ep.load()` может кинуть любое исключение: оно превращается в `PluginLoadError` и показывается в `mg gen list`; **не ломает** запуск, если плагин не выбран.
+- `ep.load()` может кинуть любое исключение: оно превращается в `PluginLoadError` и показывается в `eggpipe gen list`; **не ломает** запуск, если плагин не выбран.
 - `plugin.id != ep.name` → **Error** (не Warning): id — часть контракта.
 - Дубликат `id` из разных distribution'ов → **Error** с перечнем distribution'ов; silent overwrite запрещён.
 - Несовместимый `api_version`:
@@ -959,17 +980,17 @@ class PluginLoader:
   - выбран (`-g`) или `enabled: true` в конфиге — exit 2.
 - `EXPECTED_API_VERSION` — множество поддерживаемых; ошибка содержит distribution, версию плагина и требуемую версию ядра.
 - Плагины сортируются по `id` для детерминизма.
-- `mg gen list` не инстанцирует плагины; `mg gen info <id>` — инстанцирует.
-- Формат-плагины загружаются eagerly (нужны для парсинга), но ошибка одного не должна мешать `mg gen list`; для `generate` достаточно форматов, используемых в sources.
+- `eggpipe gen list` не инстанцирует плагины; `eggpipe gen info <id>` — инстанцирует.
+- Формат-плагины загружаются eagerly (нужны для парсинга), но ошибка одного не должна мешать `eggpipe gen list`; для `generate` достаточно форматов, используемых в sources.
 
 ### 6.2 Регистрация (pyproject.toml проекта-плагина)
 
 ```toml
-[project.entry-points."metadata_generator.generators"]
+[project.entry-points."eggpipe.generators"]
 oracle-ddl = "my_oracle_generator:MyGenerator"
 
 # для новых форматов:
-[project.entry-points."metadata_generator.formats"]
+[project.entry-points."eggpipe.formats"]
 sql-model = "my_oracle_generator.format:SqlModelFormat"
 ```
 
@@ -979,7 +1000,7 @@ sql-model = "my_oracle_generator.format:SqlModelFormat"
 
 ```bash
 pip install -e ./plugins/my-generator   # editable install
-mg gen list                             # плагин виден
+eggpipe gen list                             # плагин виден
 ```
 
 (Future, v0.3+: `--plugin path/to/module.py` — явный importlib spec loading, без правки sys.path.)
@@ -991,7 +1012,7 @@ mg gen list                             # плагин виден
 ### 7.1 Структура команд
 
 ```python
-app = typer.Typer(name="mg", help="Metadata Generator", no_args_is_help=True)
+app = typer.Typer(name="eggpipe", help="Eggpipe", no_args_is_help=True)
 app.add_typer(config_app, name="config")   # show, validate
 app.add_typer(model_app,  name="model")    # validate, schema (P2)
 app.add_typer(gen_app,    name="gen")      # list, info
@@ -1039,10 +1060,10 @@ def clean(
 - `--format` переименован в `--output-format`, чтобы не путать с форматом документа.
 - `--plan`/`--dry-run` — синонимы; `--plan` печатает create/update/skip/delete/conflict.
 - `--check` не пишет файлы; drift → exit 1.
-- `--clean` — разовый cleanup текущего запуска; `mg clean` — все манифесты.
-- `mg init` не перезаписывает файл без `--force`.
-- `mg config show` показывает resolved paths и redact секретов; `--output-format json`.
-- `mg model validate` принимает несколько файлов/каталогов; `--output-format json`.
+- `--clean` — разовый cleanup текущего запуска; `eggpipe clean` — все манифесты.
+- `eggpipe init` не перезаписывает файл без `--force`.
+- `eggpipe config show` показывает resolved paths и redact секретов; `--output-format json`.
+- `eggpipe model validate` принимает несколько файлов/каталогов; `--output-format json`.
 
 ### 7.2 Выходные коды и поведение при ошибках
 
@@ -1050,10 +1071,12 @@ def clean(
 |----------|-----------|
 | Успех | 0 |
 | Ошибки парсинга/валидации/генерации, drift `--check`, warnings при `--strict` | 1 |
-| Config/usage: нет `.mg.yaml`, неизвестный generator id, `--var` без `=`, `api_version` mismatch, ошибка выбранного плагина, ошибка схемы `.mg.yaml` | 2 |
+| Config/usage: нет `.eggpipe.yaml`, неизвестный generator id, `--var` без `=`, `api_version` mismatch, ошибка выбранного плагина, ошибка схемы `.eggpipe.yaml`, MG033/MG034/MG301/MG302 | 2 |
 | Ctrl+C | 130 |
 
 Ошибка одного генератора: логируется, остальные продолжаются (aggregate отчёт в конце).
+`diagnostics.ignore`/`--ignore` игнорируют только warnings; errors показываются всегда.
+`--strict` повышает warnings до errors после фильтрации.
 
 ### 7.3 `--var`
 
@@ -1068,7 +1091,7 @@ def parse_vars(items: list[str]) -> dict[str, str]:
     return out
 ```
 
-Приоритет: CLI `--var` > `.mg.yaml variables`. Все значения — строки. Результат — `GenerationContext.variables`. Ядро не подставляет vars в пути/шаблоны само — это решение плагина. Секреты не логируются.
+Приоритет: CLI `--var` > `.eggpipe.yaml variables`. Все значения — строки. Результат — `GenerationContext.variables`. Ядро не подставляет vars в пути/шаблоны само — это решение плагина. Секреты не логируются.
 
 ### 7.4 Formatters и EngineReport
 
@@ -1083,31 +1106,54 @@ class JsonFormatter(OutputFormatter): ...    # только JSON в stdout
 
 ```json
 {
-  "report_version": 1,
+  "report_version": 2,
   "success": true,
   "exit_code": 0,
   "run_id": "01J...",
   "diagnostics": [
     {"level": "warning", "code": "MG012", "message": "...", "location": {"file": "model.yaml", "entity": "User"}}
   ],
+  "formats": [
+    {"name": "entity-model", "version": "1.0", "entities": 2}
+  ],
   "generators": [
     {
       "id": "oracle-ddl",
+      "name": "Oracle DDL",
       "status": "ok",
-      "duration_ms": 42,
-      "artifacts": [
-        {"path": "user.sql", "status": "create", "sha256": "..."}
-      ]
+      "input_formats": ["entity-model"],
+      "formats": [{"name": "entity-model", "version": "1.0"}],
+      "duration_ms": 42
     }
   ],
-  "timings": {"parse_ms": 12, "generate_ms": 55}
+  "artifacts": [
+    {"generator": "oracle-ddl", "path": "user.sql", "action": "create", "sha256": "..."}
+  ],
+  "manifest": {
+    "manifest_version": 2,
+    "locations": [
+      {"generator": "oracle-ddl", "output_dir": "output/oracle", "artifacts": 1}
+    ]
+  },
+  "stale_locations": [],
+  "timings": {
+    "discovery_ms": 1,
+    "parse_ms": 12,
+    "validate_ms": 2,
+    "generate_ms": 55,
+    "write_ms": 3,
+    "total_ms": 73
+  }
 }
 ```
 
 - `EngineReport` — общий результат запуска (не путается с `GenerationResult` одного плагина).
+- `report_version: 2`; `artifacts` — плоский список с `generator`, без дублирования в `generators[]`.
+- `formats` — глобальная сводка; `manifest` — только locations; `stale_locations` — для MG051.
 - JSON-отчёт печатается только в stdout; логи — stderr/file.
 - `--quiet` подавляет человекочитаемый вывод, но не JSON.
 - Порядок `generators`/`artifacts` детерминирован (по id/path).
+- Пути — относительные POSIX от каталога конфига.
 
 ---
 
@@ -1124,7 +1170,7 @@ def validate_artifact_path(output_dir: Path, artifact: Artifact) -> Path:
         raise ArtifactPathError(MG040, artifact, "path must be relative")
     for part in p.parts:
         stem = part.split(".", 1)[0].upper()
-        if (part in {"", ".", ".."} or part.startswith(".mg") or stem in WIN_RESERVED
+        if (part in {"", ".", ".."} or part.startswith(".eggpipe") or stem in WIN_RESERVED
                 or part.endswith((" ", ".")) or "\x00" in part or "\\" in part):
             raise ArtifactPathError(MG040, artifact, "invalid path segment")
     if len(str(p)) > 4096 or any(len(part) > 255 for part in p.parts):
@@ -1163,7 +1209,7 @@ class ExecutionPlan:
     conflicts: list[Diagnostic]
 ```
 
-- Глобальный manifest `.mg/manifest.json` загружается один раз.
+- Глобальный manifest `.eggpipe/manifest.json` загружается один раз.
 - Location = `(generator, output_dir)`.
 - `owned` = пути из artifacts этого location.
 - До записи проверяются exact, casefold и prefix-конфликты (`foo` vs `foo/bar`) между
@@ -1177,12 +1223,12 @@ class ExecutionPlan:
 | `error` | MG041, генератор не пишет | MG041 |
 
 - `--force` разрешает перезапись только **unowned** файла; после записи файл становится owned.
-- `--force` не отбирает файл у другого generator/location: MG041, сначала `mg clean`.
+- `--force` не отбирает файл у другого generator/location: MG041, сначала `eggpipe clean`.
 - `--check` сравнивает план с диском и manifest; drift → exit 1.
 
 ### 8.3 Manifest
 
-Один глобальный manifest: `.mg/manifest.json` в каталоге конфига.
+Один глобальный manifest: `.eggpipe/manifest.json` в каталоге конфига.
 
 ```json
 {
@@ -1191,7 +1237,7 @@ class ExecutionPlan:
     {
       "generator": "oracle-ddl",
       "output_dir": "output/oracle",
-      "mg_version": "0.1.0",
+      "eggpipe_version": "0.1.0",
       "plugin_version": "1.2.0",
       "formats": [{"name": "entity-model", "version": "1.0"}],
       "generated_at": "2026-11-11T12:34:56Z",
@@ -1204,14 +1250,14 @@ class ExecutionPlan:
 - Ключ location — `(generator, output_dir)`.
 - Пишется после успешной записи артефактов каждого генератора, атомарно (temp → `os.replace`).
 - `skipped: true` — ядро не писало файл; cleanup такие записи не удаляет.
-- `.mg/` рекомендуется в `.gitignore`; manifest не предназначен для коммита.
+- `.eggpipe/` рекомендуется в `.gitignore`; manifest не предназначен для коммита.
 - `--check` и `--plan` не обновляют manifest.
 - Manifest v1 не поддерживается.
 
 ### 8.4 Atomicity и блокировки
 
 ```python
-with global_lock(config_dir):                 # .mg/lock
+with global_lock(config_dir):                 # .eggpipe/lock
     for generator in generators:
         with staging_dir(output_dir) as staging:
             write_all(staging, artifacts)
@@ -1220,12 +1266,12 @@ with global_lock(config_dir):                 # .mg/lock
         update_global_manifest(location)      # atomic temp → replace
 ```
 
-- Staging — внутри `output_dir` (та же ФС), имя `.mg-staging-<pid>-<uuid>`.
+- Staging — внутри `output_dir` (та же ФС), имя `.eggpipe-staging-<pid>-<uuid>`.
 - Сначала все проверки конфликтов, потом запись. Ошибка до записи не оставляет файлов.
 - Batch-транзакции нет: при аварии посреди `os.replace` возможен частично обновлённый набор;
   manifest обновляется после каждого генератора, следующий запуск обнаружит drift по sha256.
 - Staging удаляется при старте и по сигналу.
-- Lock: глобальный `.mg/lock` (O_EXCL, PID) в каталоге конфига; `generate`/`clean` сериализованы.
+- Lock: глобальный `.eggpipe/lock` (O_EXCL, PID) в каталоге конфига; `generate`/`clean` сериализованы.
 - `--dry-run`/`--plan`/`--check` не создают каталоги, не берут lock и не меняют файлы.
 
 ### 8.5 Cleanup
@@ -1236,15 +1282,15 @@ with global_lock(config_dir):                 # .mg/lock
 - Cleanup в рамках `generate` — только для текущего location успешно завершившегося генератора.
 - Удаляется только если текущий sha256 совпадает с manifest; иначе Warning MG050, файл сохраняется.
 - `cleanup: off` — default; `prompt` — fallback off + MG030; `enabled` — удалять unchanged stale.
-- `mg generate --clean` — разово `enabled`.
-- `mg clean`:
-  - работает только по `.mg/manifest.json`, без `.mg.yaml` и плагинов;
+- `eggpipe generate --clean` — разово `enabled`.
+- `eggpipe clean`:
+  - работает только по `.eggpipe/manifest.json`, без `.eggpipe.yaml` и плагинов;
   - обходит все locations, включая удалённые генераторы и старые `output_dir`;
   - удаляет unchanged owned-артефакты; изменённые — MG050;
   - удаляет пустые locations; если locations не осталось — удаляет manifest;
   - `--dry-run` показывает план; вне tty нужен `--yes`.
 - Если `output_dir` изменился, старый location остаётся; при генерации — Warning MG051.
-- Если генератор удалён из конфига, его location остаётся до `mg clean`.
+- Если генератор удалён из конфига, его location остаётся до `eggpipe clean`.
 
 ---
 
@@ -1270,11 +1316,11 @@ class Watcher:
 
 ### 9.2 Поведение
 
-- **Первичная генерация** выполняется сразу при старте `mg watch` (как `mg generate` с теми же флагами).
-- **Наблюдаемые пути:** все `sources.path` (файлы и каталоги), импортируемые YAML-модели, `.mg.yaml`, файлы шаблонов, указанные в `options` генераторов (если плагин сообщает их через `watch_paths` — future; v1 наблюдает только модели и конфиг).
-- **Игнорируются:** все `output_dir` текущего конфига, `.git`, `.mg`, `__pycache__`, `.venv`, `venv`, `node_modules`, `*.tmp`, `*.swp`, `*~`.
+- **Первичная генерация** выполняется сразу при старте `eggpipe watch` (как `eggpipe generate` с теми же флагами).
+- **Наблюдаемые пути:** все `sources.path` (файлы и каталоги), импортируемые YAML-модели, `.eggpipe.yaml`, файлы шаблонов, указанные в `options` генераторов (если плагин сообщает их через `watch_paths` — future; v1 наблюдает только модели и конфиг).
+- **Игнорируются:** все `output_dir` текущего конфига, `.git`, `.eggpipe`, `__pycache__`, `.venv`, `venv`, `node_modules`, `*.tmp`, `*.swp`, `*~`.
 - **Debounce:** изменения батчатся за `watch_debounce_ms` (default 300); на батч выполняется одна генерация.
-- **Перезагрузка конфига:** изменение `.mg.yaml` (или `-c`-файла) перезагружает `GeneratorRules`; **плагины не перезагружаются** — для обновления кода плагина нужен перезапуск (сообщается в лог).
+- **Перезагрузка конфига:** изменение `.eggpipe.yaml` (или `-c`-файла) перезагружает `GeneratorRules`; **плагины не перезагружаются** — для обновления кода плагина нужен перезапуск (сообщается в лог).
 - **Ошибки не останавливают watch:** ошибка парсинга/валидации/генерации логируется; следующие изменения снова запускают цикл.
 - **Флаги:** те же, что у `generate` (`-g`, `--var`, `--strict`, `--output-format`, `--include-disabled`, `--allow-outside-imports`).
 - **Завершение:** Ctrl+C — корректная остановка Observer, удаление lock/staging, exit 0; прерывание по сигналу — 130.
@@ -1297,17 +1343,17 @@ class CacheStrategy(ABC):
 ## 10. Структура проекта (код)
 
 ```
-metadata-generator/
-├── src/metadata_generator/
+eggpipe/
+├── src/eggpipe/
 │   ├── __init__.py                  # публичный API (см. §2), __all__, py.typed
 │   ├── py.typed
 │   ├── cli/
 │   │   ├── __init__.py
 │   │   ├── main.py                  # typer app (generate/watch/init/clean) + sub-apps
-│   │   ├── config_cmds.py           # mg config show/validate
-│   │   ├── model_cmds.py            # mg model validate/schema
-│   │   ├── gen_cmds.py              # mg gen list/info
-│   │   ├── format_cmds.py           # mg format list
+│   │   ├── config_cmds.py           # eggpipe config show/validate
+│   │   ├── model_cmds.py            # eggpipe model validate/schema
+│   │   ├── gen_cmds.py              # eggpipe gen list/info
+│   │   ├── format_cmds.py           # eggpipe format list
 │   │   └── formatters.py            # TextFormatter, JsonFormatter
 │   ├── core/
 │   │   ├── __init__.py
@@ -1328,7 +1374,7 @@ metadata-generator/
 │   │   ├── __init__.py
 │   │   ├── engine.py                # Engine orchestration + public Engine facade
 │   │   ├── planning.py              # ExecutionPlan: create/update/skip/delete/conflict
-│   │   ├── locking.py               # .mg/lock (O_EXCL, PID, stale)
+│   │   ├── locking.py               # .eggpipe/lock (O_EXCL, PID, stale)
 │   │   ├── plugin_loader.py         # PluginLoader (generators + formats)
 │   │   ├── format_registry.py       # FormatRegistry
 │   │   └── artifact_writer.py       # validate paths, ownership, atomic write, manifest, cleanup
@@ -1379,7 +1425,7 @@ metadata-generator/
 │   │   └── test_golden.py
 │   └── conftest.py
 ├── docs/
-│   ├── requirements/                # ТЗ (index, v1.0, v1.1, v1.2, v1.3, v1.4)
+│   ├── requirements/                # ТЗ (index, v1.0, v1.1, v1.2, v1.3, v1.4, v2.0)
 │   ├── system-design/
 │   ├── reviews/
 │   ├── adr/                         # 0001-composition-merge-semantics.md
@@ -1399,7 +1445,7 @@ metadata-generator/
 
 ---
 
-## 11. Тестирование (охват v1.4)
+## 11. Тестирование (охват v2.0)
 
 ### 11.1 Приоритеты
 
@@ -1407,7 +1453,7 @@ metadata-generator/
 2. Merge-семантика ADR-0001 и layer merge ADR-0008 — тесты на каждое правило.
 3. **Null-matrix** — все 12 комбинаций из ТЗ §3.6, включая `UNSET` vs explicit `null`.
 4. Parser: simple / imports / entity.extends / cycle / depth / unknown format / unknown version / duplicate keys / YAML 1.2-скаляры.
-5. **Форматы v1.4**: наследование, цикл/глубина, `input_formats`, совместимость генератора, смешанные форматы в запуске (MG033).
+5. **Форматы v2.0**: наследование, цикл/глубина, `input_formats`, совместимость генератора, смешанные форматы в запуске (MG033).
 6. **Model units**: `monolith`/`file-per-model`/`directory-per-model`, `model_dirs`/`files`/`resources`, пустой каталог, duplicate format, unrelated formats, layer entity count (MG027/MG029/MG031/MG032).
 7. Integration CLI: полный цикл, exit codes, `--strict`, `--var`, `--dry-run`/`--plan`/`--check`, `--include-disabled`.
 8. **Contract-тесты plugin API**: reference-generator и reference-format проходят публичный контракт; несовместимый `api_version` ведёт себя по §6.
@@ -1446,7 +1492,7 @@ def test_invalid_models_produce_expected_code(data) -> None:
 - **Методика:** прогрев + 5 прогонов, берётся медиана; фиксируется reference-машина и версия Python в CI.
 - **Бюджеты:** parse+compose+validate ≤ 500 мс; slice+closure ≤ 100 мс; overhead ядра на генератор ≤ 50 мс.
 - **Регрессия:** деградация > 20% между релизами — повод разобраться; бюджет уточняется после прототипа.
-- Отдельно проверяется lazy-import: `mg --help` не должен импортировать `watchdog`.
+- Отдельно проверяется lazy-import: `eggpipe --help` не должен импортировать `watchdog`.
 
 ---
 
@@ -1454,7 +1500,7 @@ def test_invalid_models_produce_expected_code(data) -> None:
 
 ```toml
 [project]
-name = "metadata-generator"
+name = "eggpipe"
 version = "0.1.0"
 description = "CLI tool and library for metadata-driven code generation"
 readme = "README.md"
@@ -1486,11 +1532,11 @@ dev = [
 ]
 
 [project.scripts]
-mg = "metadata_generator.cli.main:app"
+eggpipe = "eggpipe.cli.main:app"
 
 [project.urls]
-Homepage = "https://github.com/<org>/metadata-generator"
-Documentation = "https://github.com/<org>/metadata-generator/tree/main/docs"
+Homepage = "https://github.com/<org>/eggpipe"
+Documentation = "https://github.com/<org>/eggpipe/tree/main/docs"
 
 [build-system]
 requires = ["hatchling"]
@@ -1519,11 +1565,11 @@ addopts = "-ra --strict-markers"
   mypy не входит в блокирующий CI; `py.typed` сохраняет совместимость с другими чекерами.
 - Для basedpyright/Pyright в корне лежит `pyrightconfig.json`: src-layout, `extraPaths` и `.venv`.
 - Dev/CI используют **uv** (`uv sync --extra dev`, `uv run`), `uv.lock` коммитится.
-  Для установки пакета пользователями остаётся `pip install metadata-generator`.
+  Для установки пакета пользователями остаётся `pip install eggpipe`.
 - Сборка проверяется `tools/check_wheel.py`: wheel содержит `py.typed` и LICENSE, метаданные
   зависимостей корректны, sdist не содержит dev-harness; выполняется smoke-install в чистом venv.
-- Команда `mg` определена в `[project.scripts]` и проверяется при сборке wheel.
-- `watchdog` — **optional extra** `[watch]`, lazy-import в `watch/watcher.py`; без `mg watch` пакет не требуется.
+- Команда `eggpipe` определена в `[project.scripts]` и проверяется при сборке wheel.
+- `watchdog` — **optional extra** `[watch]`, lazy-import в `watch/watcher.py`; без `eggpipe watch` пакет не требуется.
 - `ruamel.yaml` (YAML 1.2) вместо PyYAML: duplicate keys → ошибка, корректные `yes/no`, даты.
 - Пакет поставляет `py.typed` (PEP 561); публичный API — `__all__` в `__init__.py`.
 - Python 3.11+ — ради `StrEnum`, `Self`, `tomllib`, современных Pydantic v2; 3.11/3.12 в CI-матрице.
@@ -1531,12 +1577,12 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v1.4, сводка)
+## 13. Проектировочные решения (v2.0, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|
 | Явные `ModelDocument` → `SourceModel` → `ModelSlice` | Разная ответственность и гарантии на каждом этапе | ТЗ §3.1, §2.1 |
-| Заголовок документа: `format` + `version` обязательны; `metadata` — extension point | Наследование формата — зона формат-плагина | ТЗ §3.4 |
+| Заголовок документа: `format` обязателен, `version` опционален (latest); `metadata` — extension point | Наследование формата — зона формат-плагина | ТЗ §3.4 |
 | Форматы могут наследоваться; генератор объявляет `input_formats` | Один генератор для базового формата принимает расширения | ADR-0007, ТЗ §3.4 |
 | Модель = одна сущность; слои форматов мержатся аддитивно | Один входной YAML на сущность без копий под генераторы | ADR-0008, ТЗ §3.5 |
 | Смешанные форматы в запуске; несовместимость — MG033 | Постепенное расширение модели без общего «целевого формата» | ADR-0007 |
@@ -1548,7 +1594,7 @@ addopts = "-ra --strict-markers"
 | Имена файлов задаёт плагин, ядро валидирует пути | Нет двух источников имён | §8.1 |
 | `naming_convention` — подсказка в context | Не переименовывать модель молча | §2.6 |
 | Плагин `api_version` через `ClassVar` | Обратная совместимость контракта | §6.1 |
-| Ownership + per-generator manifest | Безопасная перезапись и cleanup в общем `output_dir` | §8.2–8.3 |
+| Ownership + global manifest | Безопасная перезапись и cleanup в общем `output_dir` | §8.2–8.3 |
 | `cleanup: off` по умолчанию, удаление только unchanged owned-файлов | Защита пользовательских файлов | §8.5 |
 | Atomic write + staging + lock | Безопасная запись и защита от параллельных запусков | §8.4 |
 | `--plan`/`--check` без побочных эффектов | CI и предсказуемость | §7.1 |

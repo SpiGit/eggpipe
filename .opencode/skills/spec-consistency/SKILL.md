@@ -1,6 +1,6 @@
 ---
 name: spec-consistency
-description: Проверка согласованности документов metadata-generator — термины, контракты, коды MGxxx, CLI и версии
+description: Проверка согласованности документов Eggpipe — термины, контракты, коды MGxxx, CLI и версии
 ---
 
 # Проверка согласованности документации
@@ -29,7 +29,7 @@ description: Проверка согласованности документо�
 
 ### Форматы и плагины
 
-- [ ] `format` и `version` обязательны; один запуск — один формат.
+- [ ] `format` обязателен, `version` опционален (latest); смешанные форматы разрешены.
 - [ ] Публичный API совпадает с ТЗ §6.2 и System Design §2 (имена и состав).
 - [ ] `api_version: ClassVar[Literal["1"]]`; поведение несовместимого плагина описано одинаково.
 - [ ] `GeneratorInput` immutable; `AppConfig` плагину не передаётся.
@@ -42,7 +42,7 @@ description: Проверка согласованности документо�
 - [ ] Финальный срез замыкается по enums/types; неизвестное имя — `MG018`.
 - [ ] Импорты ограничены project root; есть `--allow-outside-imports`.
 - [ ] Discovery: `**/*.yaml` и `**/*.yml`, лексикографический порядок; пропускаются скрытые
-      файлы/каталоги, `.git`, `.mg`, `__pycache__`, `.venv`, `node_modules` и все `output_dir`.
+      файлы/каталоги, `.git`, `.eggpipe`, `__pycache__`, `.venv`, `node_modules` и все `output_dir`.
 - [ ] Дубли resolved-путей обрабатываются один раз (`MG024`).
 
 ### CLI и диагностика
@@ -53,15 +53,14 @@ description: Проверка согласованности документо�
       `--ignore`, `--show-secrets`.
 - [ ] `--format` не существует как имя CLI-флага; вывод управляется `--output-format`.
 - [ ] Exit codes: 0 — успех, 1 — errors/drift/strict, 2 — config/usage, 130 — Ctrl+C.
-- [ ] Коды `MGxxx` не переиспользованы. Известное расхождение: таблица диапазонов §9.3 не совпадает
-      с фактическими кодами §9.1; не считай это новой находкой, проверяй только переиспользование.
+- [ ] Коды `MGxxx` не переиспользованы; диапазоны §9.3 соответствуют фактическим кодам §9.1.
 - [ ] `--plan`/`--dry-run` не создают каталоги и не берут write-lock; `--check` не пишет файлы
       и не обновляет манифест.
 
 ### Запись артефактов
 
 - [ ] Ownership: перезапись и удаление только owned-файлов; чужие — `MG041` / `--force`.
-- [ ] Manifest: `output_dir/.mg/manifests/<generator-id>.json`, пишется последним.
+- [ ] Manifest: глобальный `.eggpipe/manifest.json`, locations `(generator, output_dir)`.
 - [ ] `on_conflict: overwrite | skip | error`; `skip` не захватывает чужие файлы (`MG043`).
 - [ ] `cleanup` по умолчанию `off`; удаляются только неизменённые owned-файлы.
 - [ ] `skipped: true` не удаляется; failed generator не управляет cleanup.

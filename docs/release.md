@@ -19,7 +19,7 @@
    ```
 
 5. Убедиться, что `LICENSE`, `README.md` и `CHANGELOG.md` попадают в sdist.
-6. Проверить доступность имени `metadata-generator` и команды `mg` на PyPI.
+6. Проверить доступность имени `eggpipe` и команды `eggpipe` на PyPI.
 
 ## Публикация
 
@@ -39,9 +39,9 @@ Workflow `.github/workflows/release.yml`:
 
 Для PyPI настроить trusted publisher:
 
-1. Убедиться, что имя `metadata-generator` доступно на PyPI.
+1. Убедиться, что имя `eggpipe` доступно на PyPI.
 2. PyPI → **Publishing** → **Add a new pending publisher**:
-   - PyPI project name: `metadata-generator`;
+   - PyPI project name: `eggpipe`;
    - owner: GitHub-владелец репозитория;
    - repository: имя репозитория;
    - workflow name: `release.yml`;
@@ -61,6 +61,6 @@ Workflow `.github/workflows/release.yml`:
 
 ## После релиза
 
-- Проверить установку из PyPI: `pip install metadata-generator`.
-- Проверить `mg --help`, `mg model schema`, `mg format list`.
+- Проверить установку из PyPI: `pip install eggpipe`.
+- Проверить `eggpipe --help`, `eggpipe model schema`, `eggpipe format list`.
 - Добавить `[Unreleased]` в CHANGELOG для следующей версии.

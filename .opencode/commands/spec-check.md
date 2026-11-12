@@ -1,9 +1,9 @@
 ---
-description: Проверить согласованность документации metadata-generator
+description: Проверить согласованность документации Eggpipe
 agent: spec-reviewer
 ---
 
-Проведи read-only проверку согласованности документации `metadata-generator`.
+Проведи read-only проверку согласованности документации `Eggpipe`.
 
 Фокус проверки: $ARGUMENTS
 

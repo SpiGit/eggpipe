@@ -49,6 +49,9 @@ MANIFEST
 # Logs
 *.log
 
+# Local notes (not tracked)
+/.local/
+
 # Docs site
 site/
 

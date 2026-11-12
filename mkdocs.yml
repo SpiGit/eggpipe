@@ -1,5 +1,5 @@
-site_name: Metadata Generator
-site_description: Документация metadata-generator
+site_name: Eggpipe
+site_description: Документация eggpipe
 docs_dir: docs
 site_dir: site
 use_directory_urls: true
@@ -9,8 +9,12 @@ theme:
 
 nav:
   - Home: index.md
+  - Eggpipe: eggpipe.md
+  - План v2.0: plan-v2.md
+  - Ревью v2.0: reviews/2026-11-12-v2-review.md
   - Требования:
       - Обзор: requirements/index.md
+      - v2.0: requirements/v2.0.md
       - v1.4: requirements/v1.4.md
       - v1.3: requirements/v1.3.md
       - v1.2: requirements/v1.2.md

@@ -10,7 +10,7 @@
 Основной способ:
 
 ```python
-from metadata_generator import Artifact, GeneratorConfig, GeneratorContext, ModelSlice, generator
+from eggpipe import Artifact, GeneratorConfig, GeneratorContext, ModelSlice, generator
 
 
 @generator(id="my-generator", input_formats={"entity-model"})
@@ -29,7 +29,7 @@ def my_generator(
 - Возврат: `GenerationResult`, `Artifact`, `list[Artifact]` или `tuple[Artifact, ...]`.
 - Entry point указывает на функцию:
   ```toml
-  [project.entry-points."metadata_generator.generators"]
+  [project.entry-points."eggpipe.generators"]
   my-generator = "my_package.plugins:my_generator"
   ```
 
@@ -38,7 +38,7 @@ def my_generator(
 ```python
 from typing import ClassVar, Literal
 
-from metadata_generator import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
+from eggpipe import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
 
 
 class MyGenerator(GeneratorPlugin):
@@ -59,7 +59,7 @@ class MyGenerator(GeneratorPlugin):
 - `id` совпадает с entry point id; `name` по умолчанию равен id.
 - `input_formats` обязателен: `None` — любой формат, `set()` — ни один; иначе перечисленные
   форматы и их наследники. Несовместимость — MG033, exit 2, весь запуск без артефактов.
-- Вход immutable: `model` — замкнутый `ModelSlice`, `context` — `GenerationContext`, `config` — блок генератора из `.mg.yaml`.
+- Вход immutable: `model` — замкнутый `ModelSlice`, `context` — `GenerationContext`, `config` — блок генератора из `.eggpipe.yaml`.
 - Формат каждой сущности — `entity.format` / `entity.format_version`; `context.formats` — форматы среза.
 - Плагин **не пишет файлы**; он возвращает `Artifact`.
 - `Artifact.path` — относительный POSIX-путь; `content` — UTF-8, LF, без BOM.
@@ -70,20 +70,20 @@ class MyGenerator(GeneratorPlugin):
 ### Entry point
 
 ```toml
-[project.entry-points."metadata_generator.generators"]
+[project.entry-points."eggpipe.generators"]
 my-generator = "my_package.plugins:MyGenerator"
 ```
 
 ```bash
 pip install -e ./my-generator
-mg gen list
-mg generate -g my-generator
+eggpipe gen list
+eggpipe generate -g my-generator
 ```
 
 ### Локальная разработка
 
 ```bash
-mg generate --plugin ./my_plugin.py
+eggpipe generate --plugin ./my_plugin.py
 ```
 
 Модуль загружается через `importlib.util`; `sys.path` не меняется. В файле достаточно класса
@@ -94,7 +94,7 @@ mg generate --plugin ./my_plugin.py
 Формат, расширяющий `entity-model`, наследует `EntityModelFormat` и переопределяет hooks:
 
 ```python
-from metadata_generator import EntityModelFormat
+from eggpipe import PRIMITIVE_TYPES, EntityModelFormat, FormatSchema
 
 
 class SqlModelFormat(EntityModelFormat):
@@ -102,7 +102,7 @@ class SqlModelFormat(EntityModelFormat):
     supported_versions = ["1.0"]
     extends = "entity-model"
     base_versions = {"1.0": "1.0"}   # sql-model 1.0 → entity-model 1.0
-    primitive_types = {"string", "integer", "decimal", "timestamp"}
+    primitive_types = PRIMITIVE_TYPES | {"decimal", "timestamp"}
     schemas = {
         "1.0": FormatSchema(
             layer_entity=SqlLayerEntity,
@@ -118,11 +118,11 @@ class SqlModelFormat(EntityModelFormat):
 ```
 
 ```toml
-[project.entry-points."metadata_generator.formats"]
+[project.entry-points."eggpipe.formats"]
 sql-model = "my_package.formats:SqlModelFormat"
 ```
 
-- `format` в YAML должен совпадать с `format_names`; в `.mg.yaml` формат не задаётся.
+- `format` в YAML должен совпадать с `format_names`; в `.eggpipe.yaml` формат не задаётся.
 - `entity-model` зарезервирован ядром.
 - `extends` — одиночное наследование; цикл/глубина > 10 — MG034.
 - `B extends A` — B надмножество A; переименование/удаление полей A запрещено.
@@ -133,7 +133,7 @@ sql-model = "my_package.formats:SqlModelFormat"
 - `layer_entity` валидирует слой, `full_entity` — итоговую сущность после merge.
 - Дельта-модели наследуют `EntityIdentity`/`FieldIdentity`; полные — `Entity`/`FieldDef`.
 - Обязательность новых полей определяет формат: partial в слое, complete в итоге.
-- Документ остаётся общим конвертом; first-class document-level поля — future, в v1.4 через `metadata`.
+- Документ остаётся общим конвертом; first-class document-level поля — future, в v2.0 через `metadata`.
 - Для списков формат объявляет `MergePolicy` через `json_schema_extra`:
   - `KEYED` — патч существующих + новые (`fields`);
   - `APPEND` — только новые (`types`, `enums`, `enum.values`);
@@ -141,13 +141,13 @@ sql-model = "my_package.formats:SqlModelFormat"
   - `ERROR` — фиксированный кортеж.
   По умолчанию неизвестные списки — `ERROR`.
 - Генератор для базового формата принимает наследников через `input_formats`.
-- `mg format list` показывает зарегистрированные форматы.
+- `eggpipe format list` показывает зарегистрированные форматы.
 
 ## Контекст генерации
 
 `GenerationContext` содержит:
 
-- `variables` — `--var` и `variables` из `.mg.yaml` (CLI > config);
+- `variables` — `--var` и `variables` из `.eggpipe.yaml` (CLI > config);
 - `naming_hint` — подсказка `defaults.naming_convention`, не приказ переименовывать;
 - `imports` — resource-файлы по alias; top-level `resources` и `models.<dir>.resources` попадают сюда же.
 - `sources` — пути source-документов;
@@ -157,14 +157,14 @@ sql-model = "my_package.formats:SqlModelFormat"
 ## Шаблоны
 
 Ядро не предоставляет шаблонизатор: движок выбирает плагин (ТЗ §7). Для Jinja2 доступен
-опциональный helper `metadata_generator.templating` (extra `[jinja]`):
+опциональный helper `eggpipe.templating` (extra `[jinja]`):
 
 ```bash
-pip install "metadata-generator[jinja]"
+pip install "eggpipe[jinja]"
 ```
 
 ```python
-from metadata_generator.templating import jinja_environment, render_template
+from eggpipe.templating import jinja_environment, render_template
 
 environment = jinja_environment(
     package="my_generator",             # шаблоны внутри wheel: my_generator/templates/
@@ -190,7 +190,7 @@ TPC-H example использует этот helper и `options.templates_dir` д
 исключён из `model_dump`/JSON Schema). Для git-метаданных используйте:
 
 ```python
-from metadata_generator import git_provenance
+from eggpipe import git_provenance
 
 provenance = git_provenance(entity.source) if entity.source else None
 ```
@@ -205,7 +205,7 @@ provenance = git_provenance(entity.source) if entity.source else None
 
 ## Проверка
 
-- `mg gen list` / `mg gen info <id>`;
-- `mg format list`;
+- `eggpipe gen list` / `eggpipe gen info <id>`;
+- `eggpipe format list`;
 - contract-тесты: `GeneratorInput`/`GenerationResult`/`Diagnostic`;
 - golden-тест через reference-плагин.

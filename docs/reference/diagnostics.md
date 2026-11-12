@@ -1,9 +1,9 @@
 # Каталог диагностик
 
 Коды стабильны. Диапазоны: MG0xx — документ/YAML/формат, MG1xx — модель, MG2xx — композиция
-и срезы, MG3xx — конфигурация и plugin API, MG4xx — запись артефактов, MG5xx — cleanup.
+и срезы, MG3xx — конфигурация и plugin API, MG4xx — запись артефактов, MG5xx — cleanup/manifest.
 
-Статус указан для ядра v0.1; часть проверок появится вместе со следующими слоями.
+Статус указан для текущей реализации; часть проверок появится вместе со следующими слоями.
 
 | Код | Уровень | Фаза | Проверка | Статус v0.1 |
 |-----|---------|------|----------|-------------|
@@ -37,18 +37,25 @@
 | MG027 | warning | discovery | Пустой каталог модели в `directory-per-model` | v0.4 |
 | MG028 | error | parse/validate | Имя не соответствует pattern | реализовано (Pydantic) |
 | MG029 | error | layers | Некорректная цепочка слоёв / конфликт layer merge | v0.4 |
-| MG030 | warning | cleanup | Неподдерживаемый в текущем окружении режим; проигнорирован | реализовано |
+| MG030 | warning | engine | Неподдерживаемый в текущем окружении режим; проигнорирован | реализовано |
 | MG031 | error | layers | Файл-слой содержит не одну сущность | v0.4 |
 | MG032 | error | resources | Дубликат alias ресурса | v0.4 |
 | MG033 | error | engine | Генератор не поддерживает формат сущности | v0.4 |
 | MG034 | error | formats | Цикл/глубина наследования, неверный `base_versions`, конфликт схем/примитивов | v0.4 |
+| MG035 | warning | layers | Дельта не добавляет ничего | v0.4 |
+| MG036 | warning | discovery | Glob не нашёл ни одного файла/каталога | v0.4 |
+| MG037 | error | discovery | `models.<dir>` указывает на неизвестный каталог | v0.4 |
+| MG038 | error | discovery | Путь одновременно в `files` и `resources` | v0.4 |
 | MG300 | error | engine | Генератор/запись/check упали или обнаружен drift | реализовано |
+| MG301 | error | plugin | Нарушен контракт генератора: нет `input_formats`, неверная сигнатура/return type | v0.4 |
+| MG302 | error | plugin | Неизвестный инжектируемый параметр декоратора | v0.4 |
 | MG040 | error | write | Некорректный artifact path / content | реализовано |
 | MG041 | error | write | Ownership-конфликт / `on_conflict: error` | реализовано |
 | MG042 | error | planning | Дубликат artifact path / case-collision | реализовано |
 | MG043 | warning | planning | `skip` для не-owned файла | реализовано |
 | MG050 | warning | cleanup | Changed owned-файл не удалён | v0.4 |
 | MG051 | warning | cleanup | Stale generated location в глобальном manifest | v0.4 |
+| MG052 | error | manifest | Manifest повреждён или версия не поддерживается | v0.4 |
 
 ## MG030
 
@@ -56,4 +63,7 @@
 `cleanup: prompt` без поддерживаемого tty-подтверждения: ядро откатывается к `cleanup: off`.
 
 `MG030` и `MG300` внесены в ТЗ v1.3 §9.1 и отражены в диапазонах §9.3.
-Коды MG027, MG029, MG031–MG034 введены в ТЗ v1.4 для слоёв, форматов и ресурсов.
+Коды MG027, MG029, MG031–MG038, MG051, MG052, MG301, MG302 введены в ТЗ v1.4 для слоёв,
+форматов, ресурсов, manifest и decorator API.
+
+`diagnostics.ignore` и `--ignore` игнорируют только warnings; errors показываются всегда.

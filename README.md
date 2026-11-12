@@ -1,4 +1,4 @@
-# Metadata Generator
+# Eggpipe
 
 > Инструмент для генерации артефактов (SQL, Python, TypeScript, etc.) из YAML-описания модели данных.
 
@@ -25,17 +25,17 @@
 ### Как CLI
 
 ```bash
-pip install metadata-generator
-mg generate model.yaml
-mg watch model.yaml
+pip install eggpipe
+eggpipe generate model.yaml
+eggpipe watch model.yaml
 ```
 
 ### Как библиотека
 
 ```python
-from metadata_generator import Engine, AppConfig, GeneratorRulesLoader
+from eggpipe import Engine, AppConfig, GeneratorRulesLoader
 
-rules = GeneratorRulesLoader().load(".mg.yaml")
+rules = GeneratorRulesLoader().load(".eggpipe.yaml")
 engine = Engine(AppConfig(), rules)
 
 report = engine.build()        # парсинг/валидация/генерация без записи
@@ -51,19 +51,19 @@ if not report.success:
 
 ### Как библиотека + CLI (рекомендуемый сценарий)
 
-**Сценарий:** Проект N подключает metadata-generator как библиотеку, пишет свои плагины генерации, запускает через CLI.
+**Сценарий:** Проект N подключает eggpipe как библиотеку, пишет свои плагины генерации, запускает через CLI.
 
 1. Подключение как зависимость:
    ```toml
    # pyproject.toml проекта N
    [project]
-   dependencies = ["metadata-generator"]
+   dependencies = ["eggpipe"]
    ```
 
 2. Плагин генерации:
    ```python
    # my_project/plugins.py
-   from metadata_generator import Artifact, GeneratorConfig, GeneratorContext, ModelSlice, generator
+   from eggpipe import Artifact, GeneratorConfig, GeneratorContext, ModelSlice, generator
 
    @generator(id="my-project-generator", input_formats={"entity-model"})
    def my_project_generator(
@@ -73,62 +73,62 @@ if not report.success:
    ) -> list[Artifact]:
        # model — замкнутый срез модели (entities/enums/types)
        # context — variables, naming_hint, formats, импортированные файлы
-       # config — блок этого генератора из .mg.yaml
+       # config — блок этого генератора из .eggpipe.yaml
        return [Artifact(path="user.py", content=render(model.entities))]
    ```
 
 3. Регистрация через entry points:
    ```toml
    # pyproject.toml проекта N
-   [project.entry-points."metadata_generator.generators"]
+   [project.entry-points."eggpipe.generators"]
    my-project-generators = "my_project.plugins:MyProjectGenerator"
    ```
 
 4. Запуск:
-   - CLI: `mg generate` — обнаруживает плагины из entry points
+   - CLI: `eggpipe generate` — обнаруживает плагины из entry points
    - Library: `engine.generate()` — тот же результат
 
 **Примеры инструментов с такой архитектурой:** ruff, pytest, mypy.
 
-Плагин также может регистрировать **формат документа** (например `sql-model` с SQL-спецификой и собственными правилами) — группа entry points `metadata_generator.formats`.
+Плагин также может регистрировать **формат документа** (например `sql-model` с SQL-спецификой и собственными правилами) — группа entry points `eggpipe.formats`.
 
 ## Быстрый старт
 
 ```bash
 # Установка (после реализации)
-pip install metadata-generator
+pip install eggpipe
 
 # Для watch-режима
-pip install "metadata-generator[watch]"
+pip install "eggpipe[watch]"
 
 # Для Jinja2-helper в плагинах
-pip install "metadata-generator[jinja]"
+pip install "eggpipe[jinja]"
 
 # Инициализация конфигурации
-mg init
+eggpipe init
 
 # Генерация
-mg generate model.yaml
-mg generate --plan            # посмотреть план без записи
-mg generate --check           # проверить актуальность (CI)
+eggpipe generate model.yaml
+eggpipe generate --plan            # посмотреть план без записи
+eggpipe generate --check           # проверить актуальность (CI)
 
 # Режим watch
-mg watch model.yaml
+eggpipe watch model.yaml
 
 # Разработка своего плагина — editable install
 pip install -e ./plugins/my-generator
-mg gen list
+eggpipe gen list
 
 # JSON Schema
-mg model schema
-mg config schema
+eggpipe model schema
+eggpipe config schema
 
 # Очистка owned-артефактов
-mg clean --dry-run
-mg clean --yes
+eggpipe clean --dry-run
+eggpipe clean --yes
 
 # Локальный плагин без установки (v0.3)
-mg generate --plugin ./my_plugin.py
+eggpipe generate --plugin ./my_plugin.py
 ```
 
 ## Разработка
@@ -146,7 +146,7 @@ uv run python tools/check_wheel.py dist
 ```
 
 Dev/CI используют [uv](https://docs.astral.sh/uv/) и закоммиченный `uv.lock`.
-Для установки пакета пользователями остаётся `pip install metadata-generator`.
+Для установки пакета пользователями остаётся `pip install eggpipe`.
 
 Типизация — [Pyrefly](https://pyrefly.org/) в strict-режиме (встроенная поддержка Pydantic v2).
 mypy не входит в блокирующий CI; решение зафиксировано в
@@ -163,7 +163,7 @@ mypy не входит в блокирующий CI; решение зафикс
 uv run python tools/check_docs.py --strict
 ```
 
-- [Техническое задание](./docs/requirements/index.md) — актуальная версия v1.4
+- [Техническое задание](./docs/requirements/index.md) — актуальная версия v2.0
 - [System Design](./docs/system-design/index.md)
 - [ADR index](./docs/adr/index.md)
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
@@ -176,7 +176,6 @@ uv run python tools/check_docs.py --strict
 - [ADR-0008: model units и раскладки источников](./docs/adr/0008-model-units-and-source-layouts.md)
 - [ADR-0009: глобальный manifest](./docs/adr/0009-global-manifest-ownership.md)
 - [ADR-0010: decorator API генераторов](./docs/adr/0010-decorator-generator-api.md)
-- [ADR-0006: расширение формата](./docs/adr/0006-format-extension.md)
 - [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)
@@ -192,5 +191,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** v0.3 готов: format-плагины, `mg watch`, JSON-отчёт, provenance и `--plugin`.
+**Стадия:** ядро v0.3 готово; далее — Eggpipe v2.0 (docs target) и переименование кода/пакета.
 Ядро и CLI можно готовить к первому релизу; дальше — стабилизация и backlog P1/P2.

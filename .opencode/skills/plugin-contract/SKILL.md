@@ -1,6 +1,6 @@
 ---
 name: plugin-contract
-description: Контракты GeneratorPlugin и FormatPlugin metadata-generator — публичный API, ограничения и чек-лист реализации
+description: Контракты GeneratorPlugin и FormatPlugin Eggpipe — публичный API, ограничения и чек-лист реализации
 ---
 
 # Контракты плагинов
@@ -62,41 +62,44 @@ class MyFormat(EntityModelFormat):
     api_version: ClassVar[Literal["1"]] = "1"
     format_names: ClassVar[list[str]] = ["sql-model"]
     supported_versions: ClassVar[list[str]] = ["1.0"]
+    extends: ClassVar[str | None] = "entity-model"
+    base_versions: ClassVar[dict[str, str]] = {"1.0": "1.0"}
     primitive_types: ClassVar[set[str]] = {...}
+    schemas: ClassVar[dict[str, FormatSchema]] = {...}
 
     def parse_extensions(self, document, raw) -> None: ...
     def validate_extensions(self, document) -> list[Diagnostic]: ...
 ```
 
-`EntityModelFormat` — база ядра для расширения `entity-model`.
-
-Известный дефект текущего контракта: §6.3 требует наследовать `EntityModelFormat`, но §6.2 не
-включает его в публичный экспорт. До исправления в следующей версии ТЗ не импортируй внутренние
-модули и не добавляй собственный обходной API; зафиксируй дефект в отчёте.
+`EntityModelFormat` — база ядра для расширения `entity-model`; входит в публичный API.
 
 Правила:
 
 - `format_names` совпадает с `format` в заголовке документа.
 - `entity-model` зарезервирован; переопределять его нельзя.
 - Формат, расширяющий `entity-model`, наследует `EntityModelFormat`, переопределяет ClassVar-метаданные
-  формата (`format_names`, `supported_versions`, `primitive_types`) и hooks
-  `parse_extensions`/`validate_extensions`; `parse`/`validate` не переопределяет.
-- Дополнительные поля складываются в `metadata[<format>]`, а не в произвольные ключи.
-- Неизвестная версия формата — `MG008`.
-- Один запуск — один формат; смешивание — `MG007`.
+  (`format_names`, `extends`, `base_versions`, `supported_versions`, `primitive_types`, `schemas`)
+  и hooks `parse_extensions`/`validate_extensions`; `parse`/`validate` не переопределяет.
+- `version` в YAML опционален: нет версии — последняя из `supported_versions`.
+- Версии форматов независимы; `base_versions[B_version] = A_version`.
+- `schemas[version]` содержит `layer_entity`/`full_entity`.
+- В одном запуске допускаются разные форматы; несовместимый генератор — MG033.
+- Дополнительные поля могут быть first-class полями Pydantic-модели; `metadata` — extension point.
+- Неизвестная версия формата — `MG008`; ошибка наследования/схем — `MG034`.
 
 ## Versioning
 
-- `api_version` повышается только при breaking change контракта.
+- `api_version = "1"` — первый стабильный контракт.
 - Несовместимый плагин не ломает запуск, если не выбран; показывается как incompatible.
 - Явно выбранный несовместимый плагин — exit 2 с понятной ошибкой.
-- Deprecation: минимум один minor-релиз с Warning, затем удаление.
+- Политика deprecation применяется после первого публичного релиза.
 
 ## Чек-лист ревью
 
 ### GeneratorPlugin
 
-- [ ] `api_version`, `id`, `name` заданы как `ClassVar`.
+- [ ] `api_version`, `id`, `name`, `input_formats` заданы как `ClassVar`.
+- [ ] `input_formats` обязателен: `None` — любой, `set()` — ни один.
 - [ ] Entry point совпадает с `id`.
 - [ ] Нет записи в файловую систему и нет доступа к `AppConfig`.
 - [ ] Вход не мутируется; используются только публичные типы.
@@ -107,11 +110,12 @@ class MyFormat(EntityModelFormat):
 
 ### FormatPlugin
 
-- [ ] `api_version`, `format_names`, `supported_versions`, `primitive_types` заданы как `ClassVar`.
+- [ ] `api_version`, `format_names`, `extends`, `base_versions`, `supported_versions`,
+      `primitive_types`, `schemas` заданы как `ClassVar`.
 - [ ] `format_names` совпадает с `format` в заголовке; `entity-model` не переопределён.
-- [ ] Наследование от `EntityModelFormat` не требует импорта внутренних модулей (см. известный дефект).
-- [ ] Дополнительные поля лежат в `metadata[<format>]`.
-- [ ] Ошибки версии/смешивания форматов используют `MG008`/`MG007`.
+- [ ] `version` опционален; latest берётся из `supported_versions`.
+- [ ] `base_versions` задаёт зависимость версий; `schemas` содержит layer/full entity.
+- [ ] Ошибки версии — `MG008`; наследования/схем — `MG034`; несовместимости генератора — `MG033`.
 
 ### Оба типа
 

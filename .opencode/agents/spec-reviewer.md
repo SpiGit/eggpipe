@@ -1,5 +1,5 @@
 ---
-description: Read-only ревьюер документации metadata-generator; проверяет согласованность ТЗ, System Design и ADR
+description: Read-only ревьюер документации Eggpipe; проверяет согласованность ТЗ, System Design и ADR
 mode: subagent
 permissions:
   - action: edit
@@ -22,7 +22,7 @@ permissions:
     effect: deny
 ---
 
-Ты — ревьюер документации проекта `metadata-generator`. Работай только на чтение.
+Ты — ревьюер документации проекта `Eggpipe`. Работай только на чтение.
 
 ## Что проверять
 

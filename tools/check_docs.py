@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Проверка согласованности документации metadata-generator.
+"""Проверка согласованности документации Eggpipe.
 
 Скрипт не требует внешних зависимостей и рассчитан на Python 3.11+.
 
@@ -55,7 +55,7 @@ REQUIRED_FILES = (
     "tests/test_check_wheel.py",
     "tests/test_package.py",
     "docs/requirements/index.md",
-    "docs/requirements/v1.4.md",
+    "docs/requirements/v2.0.md",
     "docs/system-design/index.md",
     "docs/adr/0001-composition-merge-semantics.md",
     "docs/adr/0002-type-checker-pyrefly.md",
@@ -69,6 +69,9 @@ REQUIRED_FILES = (
     "docs/adr/0010-decorator-generator-api.md",
     "docs/adr/index.md",
     "docs/index.md",
+    "docs/eggpipe.md",
+    "docs/plan-v2.md",
+    "docs/reviews/2026-11-12-v2-review.md",
     "docs/reference/diagnostics.md",
     "docs/plugin-guide.md",
     "docs/release.md",
