@@ -68,6 +68,12 @@ def test_unknown_type() -> None:
     assert "MG004" in codes(model_with(FieldDef(name="x", type="Missing")))
 
 
+def test_empty_primitive_types_are_honoured() -> None:
+    model = model_with(FieldDef(name="x", type="string"))
+    diagnostics = validate_entity_model(model, primitive_types=set())
+    assert [item.code for item in diagnostics if item.code == "MG004"] == ["MG004"]
+
+
 def test_duplicate_entity_names() -> None:
     model = SourceModel(
         entities=(Entity(name="User"), Entity(name="User")),

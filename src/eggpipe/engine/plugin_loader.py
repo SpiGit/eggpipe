@@ -63,51 +63,102 @@ def load_generators() -> dict[str, GeneratorPlugin]:
     return load_generators_with_issues()[0]
 
 
-def load_formats() -> list[FormatPlugin]:
+def load_formats_with_issues() -> tuple[list[FormatPlugin], list[PluginIssue]]:
     result: list[FormatPlugin] = []
-    for entry_point in entry_points(group=FORMAT_GROUP):
+    issues: list[PluginIssue] = []
+    entries = sorted(entry_points(group=FORMAT_GROUP), key=lambda item: item.name)
+    for entry_point in entries:
         try:
             loaded = entry_point.load()
             plugin = loaded() if isinstance(loaded, type) else loaded
-        except Exception:
+        except Exception as exc:
+            issues.append(PluginIssue(entry_point.name, f"не удалось загрузить: {exc}"))
             continue
         if not isinstance(plugin, FormatPlugin):
+            issues.append(PluginIssue(entry_point.name, "не является FormatPlugin"))
             continue
         if plugin.api_version != "1":
+            issues.append(
+                PluginIssue(
+                    entry_point.name,
+                    f"несовместимый api_version: {plugin.api_version}",
+                )
+            )
             continue
         result.append(plugin)
-    return result
+    return result, issues
+
+
+def load_formats() -> list[FormatPlugin]:
+    return load_formats_with_issues()[0]
 
 
 def build_format_registry() -> FormatRegistry:
-    registry = FormatRegistry()
-    for plugin in load_formats():
-        registry.register(plugin)
+    registry, _ = build_format_registry_with_issues()
     return registry
 
 
-def load_local_generators(paths: list[Path]) -> dict[str, GeneratorPlugin]:
+def build_format_registry_with_issues() -> tuple[FormatRegistry, list[PluginIssue]]:
+    registry = FormatRegistry()
+    plugins, issues = load_formats_with_issues()
+    for plugin in plugins:
+        registry.register(plugin)
+    return registry, issues
+
+
+def load_local_generators_with_issues(
+    paths: list[Path],
+) -> tuple[dict[str, GeneratorPlugin], list[PluginIssue]]:
     result: dict[str, GeneratorPlugin] = {}
+    issues: list[PluginIssue] = []
     for index, path in enumerate(paths):
+        entry_name = str(path)
         module_name = f"_eggpipe_local_{index}"
         spec = importlib.util.spec_from_file_location(module_name, path)
         if spec is None or spec.loader is None:
+            issues.append(PluginIssue(entry_name, "не удалось создать import spec"))
             continue
         module = importlib.util.module_from_spec(spec)
         try:
             spec.loader.exec_module(module)
-        except Exception:
+        except Exception as exc:
+            issues.append(PluginIssue(entry_name, f"не удалось импортировать: {exc}"))
             continue
         for _, value in inspect.getmembers(module, inspect.isclass):
             if not issubclass(value, GeneratorPlugin) or inspect.isabstract(value):
                 continue
             try:
                 plugin = value()
-            except Exception:
+            except Exception as exc:
+                issues.append(
+                    PluginIssue(
+                        f"{entry_name}:{value.__name__}",
+                        f"не удалось создать плагин: {exc}",
+                    )
+                )
                 continue
-            if plugin.api_version == "1":
-                result.setdefault(plugin.id, plugin)
-    return result
+            if plugin.api_version != "1":
+                issues.append(
+                    PluginIssue(
+                        f"{entry_name}:{value.__name__}",
+                        f"несовместимый api_version: {plugin.api_version}",
+                    )
+                )
+                continue
+            if plugin.id in result:
+                issues.append(
+                    PluginIssue(
+                        f"{entry_name}:{value.__name__}",
+                        f"дубликат id генератора: {plugin.id}",
+                    )
+                )
+                continue
+            result[plugin.id] = plugin
+    return result, issues
+
+
+def load_local_generators(paths: list[Path]) -> dict[str, GeneratorPlugin]:
+    return load_local_generators_with_issues(paths)[0]
 
 
 __all__ = [
@@ -115,8 +166,11 @@ __all__ = [
     "GENERATOR_GROUP",
     "PluginIssue",
     "build_format_registry",
+    "build_format_registry_with_issues",
     "load_formats",
+    "load_formats_with_issues",
     "load_generators",
     "load_generators_with_issues",
     "load_local_generators",
+    "load_local_generators_with_issues",
 ]

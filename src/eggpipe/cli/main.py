@@ -19,12 +19,13 @@ from eggpipe.core.parser import Parser
 from eggpipe.core.validator import validate_document
 from eggpipe.engine.artifact_writer import ArtifactWriter
 from eggpipe.engine.engine import Engine
+from eggpipe.engine.format_registry import FormatRegistry
 from eggpipe.engine.plugin_loader import (
     GENERATOR_GROUP,
-    build_format_registry,
-    load_generators,
+    PluginIssue,
+    build_format_registry_with_issues,
     load_generators_with_issues,
-    load_local_generators,
+    load_local_generators_with_issues,
 )
 from eggpipe.engine.report import EngineReport
 from eggpipe.interfaces.generator import GeneratorPlugin
@@ -95,11 +96,26 @@ def _parse_variables(values: list[str] | None) -> dict[str, str]:
     return result
 
 
+def _print_plugin_issues(issues: list[PluginIssue]) -> None:
+    for issue in issues:
+        typer.echo(f"warning: {issue.entry_point}: {issue.message}", err=True)
+
+
 def _load_generators(plugins: list[Path] | None) -> dict[str, GeneratorPlugin]:
-    generators = dict(load_generators())
+    loaded, issues = load_generators_with_issues()
+    _print_plugin_issues(issues)
+    generators = dict(loaded)
     if plugins:
-        generators.update(load_local_generators(plugins))
+        local, local_issues = load_local_generators_with_issues(plugins)
+        _print_plugin_issues(local_issues)
+        generators.update(local)
     return generators
+
+
+def _load_format_registry() -> FormatRegistry:
+    registry, issues = build_format_registry_with_issues()
+    _print_plugin_issues(issues)
+    return registry
 
 
 def _print_report(
@@ -197,6 +213,7 @@ def _run_engine(
         source_paths=models,
         variables=_parse_variables(variables),
         generators=_load_generators(plugins),
+        formats=_load_format_registry(),
     )
     if check:
         report = engine.check()
@@ -316,6 +333,7 @@ def watch(
         rules, config_dir = _load_rules(path)
         rules = _filter_rules(rules, _selected_generators(generator))
         generators = _load_generators(plugin)
+        formats = _load_format_registry()
         output_root = (output or config_dir).resolve()
         source_paths = [
             item if item.is_absolute() else (config_dir / item).resolve()
@@ -343,6 +361,7 @@ def watch(
                 source_paths=models,
                 variables=_parse_variables(variable),
                 generators=generators,
+                formats=formats,
             )
             report = engine.generate()
             return _print_report(
@@ -490,8 +509,7 @@ def gen_list(
     """Список генераторов из entry points."""
     del show_all
     plugins, issues = load_generators_with_issues()
-    for issue in issues:
-        typer.echo(f"warning: {issue.entry_point}: {issue.message}", err=True)
+    _print_plugin_issues(issues)
     if not plugins:
         typer.echo("no generators")
         return
@@ -502,7 +520,7 @@ def gen_list(
 @gen_app.command("info")
 def gen_info(generator_id: str) -> None:
     """Информация о генераторе."""
-    plugin = load_generators().get(generator_id)
+    plugin = _load_generators(None).get(generator_id)
     if plugin is None:
         typer.echo(f"error: неизвестный генератор: {generator_id}", err=True)
         raise typer.Exit(code=2)
@@ -515,7 +533,9 @@ def gen_info(generator_id: str) -> None:
 @format_app.command("list")
 def format_list() -> None:
     """Список форматов."""
-    for item in build_format_registry().list():
+    registry, issues = build_format_registry_with_issues()
+    _print_plugin_issues(issues)
+    for item in registry.list():
         typer.echo(f"{item.name}\tversions={','.join(item.versions)}")
 
 

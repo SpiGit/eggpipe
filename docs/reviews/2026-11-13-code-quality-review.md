@@ -27,6 +27,18 @@ immutable, диагностики структурированы, публичн
 | Литералов `MGxxx` | 96 вхождений, 34 уникальных кода |
 | Самые длинные функции | `ArtifactWriter.plan` (120), `Composition.resolve` (90), `Validator._validate_entity` (89), `Engine.build` (84), `ArtifactWriter.write` (82) |
 
+## Follow-up
+
+После ревью исправлены быстрые дефекты:
+
+- **M4** — мёртвая ветка `on_conflict == "error"` удалена, `PlannedArtifact` собирается через
+  `_planned()`; поведение покрыто существующими тестами.
+- **M6** — `load_formats_with_issues`, `build_format_registry_with_issues` и
+  `load_local_generators_with_issues` возвращают `PluginIssue`; CLI печатает warnings.
+- **M8** — пустой `primitive_types` больше не подменяется встроенными примитивами.
+
+Остальные пункты остаются в плане по приоритетам.
+
 ## Major
 
 ### M1. `Engine._run_generator` зависит от скрытого `self._composition`

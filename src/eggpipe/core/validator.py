@@ -31,7 +31,7 @@ def validate_entity_model(
     primitive_types: set[str] | frozenset[str] | None = None,
     file: Path | None = None,
 ) -> list[Diagnostic]:
-    primitives = set(primitive_types or PRIMITIVE_TYPES)
+    primitives = set(PRIMITIVE_TYPES if primitive_types is None else primitive_types)
     diagnostics: list[Diagnostic] = []
     diagnostics.extend(_validate_duplicate_names(model, file))
     diagnostics.extend(_validate_case_collisions(model, file))

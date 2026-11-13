@@ -113,22 +113,21 @@ class ArtifactWriter:
                 )
                 continue
             seen[normalized.casefold()] = normalized
-            digest = hashlib.sha256(artifact.content.encode("utf-8")).hexdigest()
-            exists = target.exists()
             if target.is_dir():
                 plan.diagnostics.append(
                     error("MG041", "artifact path указывает на каталог", path=normalized)
                 )
                 continue
+            digest = hashlib.sha256(artifact.content.encode("utf-8")).hexdigest()
 
-            if not exists:
+            if not target.exists():
                 plan.artifacts.append(
-                    PlannedArtifact(
+                    self._planned(
                         generator_id=generator_id,
-                        path=PurePosixPath(normalized),
+                        normalized=normalized,
                         target=target,
                         action="create",
-                        sha256=digest,
+                        digest=digest,
                         content=artifact.content,
                     )
                 )
@@ -144,31 +143,19 @@ class ArtifactWriter:
                 )
                 continue
 
-            is_owned = normalized in owned
-            if is_owned:
-                if on_conflict == "skip":
-                    plan.artifacts.append(
-                        PlannedArtifact(
-                            generator_id=generator_id,
-                            path=PurePosixPath(normalized),
-                            target=target,
-                            action="skip",
-                            sha256=digest,
-                            content=artifact.content,
-                            skipped=True,
-                        )
+            if normalized in owned:
+                skipped = on_conflict == "skip"
+                plan.artifacts.append(
+                    self._planned(
+                        generator_id=generator_id,
+                        normalized=normalized,
+                        target=target,
+                        action="skip" if skipped else "update",
+                        digest=digest,
+                        content=artifact.content,
+                        skipped=skipped,
                     )
-                else:
-                    plan.artifacts.append(
-                        PlannedArtifact(
-                            generator_id=generator_id,
-                            path=PurePosixPath(normalized),
-                            target=target,
-                            action="update",
-                            sha256=digest,
-                            content=artifact.content,
-                        )
-                    )
+                )
                 continue
 
             if on_conflict == "skip":
@@ -180,7 +167,8 @@ class ArtifactWriter:
                     )
                 )
                 continue
-            if on_conflict == "error" or not force:
+
+            if not force:
                 plan.diagnostics.append(
                     error(
                         "MG041",
@@ -190,16 +178,37 @@ class ArtifactWriter:
                 )
                 continue
             plan.artifacts.append(
-                PlannedArtifact(
+                self._planned(
                     generator_id=generator_id,
-                    path=PurePosixPath(normalized),
+                    normalized=normalized,
                     target=target,
                     action="update",
-                    sha256=digest,
+                    digest=digest,
                     content=artifact.content,
                 )
             )
         return plan
+
+    @staticmethod
+    def _planned(
+        *,
+        generator_id: str,
+        normalized: str,
+        target: Path,
+        action: Literal["create", "update", "skip"],
+        digest: str,
+        content: str,
+        skipped: bool = False,
+    ) -> PlannedArtifact:
+        return PlannedArtifact(
+            generator_id=generator_id,
+            path=PurePosixPath(normalized),
+            target=target,
+            action=action,
+            sha256=digest,
+            content=content,
+            skipped=skipped,
+        )
 
     def write(
         self,
