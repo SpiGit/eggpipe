@@ -73,10 +73,10 @@ def test_generate_check_without_generators(tmp_path: Path) -> None:
 
 def test_init(tmp_path: Path) -> None:
     path = tmp_path / ".eggpipe.yaml"
-    result = CliRunner().invoke(app, ["init", str(path)])
+    result = CliRunner().invoke(app, ["init", str(path), "--layout", "monolith"])
     assert result.exit_code == 0
     assert path.is_file()
-    second = CliRunner().invoke(app, ["init", str(path)])
+    second = CliRunner().invoke(app, ["init", str(path), "--layout", "monolith"])
     assert second.exit_code == 2
 
 
@@ -171,8 +171,12 @@ def test_generate_json(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--output-format", "json"])
     assert result.exit_code == 0
     report = json.loads(result.stdout)
-    assert report["report_version"] == 1
+    assert report["report_version"] == 2
     assert report["success"] is True
+    assert report["formats"] == [{"name": "entity-model", "version": "1.0", "entities": 1}]
+    assert report["manifest"] == {"manifest_version": 2, "locations": []}
+    assert report["stale_locations"] == []
+    assert report["artifacts"] == []
 
 
 def test_generate_with_local_plugin(tmp_path: Path) -> None:
@@ -276,3 +280,45 @@ def test_clean_removes_all_global_locations(
     assert not (tmp_path / "out" / "model.json").exists()
     assert not (tmp_path / "out2" / "model.json").exists()
     assert not (tmp_path / ".eggpipe" / "manifest.json").exists()
+
+
+def test_strict_and_ignore_only_warnings(tmp_path: Path) -> None:
+    model, rules = project(tmp_path)
+    model.write_text(
+        MODEL.replace("          description: Identifier\n", ""),
+        encoding="utf-8",
+    )
+    normal = CliRunner().invoke(app, ["generate", "-c", str(rules)])
+    assert normal.exit_code == 0
+    strict = CliRunner().invoke(app, ["generate", "-c", str(rules), "--strict"])
+    assert strict.exit_code == 1
+    ignored = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--strict", "--ignore", "MG015"],
+    )
+    assert ignored.exit_code == 0
+    error_ignored = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--ignore", "MG004"],
+    )
+    assert error_ignored.exit_code == 0
+
+
+def test_format_info() -> None:
+    result = CliRunner().invoke(app, ["format", "info", "entity-model"])
+    assert result.exit_code == 0
+    assert "versions: 1.0" in result.stdout
+    assert "schemas: 1.0" in result.stdout
+
+
+def test_model_schema_for_format() -> None:
+    result = CliRunner().invoke(
+        app,
+        ["model", "schema", "--format", "entity-model"],
+    )
+    assert result.exit_code == 0
+    schema = json.loads(result.stdout)
+    assert schema["format"] == "entity-model"
+    assert schema["version"] == "1.0"
+    assert "full_entity" in schema
+    assert "layer_entity" in schema

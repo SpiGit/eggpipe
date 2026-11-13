@@ -19,6 +19,7 @@ from eggpipe import (
     GeneratorRules,
     SourceConfig,
 )
+from eggpipe.config.generator_rules import DiagnosticsConfig
 from eggpipe.utils.exceptions import ConfigValidationError
 
 MODEL = """\
@@ -145,3 +146,25 @@ def test_output_root(tmp_path: Path) -> None:
     )
     assert engine.generate().success is True
     assert (output_root / "out" / "user.txt").is_file()
+
+
+def test_ignored_error_is_not_hidden(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(
+        MODEL.replace("type: integer", "type: Missing"),
+        encoding="utf-8",
+    )
+    rules = GeneratorRules(
+        version="1.0",
+        diagnostics=DiagnosticsConfig(ignore=frozenset({"MG004"})),
+        sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
+        generators=(GeneratorConfig(id="demo", output_dir=Path("out")),),
+    )
+    engine = Engine(
+        AppConfig(),
+        rules,
+        config_dir=tmp_path,
+        generators={"demo": DemoGenerator()},
+    )
+    report = engine.build()
+    assert report.success is False
+    assert "MG004" in {item.code for item in report.diagnostics}

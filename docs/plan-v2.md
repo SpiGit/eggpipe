@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** E0–E6 выполнены; следующий этап — E7
+- **Статус:** E0–E7 выполнены; следующий этап — E8
 
 ---
 
@@ -152,13 +152,13 @@
 
 Задачи:
 
-- [ ] Commands/flags из v2.0 §8.
-- [ ] Config discovery; `init --layout`.
-- [ ] `config schema`, `model schema --format`, `gen info`, `format info`.
-- [ ] Exit codes 0/1/2/130.
-- [ ] `diagnostics.ignore` только warnings.
-- [ ] JSON report v2 (`report_version: 2`).
-- [ ] Text formatter: warnings/errors to stderr.
+- [x] Commands/flags из v2.0 §8.
+- [x] Config discovery; `init --layout`.
+- [x] `config schema`, `model schema --format`, `gen info`, `format info`.
+- [x] Exit codes 0/1/2/130.
+- [x] `diagnostics.ignore` только warnings.
+- [x] JSON report v2 (`report_version: 2`).
+- [x] Text formatter: warnings/errors to stderr.
 
 **Критерий:** CLI integration tests, JSON schema/golden, exit codes.
 

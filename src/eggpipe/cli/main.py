@@ -129,7 +129,14 @@ def _print_report(
     json_lines: bool = False,
 ) -> int:
     ignored = {item.strip() for item in (ignore or "").split(",") if item.strip()}
-    diagnostics = [item for item in report.diagnostics if item.code not in ignored]
+    diagnostics = [
+        item for item in report.diagnostics if item.level == "error" or item.code not in ignored
+    ]
+    if strict:
+        diagnostics = [
+            item.model_copy(update={"level": "error"}) if item.level == "warning" else item
+            for item in diagnostics
+        ]
     warnings = [item for item in diagnostics if item.level == "warning"]
     errors = [item for item in diagnostics if item.level == "error"]
     success = (
@@ -284,23 +291,57 @@ def generate(
     except (ConfigValidationError, EggpipeError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
+    except KeyboardInterrupt as exc:
+        raise typer.Exit(code=130) from exc
 
 
 @app.command()
 def init(
     path: Annotated[Path, typer.Argument()] = Path(".eggpipe.yaml"),
     force: Annotated[bool, typer.Option("--force")] = False,
-    layout: Annotated[str, typer.Option("--layout")] = "monolith",
+    layout: Annotated[str | None, typer.Option("--layout")] = None,
 ) -> None:
-    """Создать минимальный .eggpipe.yaml."""
-    if path.exists() and not force:
-        typer.echo(f"error: {path} уже существует; используйте --force", err=True)
-        raise typer.Exit(code=2)
+    """Создать минимальный .eggpipe.yaml и пример модели."""
+    if layout is None:
+        if not sys.stdin.isatty():
+            typer.echo("error: в non-tty нужен --layout", err=True)
+            raise typer.Exit(code=2)
+        layout = typer.prompt(
+            "layout",
+            default="monolith",
+            type=str,
+        )
     if layout not in {"monolith", "file-per-model", "directory-per-model"}:
         typer.echo(f"error: неизвестный layout: {layout}", err=True)
         raise typer.Exit(code=2)
+    if path.exists() and not force:
+        typer.echo(f"error: {path} уже существует; используйте --force", err=True)
+        raise typer.Exit(code=2)
     path.write_text(_default_config(layout), encoding="utf-8")
+    model_path = _default_model(path.parent, layout, force=force)
     typer.echo(f"created {path}")
+    if model_path is not None:
+        typer.echo(f"created {model_path}")
+
+
+def _default_model(base: Path, layout: str, *, force: bool) -> Path | None:
+    text = (
+        'format: entity-model\nversion: "1.0"\nmodel:\n'
+        "  entities:\n    - name: User\n      fields:\n"
+        "        - name: id\n          type: integer\n          required: true\n"
+        "          description: Identifier\n"
+    )
+    if layout == "monolith":
+        target = base / "model.yaml"
+    elif layout == "file-per-model":
+        target = base / "models" / "user.yaml"
+    else:
+        target = base / "models" / "user" / "base.yaml"
+    if target.exists() and not force:
+        return None
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8")
+    return target
 
 
 def _default_config(layout: str) -> str:
@@ -337,7 +378,7 @@ def watch(
     quiet: Annotated[bool, typer.Option("--quiet", "-q")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
     no_color: Annotated[bool, typer.Option("--no-color")] = False,
-    debounce: Annotated[int, typer.Option("--debounce")] = 300,
+    debounce: Annotated[int, typer.Option("--debounce-ms", "--debounce")] = 300,
 ) -> None:
     """Watch-режим: перегенерация при изменении sources."""
     del no_color
@@ -446,12 +487,17 @@ def config_show(
 
 @config_app.command("validate")
 def config_validate(config: ConfigOption = None) -> None:
-    """Проверить .eggpipe.yaml."""
+    """Проверить .eggpipe.yaml и sources."""
     try:
-        _load_rules(config)
+        rules, config_dir = _load_rules(config)
     except EggpipeError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
+    discovered = discover_sources(rules, config_dir)
+    for item in discovered.diagnostics:
+        typer.echo(f"{item.level}: {item.code}: {item.message}", err=True)
+    if any(item.level == "error" for item in discovered.diagnostics):
+        raise typer.Exit(code=1)
     typer.echo("OK")
 
 
@@ -519,9 +565,33 @@ def model_validate(
 @model_app.command("schema")
 def model_schema(
     output: Annotated[Path | None, typer.Option("--output")] = None,
+    format_name: Annotated[str | None, typer.Option("--format")] = None,
+    version: Annotated[str | None, typer.Option("--version")] = None,
 ) -> None:
-    """Вывести JSON Schema документа модели."""
-    _print_schema(_safe_schema(ModelDocument), output)
+    """Вывести JSON Schema документа модели или формата."""
+    if format_name is None:
+        _print_schema(_safe_schema(ModelDocument), output)
+        return
+    registry = _load_format_registry()
+    try:
+        plugin = registry.get(format_name)
+    except EggpipeError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    resolved = version or plugin.supported_versions[-1]
+    schema = plugin.schemas.get(resolved)
+    if schema is None:
+        typer.echo(f"error: {format_name} не поддерживает версию {resolved}", err=True)
+        raise typer.Exit(code=2)
+    _print_schema(
+        {
+            "format": format_name,
+            "version": resolved,
+            "layer_entity": _safe_schema(schema.layer_entity),
+            "full_entity": _safe_schema(schema.full_entity),
+        },
+        output,
+    )
 
 
 @gen_app.command("list")
@@ -529,9 +599,9 @@ def gen_list(
     show_all: Annotated[bool, typer.Option("--all")] = False,
 ) -> None:
     """Список генераторов из entry points."""
-    del show_all
     plugins, issues = load_generators_with_issues()
-    _print_plugin_issues(issues)
+    if show_all:
+        _print_plugin_issues(issues)
     if not plugins:
         typer.echo("no generators")
         return
@@ -561,6 +631,22 @@ def _input_formats_label(formats: set[str] | None) -> str:
     if formats is None:
         return "any"
     return ",".join(sorted(formats)) if formats else "none"
+
+
+@format_app.command("info")
+def format_info(name: str) -> None:
+    """Информация о формате."""
+    registry = _load_format_registry()
+    try:
+        plugin = registry.get(name)
+    except EggpipeError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(f"name: {name}")
+    typer.echo(f"versions: {','.join(plugin.supported_versions)}")
+    typer.echo(f"extends: {plugin.extends or '-'}")
+    typer.echo(f"primitive_types: {','.join(sorted(plugin.primitive_types))}")
+    typer.echo(f"schemas: {','.join(sorted(plugin.schemas))}")
 
 
 @format_app.command("list")

@@ -14,7 +14,7 @@ from eggpipe.config.generator_rules import GeneratorConfig, GeneratorRules
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
 from eggpipe.core.document import ModelDocument
-from eggpipe.core.model import ModelSlice
+from eggpipe.core.model import FormatInfo, ModelSlice
 from eggpipe.core.parser import Parser
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
@@ -24,7 +24,12 @@ from eggpipe.engine.plugin_loader import build_format_registry, load_generators
 from eggpipe.engine.report import (
     ArtifactReport,
     EngineReport,
+    FormatReport,
+    FormatSummary,
     GeneratorReport,
+    ManifestLocationSummary,
+    ManifestSummary,
+    StaleLocation,
 )
 from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
 from eggpipe.interfaces.formats import EntityModelFormat
@@ -84,10 +89,14 @@ class Engine:
         self.writer = ArtifactWriter(eggpipe_version=__version__, config_dir=self.config_dir)
         self.run_id = uuid.uuid4().hex
         self._pending: list[_Pending] = []
+        self._formats: list[FormatSummary] = []
+        self._stale: list[StaleLocation] = []
 
     def build(self) -> EngineReport:
         started = time.perf_counter()
         self._pending = []
+        self._formats = []
+        self._stale = []
         diagnostics: list[Diagnostic] = []
         sources, source_groups, resources = self._source_paths(diagnostics)
         if not sources:
@@ -97,6 +106,7 @@ class Engine:
         if composition is None:
             return self._report(False, 1, diagnostics, [], started)
 
+        self._formats = _format_summaries(composition)
         self._validate_model(composition, diagnostics)
         diagnostics = self._filter_ignored(diagnostics)
         if _has_errors(diagnostics):
@@ -106,7 +116,8 @@ class Engine:
         diagnostics.extend(run.diagnostics)
         self._pending = run.pending
         if not any(item.code == "MG052" for item in diagnostics):
-            diagnostics.extend(self._stale_locations())
+            self._stale = self._stale_location_entries()
+            diagnostics.extend(_stale_diagnostics(self._stale))
         success = not _has_errors(diagnostics)
         return self._report(
             success,
@@ -189,6 +200,7 @@ class Engine:
             status = "ok" if result.success and not plan.has_errors else "error"
             artifact_reports = [
                 ArtifactReport(
+                    generator=generator_config.id,
                     path=str(item.path),
                     status=item.action,
                     sha256=item.sha256,
@@ -199,9 +211,11 @@ class Engine:
             run.generators.append(
                 GeneratorReport(
                     id=generator_config.id,
+                    name=plugin.name or generator_config.id,
                     status=status,
+                    input_formats=_input_formats(plugin),
+                    formats=_format_reports(plan.formats),
                     duration_ms=int((time.perf_counter() - generator_started) * 1000),
-                    artifacts=artifact_reports,
                 )
             )
             if status == "ok":
@@ -271,6 +285,7 @@ class Engine:
                 "exit_code": 0 if success else 1,
                 "diagnostics": diagnostics,
                 "generators": generators,
+                "manifest": self._manifest_summary(),
             }
         )
 
@@ -288,21 +303,17 @@ class Engine:
             }
         )
 
-    def _stale_locations(self) -> list[Diagnostic]:
+    def _stale_location_entries(self) -> list[StaleLocation]:
         try:
             manifest = self.writer.load_manifest()
-        except ManifestError as exc:
-            return [error("MG052", str(exc))]
+        except ManifestError:
+            return []
         configured = {
             self.writer.location_key(item.id, self._output_dir(item))
             for item in self.rules.generators
         }
         return [
-            warning(
-                "MG051",
-                "stale generated location в manifest",
-                path=location.output_dir,
-            )
+            StaleLocation(generator=location.generator, output_dir=location.output_dir)
             for location in manifest.locations
             if (location.generator, location.output_dir) not in configured
         ]
@@ -420,7 +431,7 @@ class Engine:
 
     def _filter_ignored(self, diagnostics: list[Diagnostic]) -> list[Diagnostic]:
         ignored = self.rules.diagnostics.ignore
-        return [item for item in diagnostics if item.code not in ignored]
+        return [item for item in diagnostics if item.level == "error" or item.code not in ignored]
 
     def _report(
         self,
@@ -436,9 +447,29 @@ class Engine:
             exit_code=exit_code,
             run_id=self.run_id,
             diagnostics=diagnostics,
+            formats=list(self._formats),
             generators=generators,
             artifacts=artifacts or [],
+            manifest=self._manifest_summary(),
+            stale_locations=list(self._stale),
             timings={"total_ms": int((time.perf_counter() - started) * 1000)},
+        )
+
+    def _manifest_summary(self) -> ManifestSummary | None:
+        try:
+            manifest = self.writer.load_manifest()
+        except ManifestError:
+            return None
+        return ManifestSummary(
+            manifest_version=manifest.manifest_version,
+            locations=[
+                ManifestLocationSummary(
+                    generator=location.generator,
+                    output_dir=location.output_dir,
+                    artifacts=len(location.artifacts),
+                )
+                for location in manifest.locations
+            ],
         )
 
 
@@ -478,6 +509,41 @@ def _composition_sources(composition: CompositionResult) -> list[Path]:
         for entity in document.model.entities:
             paths.update(entity.layer_sources)
     return sorted(paths, key=lambda item: item.as_posix())
+
+
+def _format_summaries(composition: CompositionResult) -> list[FormatSummary]:
+    counts: dict[tuple[str, str], int] = {}
+    for entity in composition.model.entities:
+        name = entity.format or composition.format
+        version = entity.format_version or composition.version
+        counts[(name, version)] = counts.get((name, version), 0) + 1
+    return [
+        FormatSummary(name=name, version=version, entities=count)
+        for (name, version), count in sorted(counts.items())
+    ]
+
+
+def _format_reports(formats: frozenset[FormatInfo]) -> list[FormatReport]:
+    return [
+        FormatReport(name=item.name, version=item.version)
+        for item in sorted(formats, key=lambda item: (item.name, item.version))
+    ]
+
+
+def _input_formats(plugin: GeneratorPlugin) -> list[str] | None:
+    formats = getattr(type(plugin), "input_formats", None)
+    return None if formats is None else sorted(formats)
+
+
+def _stale_diagnostics(stale: list[StaleLocation]) -> list[Diagnostic]:
+    return [
+        warning(
+            "MG051",
+            "stale generated location в manifest",
+            path=item.output_dir,
+        )
+        for item in stale
+    ]
 
 
 def _claim_paths(
