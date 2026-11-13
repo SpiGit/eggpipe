@@ -72,6 +72,7 @@ REQUIRED_FILES = (
     "docs/eggpipe.md",
     "docs/plan-v2.md",
     "docs/reviews/2026-11-12-v2-review.md",
+    "docs/reviews/2026-11-13-code-quality-review.md",
     "docs/reference/diagnostics.md",
     "docs/plugin-guide.md",
     "docs/release.md",
@@ -82,6 +83,7 @@ REQUIRED_FILES = (
     ".opencode/commands/adr-new.md",
     ".opencode/skills/spec-consistency/SKILL.md",
     ".opencode/skills/plugin-contract/SKILL.md",
+    ".opencode/skills/clean-code/SKILL.md",
 )
 FRONTMATTER_DIRS = (
     ".opencode/agents",

@@ -97,4 +97,5 @@ watch, JSON-отчёт, provenance, writer/manifest/lock, cleanup, `Engine`, CLI
 - `/adr-new <название>` — создание нового ADR по шаблону.
 - Skill `spec-consistency` — чек-лист кросс-документной проверки.
 - Skill `plugin-contract` — контракты плагинов и публичный API.
+- Skill `clean-code` — принципы чистого кода и чек-лист code review.
 - Subagent `spec-reviewer` — независимое read-only ревью документации.

@@ -12,6 +12,7 @@ nav:
   - Eggpipe: eggpipe.md
   - План v2.0: plan-v2.md
   - Ревью v2.0: reviews/2026-11-12-v2-review.md
+  - Code quality review: reviews/2026-11-13-code-quality-review.md
   - Требования:
       - Обзор: requirements/index.md
       - v2.0: requirements/v2.0.md
