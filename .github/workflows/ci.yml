@@ -124,3 +124,15 @@ jobs:
 
       - name: Build docs
         run: uv run mkdocs build --strict
+
+  ci-success:
+    name: ci-success
+    if: always()
+    needs: [test, package, docs-site]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs
+        run: |
+          test "${{ needs.test.result }}" = "success"
+          test "${{ needs.package.result }}" = "success"
+          test "${{ needs.docs-site.result }}" = "success"

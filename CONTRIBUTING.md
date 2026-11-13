@@ -47,6 +47,23 @@ uv run python tools/check_wheel.py dist
 - При изменении версии обнови `engineering/requirements/index.md`, System Design, README,
   `.session-context.md` и harness-файлы, где указана актуальная версия.
 
+## Ветки и main
+
+`main` защищён: прямые коммиты и push запрещены. Любое изменение идёт через отдельную
+ветку и pull request.
+
+```bash
+git switch -c type/short-description
+# изменения и коммиты
+git push -u origin type/short-description
+```
+
+Затем открой PR в `main`. Merge разрешён только после зелёных проверок `ci` и `docs`.
+Force-push в `main` и удаление ветки `main` запрещены.
+
+Для соло-разработки достаточно PR без обязательного внешнего approval: проверки CI
+и самостоятельный review остаются обязательными.
+
 ## Pull request
 
 - Один PR — одна логическая задача.

@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "eggpipe"
-version = "0.3.0"
+version = "0.3.1"
 description = "CLI tool and library for metadata-driven code generation"
-readme = "README.md"
+readme = "README-pypi.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"

@@ -26,11 +26,13 @@
 
 ## Публикация
 
+Тег ставится только на `main` после merge release PR. Прямой push в `main` запрещён.
+
 Релиз запускается тегом:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.3.1
+git push origin v0.3.1
 ```
 
 Workflow `.github/workflows/release.yml`:
@@ -56,7 +58,7 @@ Workflow `.github/workflows/release.yml`:
 5. Запушить тег:
 
    ```bash
-   git push origin v0.3.0
+   git push origin v0.3.1
    ```
 
 Без `PYPI_PUBLISH=true` артефакты публикуются только в GitHub Release.

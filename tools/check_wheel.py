@@ -30,6 +30,7 @@ REQUIRED_WHEEL_FILES = {
 REQUIRED_SDIST_FILES = {
     "pyproject.toml",
     "README.md",
+    "README-pypi.md",
     "LICENSE",
     "src/eggpipe/__init__.py",
     "src/eggpipe/py.typed",

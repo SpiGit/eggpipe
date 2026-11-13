@@ -50,6 +50,7 @@ REQUIRED_FILES = (
     ".github/workflows/release.yml",
     "AGENTS.md",
     "README.md",
+    "README-pypi.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "LICENSE",
