@@ -6,11 +6,13 @@ use_directory_urls: true
 
 theme:
   name: readthedocs
+  logo: assets/brand/png/eggpipe-icon-128.png
 
 nav:
   - Home: index.md
   - Пользователям:
       - Обзор: user/index.md
+      - Статус и совместимость: user/status.md
       - Быстрый старт: user/quickstart.md
       - Tutorial: user/tutorial.md
       - Понятия: user/concepts.md
@@ -64,6 +66,8 @@ nav:
       - Релиз: engineering/release.md
       - Translation memory: engineering/i18n/README.md
       - Решения: engineering/decisions/eggpipe.md
+      - Логотип: engineering/decisions/logo-brief.md
+      - Brand assets: assets/brand/README.md
       - Ревью v2.0: engineering/reviews/2026-11-12-v2-review.md
       - Code quality review: engineering/reviews/2026-11-13-code-quality-review.md
       - Patterns review: engineering/reviews/2026-11-13-patterns-review.md

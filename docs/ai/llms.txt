@@ -6,6 +6,7 @@
 ## User
 
 - [Quick start](../user/quickstart.md)
+- [Status and compatibility](../user/status.md)
 - [Tutorial](../user/tutorial.md)
 - [Concepts](../user/concepts.md)
 - [Configuration](../user/configuration.md)

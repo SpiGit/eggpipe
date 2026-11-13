@@ -27,6 +27,10 @@
     },
     {
       "exists": true,
+      "path": "docs/user/status.md"
+    },
+    {
+      "exists": true,
       "path": "docs/user/tutorial.md"
     },
     {

@@ -1,11 +1,18 @@
 # Eggpipe
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/lockup/eggpipe-wordmark-dark.png">
+    <img src="docs/assets/brand/lockup/eggpipe-wordmark-light.png" alt="Eggpipe" width="420">
+  </picture>
+</p>
+
 > Инструмент для генерации артефактов (SQL, Python, TypeScript, etc.) из YAML-описания модели данных.
 
 > **Статус: beta (0.x).** Проект находится в стадии бета-тестирования. До версии 1.0
 > публичный API, CLI, формат `.eggpipe.yaml`, JSON-отчёт и генерируемые артефакты могут
 > меняться без сохранения обратной совместимости. Для production фиксируйте версию и
-> читайте `CHANGELOG.md`. Политика — [ADR-0014](docs/engineering/adr/0014-beta-status-and-compatibility.md).
+> читайте `CHANGELOG.md`. Подробнее — [Статус и совместимость](docs/user/status.md).
 
 ## Концепция
 

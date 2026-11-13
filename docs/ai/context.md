@@ -10,6 +10,7 @@
 - Актуальное ТЗ: `docs/engineering/requirements/v2.2.md`.
 - Версия пакета: `0.3.0`; версия ТЗ: `2.2`.
 - Статус: beta (0.x); до 1.0 breaking changes возможны (ADR-0014).
+- Brand assets: `docs/assets/brand/`.
 
 ## Установка и проверки
 

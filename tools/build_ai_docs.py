@@ -24,6 +24,7 @@ LLMS_FULL_SOURCES = (
     AI_DIR / "tasks.md",
     AI_DIR / "invariants.md",
     ROOT / "docs" / "user" / "quickstart.md",
+    ROOT / "docs" / "user" / "status.md",
     ROOT / "docs" / "user" / "concepts.md",
     ROOT / "docs" / "user" / "configuration.md",
     ROOT / "docs" / "user" / "cli.md",
@@ -35,6 +36,7 @@ LLMS_FULL_SOURCES = (
 
 DOCUMENTS = (
     "docs/user/quickstart.md",
+    "docs/user/status.md",
     "docs/user/tutorial.md",
     "docs/user/concepts.md",
     "docs/user/configuration.md",
@@ -113,6 +115,7 @@ def _llms_index() -> str:
 ## User
 
 - [Quick start](../user/quickstart.md)
+- [Status and compatibility](../user/status.md)
 - [Tutorial](../user/tutorial.md)
 - [Concepts](../user/concepts.md)
 - [Configuration](../user/configuration.md)
