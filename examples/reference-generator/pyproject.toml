@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "metadata-generator-reference"
+name = "eggpipe-reference"
 version = "0.1.0"
-description = "Reference generator for metadata-generator examples and golden tests"
+description = "Reference generator for eggpipe examples and golden tests"
 requires-python = ">=3.11"
-dependencies = ["metadata-generator"]
+dependencies = ["eggpipe"]
 
-[project.entry-points."metadata_generator.generators"]
+[project.entry-points."eggpipe.generators"]
 reference = "reference_generator:ReferenceGenerator"
 
 [tool.hatch.build.targets.wheel]

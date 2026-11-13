@@ -9,10 +9,10 @@ import pytest
 from reference_generator import ReferenceGenerator
 from typer.testing import CliRunner
 
-from metadata_generator.cli.main import _print_report, app
-from metadata_generator.engine import plugin_loader
-from metadata_generator.engine.report import EngineReport
-from metadata_generator.interfaces.generator import GeneratorPlugin
+from eggpipe.cli.main import _print_report, app
+from eggpipe.engine import plugin_loader
+from eggpipe.engine.report import EngineReport
+from eggpipe.interfaces.generator import GeneratorPlugin
 
 MODEL = """\
 format: entity-model
@@ -38,7 +38,7 @@ generators: []
 def project(tmp_path: Path) -> tuple[Path, Path]:
     model = tmp_path / "model.yaml"
     model.write_text(MODEL, encoding="utf-8")
-    rules = tmp_path / ".mg.yaml"
+    rules = tmp_path / ".eggpipe.yaml"
     rules.write_text(RULES, encoding="utf-8")
     return model, rules
 
@@ -71,7 +71,7 @@ def test_generate_check_without_generators(tmp_path: Path) -> None:
 
 
 def test_init(tmp_path: Path) -> None:
-    path = tmp_path / ".mg.yaml"
+    path = tmp_path / ".eggpipe.yaml"
     result = CliRunner().invoke(app, ["init", str(path)])
     assert result.exit_code == 0
     assert path.is_file()
@@ -162,7 +162,7 @@ def test_generate_with_reference_plugin(tmp_path: Path, monkeypatch: pytest.Monk
     result = CliRunner().invoke(app, ["generate", "-c", str(rules)])
     assert result.exit_code == 0
     assert (tmp_path / "out" / "model.json").is_file()
-    assert (tmp_path / "out" / ".mg" / "manifests" / "reference.json").is_file()
+    assert (tmp_path / "out" / ".eggpipe" / "manifests" / "reference.json").is_file()
 
 
 def test_generate_json(tmp_path: Path) -> None:
@@ -179,7 +179,7 @@ def test_generate_with_local_plugin(tmp_path: Path) -> None:
     plugin = tmp_path / "local_plugin.py"
     plugin.write_text(
         """\
-from metadata_generator import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
+from eggpipe import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
 
 class Local(GeneratorPlugin):
     id = "local"

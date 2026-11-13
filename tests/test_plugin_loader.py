@@ -7,15 +7,15 @@ from typing import Any, ClassVar
 
 import pytest
 
-from metadata_generator import (
+from eggpipe import (
     GenerationResult,
     GeneratorInput,
     GeneratorPlugin,
     ModelDocument,
     SourceModel,
 )
-from metadata_generator.engine import plugin_loader
-from metadata_generator.interfaces.formats import FormatPlugin
+from eggpipe.engine import plugin_loader
+from eggpipe.interfaces.formats import FormatPlugin
 
 
 class DemoGenerator(GeneratorPlugin):
@@ -100,7 +100,7 @@ def test_load_local_generators(tmp_path: Path) -> None:
     module = tmp_path / "local_plugin.py"
     module.write_text(
         """\
-from metadata_generator import GenerationResult, GeneratorInput, GeneratorPlugin
+from eggpipe import GenerationResult, GeneratorInput, GeneratorPlugin
 
 class Local(GeneratorPlugin):
     id = "local"

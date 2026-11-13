@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from metadata_generator import (
+from eggpipe import (
     Composition,
     GeneratorConfig,
     GeneratorRules,
@@ -14,8 +14,8 @@ from metadata_generator import (
     Parser,
     SourceConfig,
 )
-from metadata_generator.core.discovery import SourceGroup, discover_sources
-from metadata_generator.utils.exceptions import DocumentError
+from eggpipe.core.discovery import SourceGroup, discover_sources
+from eggpipe.utils.exceptions import DocumentError
 
 
 def write(path: Path, text: str) -> Path:

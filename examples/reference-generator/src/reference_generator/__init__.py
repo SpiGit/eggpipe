@@ -6,7 +6,7 @@ import json
 from datetime import date, datetime
 from typing import Any
 
-from metadata_generator import (
+from eggpipe import (
     UNSET,
     Artifact,
     GenerationResult,

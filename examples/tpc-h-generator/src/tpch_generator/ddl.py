@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from metadata_generator import ModelSlice
-from metadata_generator.templating import jinja_environment, render_template
+from eggpipe import ModelSlice
+from eggpipe.templating import jinja_environment, render_template
 from tpch_generator.metadata import field_sql_type, table_info
 
 

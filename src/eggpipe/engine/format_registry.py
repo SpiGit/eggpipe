@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from metadata_generator.interfaces.formats import EntityModelFormat, FormatPlugin
-from metadata_generator.utils.exceptions import (
+from eggpipe.interfaces.formats import EntityModelFormat, FormatPlugin
+from eggpipe.utils.exceptions import (
     FormatConflictError,
     UnknownFormatError,
 )

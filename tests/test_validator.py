@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from metadata_generator import (
+from eggpipe import (
     UNSET,
     Constraints,
     CustomType,

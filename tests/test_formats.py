@@ -7,7 +7,7 @@ from typing import Any, ClassVar
 
 import pytest
 
-from metadata_generator import (
+from eggpipe import (
     EntityModelFormat,
     FormatConflictError,
     FormatRegistry,
@@ -15,8 +15,8 @@ from metadata_generator import (
     SourceModel,
     UnknownFormatError,
 )
-from metadata_generator.interfaces.formats import FormatPlugin
-from metadata_generator.utils.exceptions import DocumentError
+from eggpipe.interfaces.formats import FormatPlugin
+from eggpipe.utils.exceptions import DocumentError
 
 
 class CustomFormat(FormatPlugin):

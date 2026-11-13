@@ -5,19 +5,19 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from metadata_generator.core.discovery import SourceGroup
-from metadata_generator.core.document import ImportSpec, ModelDocument
-from metadata_generator.core.model import (
+from eggpipe.core.discovery import SourceGroup
+from eggpipe.core.document import ImportSpec, ModelDocument
+from eggpipe.core.model import (
     CustomType,
     Entity,
     EnumDef,
     ExtendsRef,
     SourceModel,
 )
-from metadata_generator.core.parser import Parser
-from metadata_generator.interfaces.diagnostics import Diagnostic, error
-from metadata_generator.interfaces.generator import ImportedFile
-from metadata_generator.utils.exceptions import DocumentError
+from eggpipe.core.parser import Parser
+from eggpipe.interfaces.diagnostics import Diagnostic, error
+from eggpipe.interfaces.generator import ImportedFile
+from eggpipe.utils.exceptions import DocumentError
 
 MAX_IMPORT_DEPTH = 10
 MAX_EXTENDS_DEPTH = 10

@@ -14,12 +14,12 @@ def test_dependency_name_normalizes_distribution_names() -> None:
 def test_relative_sdist_names_strips_root_prefix() -> None:
     names = relative_sdist_names(
         [
-            "metadata_generator-0.1.0/pyproject.toml",
-            "metadata_generator-0.1.0/src/metadata_generator/__init__.py",
-            "metadata_generator-0.1.0",
+            "eggpipe-0.1.0/pyproject.toml",
+            "eggpipe-0.1.0/src/eggpipe/__init__.py",
+            "eggpipe-0.1.0",
         ]
     )
     assert names == {
         "pyproject.toml",
-        "src/metadata_generator/__init__.py",
+        "src/eggpipe/__init__.py",
     }

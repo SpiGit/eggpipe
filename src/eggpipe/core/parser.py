@@ -6,14 +6,14 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from metadata_generator.core.document import ModelDocument
-from metadata_generator.core.model import SourceModel
-from metadata_generator.engine.format_registry import FormatRegistry
-from metadata_generator.utils.exceptions import (
+from eggpipe.core.document import ModelDocument
+from eggpipe.core.model import SourceModel
+from eggpipe.engine.format_registry import FormatRegistry
+from eggpipe.utils.exceptions import (
     DocumentError,
     UnknownFormatError,
 )
-from metadata_generator.utils.yaml import YamlLoadError, load_yaml
+from eggpipe.utils.yaml import YamlLoadError, load_yaml
 
 
 def normalize_version(value: object) -> str | None:

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from metadata_generator.templating import TemplateError, jinja_environment, render_template
+from eggpipe.templating import TemplateError, jinja_environment, render_template
 
 
 def test_package_loader(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -60,5 +60,5 @@ def test_requires_loader_source() -> None:
 
 
 def test_importing_core_does_not_import_jinja2() -> None:
-    code = "import sys, metadata_generator; assert 'jinja2' not in sys.modules"
+    code = "import sys, eggpipe; assert 'jinja2' not in sys.modules"
     subprocess.run([sys.executable, "-c", code], check=True)

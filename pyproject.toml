@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "metadata-generator"
+name = "eggpipe"
 version = "0.1.0"
 description = "CLI tool and library for metadata-driven code generation"
 readme = "README.md"
@@ -46,10 +46,10 @@ dev = [
 ]
 
 [project.scripts]
-mg = "metadata_generator.cli.main:app"
+eggpipe = "eggpipe.cli.main:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/metadata_generator"]
+packages = ["src/eggpipe"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -111,7 +111,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["metadata_generator"]
+source = ["eggpipe"]
 
 [tool.coverage.report]
 fail_under = 80

@@ -1,6 +1,6 @@
 # TPC-H example
 
-Показательный пример для `metadata-generator`: стандартная схема TPC-H из 8 таблиц и плагины,
+Показательный пример для `eggpipe`: стандартная схема TPC-H из 8 таблиц и плагины,
 которые генерируют PostgreSQL DDL и Pydantic v2 модели.
 
 ## Структура
@@ -8,8 +8,8 @@
 ```text
 examples/tpc-h/
   model/                 # entity-model, file-per-entity
-  .mg.yaml               # один генератор tpch
-  .mg.split.yaml         # tpch-ddl + tpch-pydantic
+  .eggpipe.yaml               # один генератор tpch
+  .eggpipe.split.yaml         # tpch-ddl + tpch-pydantic
   expected/              # golden-артефакты
 ```
 
@@ -44,10 +44,10 @@ metadata:
 uv pip install -e examples/tpc-h-generator
 
 # Один генератор: DDL + Pydantic
-mg generate -c examples/tpc-h/.mg.yaml
+eggpipe generate -c examples/tpc-h/.eggpipe.yaml
 
 # Split-вариант
-mg generate -c examples/tpc-h/.mg.split.yaml
+eggpipe generate -c examples/tpc-h/.eggpipe.split.yaml
 ```
 
 Артефакты:
@@ -63,14 +63,14 @@ mg generate -c examples/tpc-h/.mg.split.yaml
 | `tpch-ddl` + `tpch-pydantic` | Раздельные генераторы и общий `output_dir` |
 
 Один и тот же `model/` используется всеми генераторами: генератор-специфичные настройки
-живут в `.mg.yaml`, а технологическая специфика — в `metadata.postgres` сущности или поля.
+живут в `.eggpipe.yaml`, а технологическая специфика — в `metadata.postgres` сущности или поля.
 
 Pydantic-модели плоские: только колонки; PK/FK остаются в DDL.
 
 ## Шаблоны
 
 Генераторы используют Jinja2-шаблоны из `examples/tpc-h-generator/src/tpch_generator/templates/`
-через `metadata_generator.templating` (extra `[jinja]`).
+через `eggpipe.templating` (extra `[jinja]`).
 
 Свой каталог можно передать через `options.templates_dir`:
 

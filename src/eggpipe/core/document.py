@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from metadata_generator.core.model import SourceModel
+from eggpipe.core.model import SourceModel
 
 
 class ImportSpec(BaseModel):

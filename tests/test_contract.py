@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from metadata_generator import (
+from eggpipe import (
     Artifact,
     Diagnostic,
     GenerationContext,

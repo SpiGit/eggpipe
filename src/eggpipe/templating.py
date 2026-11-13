@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from metadata_generator.utils.exceptions import MetadataGeneratorError
+from eggpipe.utils.exceptions import MetadataGeneratorError
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -42,7 +42,7 @@ def jinja_environment(
     try:
         from jinja2 import Environment, FileSystemLoader, PackageLoader, StrictUndefined
     except ImportError as exc:
-        raise TemplateError("jinja2 не установлен; установите metadata-generator[jinja]") from exc
+        raise TemplateError("jinja2 не установлен; установите eggpipe[jinja]") from exc
 
     if templates_dir is not None:
         path = Path(templates_dir)

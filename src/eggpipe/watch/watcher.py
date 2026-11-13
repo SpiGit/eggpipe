@@ -9,9 +9,9 @@ from pathlib import Path
 
 from typing_extensions import override
 
-from metadata_generator.utils.exceptions import ConfigValidationError
+from eggpipe.utils.exceptions import ConfigValidationError
 
-IGNORED_PARTS = {".git", ".mg", "__pycache__", ".venv", "node_modules"}
+IGNORED_PARTS = {".git", ".eggpipe", "__pycache__", ".venv", "node_modules"}
 
 
 def should_ignore(path: Path, ignored_dirs: set[Path], *, allow: set[Path]) -> bool:
@@ -39,7 +39,7 @@ def run_watch(
         from watchdog.observers import Observer
     except ImportError as exc:
         raise ConfigValidationError(
-            "watchdog не установлен; используйте pip install 'metadata-generator[watch]'"
+            "watchdog не установлен; используйте pip install 'eggpipe[watch]'"
         ) from exc
 
     class Handler(FileSystemEventHandler):

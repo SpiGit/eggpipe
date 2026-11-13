@@ -7,6 +7,6 @@
 
 ```bash
 pip install -e ./examples/reference-generator
-mg gen list
-mg generate -g reference
+eggpipe gen list
+eggpipe generate -g reference
 ```

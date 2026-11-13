@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from metadata_generator import Artifact, Diagnostic
-from metadata_generator.engine.artifact_writer import ArtifactWriter, ExecutionPlan
-from metadata_generator.utils.exceptions import LockError
+from eggpipe import Artifact, Diagnostic
+from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan
+from eggpipe.utils.exceptions import LockError
 
 
 def writer() -> ArtifactWriter:
-    return ArtifactWriter(mg_version="0.1.0")
+    return ArtifactWriter(eggpipe_version="0.1.0")
 
 
 def plan_for(

@@ -1,4 +1,4 @@
-"""CLI metadata-generator (v0.1)."""
+"""CLI eggpipe (v0.1)."""
 
 from __future__ import annotations
 
@@ -10,33 +10,33 @@ from typing import Annotated, Any
 
 import typer
 
-from metadata_generator.config.app_config import AppConfig
-from metadata_generator.config.generator_rules import GeneratorRules, GeneratorRulesLoader
-from metadata_generator.config.logging import setup_logging
-from metadata_generator.core.discovery import discover_sources
-from metadata_generator.core.document import ModelDocument
-from metadata_generator.core.parser import Parser
-from metadata_generator.core.validator import validate_document
-from metadata_generator.engine.artifact_writer import ArtifactWriter
-from metadata_generator.engine.engine import Engine
-from metadata_generator.engine.plugin_loader import (
+from eggpipe.config.app_config import AppConfig
+from eggpipe.config.generator_rules import GeneratorRules, GeneratorRulesLoader
+from eggpipe.config.logging import setup_logging
+from eggpipe.core.discovery import discover_sources
+from eggpipe.core.document import ModelDocument
+from eggpipe.core.parser import Parser
+from eggpipe.core.validator import validate_document
+from eggpipe.engine.artifact_writer import ArtifactWriter
+from eggpipe.engine.engine import Engine
+from eggpipe.engine.plugin_loader import (
     GENERATOR_GROUP,
     build_format_registry,
     load_generators,
     load_generators_with_issues,
     load_local_generators,
 )
-from metadata_generator.engine.report import EngineReport
-from metadata_generator.interfaces.generator import GeneratorPlugin
-from metadata_generator.utils.exceptions import (
+from eggpipe.engine.report import EngineReport
+from eggpipe.interfaces.generator import GeneratorPlugin
+from eggpipe.utils.exceptions import (
     ConfigValidationError,
     DocumentError,
     MetadataGeneratorError,
 )
-from metadata_generator.version import __version__
-from metadata_generator.watch.watcher import run_watch
+from eggpipe.version import __version__
+from eggpipe.watch.watcher import run_watch
 
-app = typer.Typer(no_args_is_help=True, add_completion=False, help="Metadata Generator")
+app = typer.Typer(no_args_is_help=True, add_completion=False, help="Eggpipe")
 config_app = typer.Typer(no_args_is_help=True, help="Конфигурация")
 model_app = typer.Typer(no_args_is_help=True, help="Модели")
 gen_app = typer.Typer(no_args_is_help=True, help="Генераторы")
@@ -48,7 +48,7 @@ app.add_typer(format_app, name="format")
 
 ConfigOption = Annotated[
     Path | None,
-    typer.Option("--config", "-c", help="Путь к .mg.yaml"),
+    typer.Option("--config", "-c", help="Путь к .eggpipe.yaml"),
 ]
 GeneratorOption = Annotated[
     list[str] | None,
@@ -59,7 +59,7 @@ GeneratorOption = Annotated[
 def _load_rules(config_path: Path | None) -> tuple[GeneratorRules, Path]:
     path = config_path or GeneratorRulesLoader.discover()
     if path is None:
-        raise ConfigValidationError("не найден .mg.yaml; укажите --config")
+        raise ConfigValidationError("не найден .eggpipe.yaml; укажите --config")
     rules = GeneratorRulesLoader().load(path)
     return rules, path.resolve().parent
 
@@ -271,10 +271,10 @@ def generate(
 
 @app.command()
 def init(
-    path: Annotated[Path, typer.Argument()] = Path(".mg.yaml"),
+    path: Annotated[Path, typer.Argument()] = Path(".eggpipe.yaml"),
     force: Annotated[bool, typer.Option("--force")] = False,
 ) -> None:
-    """Создать минимальный .mg.yaml."""
+    """Создать минимальный .eggpipe.yaml."""
     if path.exists() and not force:
         typer.echo(f"error: {path} уже существует; используйте --force", err=True)
         raise typer.Exit(code=2)
@@ -311,7 +311,7 @@ def watch(
     try:
         path = config or GeneratorRulesLoader.discover()
         if path is None:
-            raise ConfigValidationError("не найден .mg.yaml; укажите --config")
+            raise ConfigValidationError("не найден .eggpipe.yaml; укажите --config")
         path = path.resolve()
         rules, config_dir = _load_rules(path)
         rules = _filter_rules(rules, _selected_generators(generator))
@@ -405,7 +405,7 @@ def config_show(
 
 @config_app.command("validate")
 def config_validate(config: ConfigOption = None) -> None:
-    """Проверить .mg.yaml."""
+    """Проверить .eggpipe.yaml."""
     try:
         _load_rules(config)
     except MetadataGeneratorError as exc:
@@ -418,7 +418,7 @@ def config_validate(config: ConfigOption = None) -> None:
 def config_schema(
     output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
-    """Вывести JSON Schema .mg.yaml."""
+    """Вывести JSON Schema .eggpipe.yaml."""
     _print_schema(_safe_schema(GeneratorRules), output)
 
 
@@ -538,12 +538,12 @@ def clean(
             raise typer.Exit(code=2)
         if not typer.confirm("Удалить unchanged owned-артефакты?"):
             return
-    writer = ArtifactWriter(mg_version=__version__)
+    writer = ArtifactWriter(eggpipe_version=__version__)
     base = (output or config_dir).resolve()
     removed = 0
     for generator in rules.generators:
         output_dir = (base / generator.output_dir).resolve()
-        manifest = output_dir / ".mg" / "manifests" / f"{generator.id}.json"
+        manifest = output_dir / ".eggpipe" / "manifests" / f"{generator.id}.json"
         if not manifest.is_file():
             continue
         with writer.write_lock(output_dir):

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from typing_extensions import override
 
-from metadata_generator import (
+from eggpipe import (
     Artifact,
     Diagnostic,
     GenerationResult,
@@ -14,7 +14,7 @@ from metadata_generator import (
     GeneratorInput,
     GeneratorPlugin,
 )
-from metadata_generator.templating import TemplateError
+from eggpipe.templating import TemplateError
 from tpch_generator.ddl import render_ddl
 from tpch_generator.pydantic_models import render_pydantic
 

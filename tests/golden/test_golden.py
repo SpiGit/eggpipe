@@ -6,7 +6,7 @@ from pathlib import Path
 
 from reference_generator import ReferenceGenerator
 
-from metadata_generator import (
+from eggpipe import (
     GenerationContext,
     GeneratorConfig,
     GeneratorInput,

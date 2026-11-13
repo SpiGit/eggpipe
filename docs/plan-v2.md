@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** черновик плана после груминга
+- **Статус:** E0–E1 выполнены; следующий этап — E2
 
 ---
 
@@ -38,14 +38,14 @@
 
 ### E0. Базовая линия документации
 
-**Статус:** выполнено частично.
+**Статус:** E0–E1 выполнены.
 
 - [x] ТЗ v2.0.
 - [x] v1.4 → история.
 - [x] Eggpipe docs, CLI/config target.
 - [x] Ревью v2.0.
-- [ ] Закоммитить docs v2.0.
-- [ ] Добавить `docs/reviews/2026-11-12-v2-review.md` в навигацию/индекс (если нужно).
+- [x] Закоммитить docs v2.0.
+- [x] Добавить `docs/reviews/2026-11-12-v2-review.md` в навигацию/индекс.
 
 **Критерий:** `check_docs --strict` и `mkdocs --strict` зелёные.
 
@@ -55,17 +55,17 @@
 
 Задачи:
 
-- [ ] `pyproject.toml`: `name = "eggpipe"`, script `eggpipe = "eggpipe.cli.main:app"`.
-- [ ] `src/metadata_generator` → `src/eggpipe`.
-- [ ] Все импорты `metadata_generator` → `eggpipe` в src/tests/tools/examples.
-- [ ] Entry points: `eggpipe.generators`, `eggpipe.formats`.
-- [ ] Config loader: `.mg.yaml` → `.eggpipe.yaml`; config discovery.
-- [ ] State: `.mg/` → `.eggpipe/`; manifest/lock paths.
-- [ ] Env prefix `MG_*` → `EGGPIPE_*`.
-- [ ] Example package: dependency `eggpipe`, entry points `eggpipe.*`.
-- [ ] `uv.lock`, editable installs, `.venv`.
-- [ ] CLI help/usage strings.
-- [ ] TPC-H configs: `.mg.yaml`/`.mg.split.yaml` → `.eggpipe.yaml`/`.eggpipe.split.yaml`.
+- [x] `pyproject.toml`: `name = "eggpipe"`, script `eggpipe = "eggpipe.cli.main:app"`.
+- [x] `src/metadata_generator` → `src/eggpipe`.
+- [x] Все импорты `metadata_generator` → `eggpipe` в src/tests/tools/examples.
+- [x] Entry points: `eggpipe.generators`, `eggpipe.formats`.
+- [x] Config loader: `.mg.yaml` → `.eggpipe.yaml`; config discovery.
+- [x] State: `.mg/` → `.eggpipe/`; manifest/lock paths.
+- [x] Env prefix `MG_*` → `EGGPIPE_*`.
+- [x] Example package: dependency `eggpipe`, entry points `eggpipe.*`.
+- [x] `uv.lock`, editable installs, `.venv`.
+- [x] CLI help/usage strings.
+- [x] TPC-H configs: `.mg.yaml`/`.mg.split.yaml` → `.eggpipe.yaml`/`.eggpipe.split.yaml`.
 
 **Критерий:** `eggpipe --help`, `pytest`, `uv build`, `check_wheel` зелёные; старые имена остаются только в истории/ADR.
 

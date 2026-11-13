@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from metadata_generator import (
+from eggpipe import (
     AppConfig,
     Artifact,
     Engine,
@@ -15,7 +15,7 @@ from metadata_generator import (
     GeneratorRules,
     SourceConfig,
 )
-from metadata_generator.config.generator_rules import DiagnosticsConfig, InputSlice
+from eggpipe.config.generator_rules import DiagnosticsConfig, InputSlice
 
 BASE = """\
 format: entity-model

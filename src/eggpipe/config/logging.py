@@ -6,9 +6,9 @@ import logging
 import sys
 from pathlib import Path
 
-from metadata_generator.config.app_config import AppConfig
+from eggpipe.config.app_config import AppConfig
 
-LOGGER_NAME = "metadata_generator"
+LOGGER_NAME = "eggpipe"
 
 
 def get_logger(name: str = LOGGER_NAME) -> logging.Logger:

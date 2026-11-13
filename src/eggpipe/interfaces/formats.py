@@ -9,10 +9,10 @@ from typing import Any, ClassVar, Literal
 from pydantic import ValidationError
 from typing_extensions import override
 
-from metadata_generator.core.document import ImportSpec, ModelDocument
-from metadata_generator.core.model import PRIMITIVE_TYPES, SourceModel
-from metadata_generator.interfaces.diagnostics import Diagnostic
-from metadata_generator.utils.exceptions import DocumentError
+from eggpipe.core.document import ImportSpec, ModelDocument
+from eggpipe.core.model import PRIMITIVE_TYPES, SourceModel
+from eggpipe.interfaces.diagnostics import Diagnostic
+from eggpipe.utils.exceptions import DocumentError
 
 
 class FormatPlugin(ABC):
@@ -66,7 +66,7 @@ class EntityModelFormat(FormatPlugin):
 
     @override
     def validate(self, document: ModelDocument) -> list[Diagnostic]:
-        from metadata_generator.core.validator import validate_entity_model
+        from eggpipe.core.validator import validate_entity_model
 
         diagnostics = validate_entity_model(
             document.model,

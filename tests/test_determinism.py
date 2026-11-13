@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from metadata_generator import (
+from eggpipe import (
     AppConfig,
     Artifact,
     Engine,

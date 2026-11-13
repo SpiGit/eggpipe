@@ -1,4 +1,4 @@
-"""Бизнес-конфигурация .mg.yaml."""
+"""Бизнес-конфигурация .eggpipe.yaml."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from metadata_generator.core.model import InputSelection
-from metadata_generator.core.naming import NamingStyle
-from metadata_generator.utils.exceptions import ConfigValidationError
-from metadata_generator.utils.yaml import YamlLoadError, load_yaml
+from eggpipe.core.model import InputSelection
+from eggpipe.core.naming import NamingStyle
+from eggpipe.utils.exceptions import ConfigValidationError
+from eggpipe.utils.yaml import YamlLoadError, load_yaml
 
 
 class InputSlice(InputSelection):
@@ -68,7 +68,7 @@ class GeneratorRules(BaseModel):
 
 
 class GeneratorRulesLoader:
-    """Загрузка и поиск .mg.yaml."""
+    """Загрузка и поиск .eggpipe.yaml."""
 
     def load(self, path: Path) -> GeneratorRules:
         try:
@@ -84,7 +84,7 @@ class GeneratorRulesLoader:
     def discover(cls, start: Path | None = None) -> Path | None:
         current = (start or Path.cwd()).resolve()
         for directory in (current, *current.parents):
-            for name in (".mg.yaml", ".mg.yml"):
+            for name in (".eggpipe.yaml",):
                 candidate = directory / name
                 if candidate.is_file():
                     return candidate

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from metadata_generator import (
+from eggpipe import (
     AppConfig,
     Artifact,
     Engine,
@@ -17,7 +17,7 @@ from metadata_generator import (
     GeneratorRules,
     SourceConfig,
 )
-from metadata_generator.utils.exceptions import ConfigValidationError
+from eggpipe.utils.exceptions import ConfigValidationError
 
 MODEL = """\
 format: entity-model
@@ -84,7 +84,7 @@ def test_generate_writes_and_check(tmp_path: Path) -> None:
     report = engine.generate()
     assert report.success is True
     assert (tmp_path / "out" / "user.txt").read_text(encoding="utf-8") == "ok\n"
-    assert (tmp_path / "out" / ".mg" / "manifests" / "demo.json").is_file()
+    assert (tmp_path / "out" / ".eggpipe" / "manifests" / "demo.json").is_file()
     assert engine.check().success is True
     (tmp_path / "out" / "user.txt").write_text("drift", encoding="utf-8")
     assert engine.check().success is False

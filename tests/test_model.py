@@ -7,7 +7,7 @@ from datetime import date, datetime
 import pytest
 from pydantic import ValidationError
 
-from metadata_generator import (
+from eggpipe import (
     UNSET,
     Constraints,
     CustomType,

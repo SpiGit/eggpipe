@@ -10,7 +10,7 @@ from tpch_generator import (
     TpchPydanticGenerator,
 )
 
-from metadata_generator import (
+from eggpipe import (
     AppConfig,
     Engine,
     GeneratorRulesLoader,
@@ -25,7 +25,7 @@ EXPECTED = EXAMPLE / "expected"
 def test_tpch_single_generator_golden(tmp_path: Path) -> None:
     engine = Engine(
         AppConfig(output_root=tmp_path),
-        GeneratorRulesLoader().load(EXAMPLE / ".mg.yaml"),
+        GeneratorRulesLoader().load(EXAMPLE / ".eggpipe.yaml"),
         config_dir=EXAMPLE,
         generators={"tpch": TpchGenerator()},
     )
@@ -42,7 +42,7 @@ def test_tpch_single_generator_golden(tmp_path: Path) -> None:
 def test_tpch_split_generators_golden(tmp_path: Path) -> None:
     engine = Engine(
         AppConfig(output_root=tmp_path),
-        GeneratorRulesLoader().load(EXAMPLE / ".mg.split.yaml"),
+        GeneratorRulesLoader().load(EXAMPLE / ".eggpipe.split.yaml"),
         config_dir=EXAMPLE,
         generators={
             "tpch-ddl": TpchDdlGenerator(),

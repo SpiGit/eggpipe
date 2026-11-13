@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from metadata_generator import NamingStyle, transform
+from eggpipe import NamingStyle, transform
 
 
 @pytest.mark.parametrize(

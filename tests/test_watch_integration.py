@@ -6,7 +6,7 @@ import threading
 import time
 from pathlib import Path
 
-from metadata_generator.watch.watcher import run_watch
+from eggpipe.watch.watcher import run_watch
 
 
 def wait(event: threading.Event, timeout: float = 3.0) -> bool:
@@ -16,7 +16,7 @@ def wait(event: threading.Event, timeout: float = 3.0) -> bool:
 def test_watch_rebuilds_after_change(tmp_path: Path) -> None:
     source = tmp_path / "model.yaml"
     source.write_text("format: entity-model\nversion: '1.0'\nmodel: {}\n", encoding="utf-8")
-    config = tmp_path / ".mg.yaml"
+    config = tmp_path / ".eggpipe.yaml"
     config.write_text(
         "version: '1.0'\nsources:\n  - path: ./model.yaml\ngenerators: []\n",
         encoding="utf-8",

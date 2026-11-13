@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from metadata_generator import git_provenance
+from eggpipe import git_provenance
 
 pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git не установлен")
 

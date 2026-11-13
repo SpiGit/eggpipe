@@ -1,6 +1,6 @@
 # TPC-H example generators
 
-Пример плагинов-генераторов для `metadata-generator`:
+Пример плагинов-генераторов для `eggpipe`:
 
 - `tpch` — один генератор, выпускает PostgreSQL DDL и Pydantic v2 модели;
 - `tpch-ddl` / `tpch-pydantic` — split-вариант двумя генераторами.
@@ -17,17 +17,17 @@ uv pip install -e examples/tpc-h-generator
 После установки генераторы доступны через entry points:
 
 ```bash
-mg gen list
+eggpipe gen list
 ```
 
 ## Запуск
 
 ```bash
 # Один генератор: DDL + Pydantic
-mg generate -c examples/tpc-h/.mg.yaml
+eggpipe generate -c examples/tpc-h/.eggpipe.yaml
 
 # Split: два независимых генератора
-mg generate -c examples/tpc-h/.mg.split.yaml
+eggpipe generate -c examples/tpc-h/.eggpipe.split.yaml
 ```
 
 Артефакты по умолчанию пишутся в `examples/tpc-h/generated/`.

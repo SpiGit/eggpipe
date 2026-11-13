@@ -8,10 +8,10 @@ from typing import ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from metadata_generator.config.generator_rules import GeneratorConfig
-from metadata_generator.core.model import ModelSlice
-from metadata_generator.core.naming import NamingStyle
-from metadata_generator.interfaces.diagnostics import Diagnostic
+from eggpipe.config.generator_rules import GeneratorConfig
+from eggpipe.core.model import ModelSlice
+from eggpipe.core.naming import NamingStyle
+from eggpipe.interfaces.diagnostics import Diagnostic
 
 
 class ImportedFile(BaseModel):

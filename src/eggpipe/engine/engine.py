@@ -9,38 +9,38 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from metadata_generator.config.app_config import AppConfig
-from metadata_generator.config.generator_rules import GeneratorConfig, GeneratorRules
-from metadata_generator.core.composition import Composition, CompositionResult
-from metadata_generator.core.discovery import SourceGroup, discover_sources
-from metadata_generator.core.document import ModelDocument
-from metadata_generator.core.model import SourceModel
-from metadata_generator.core.parser import Parser
-from metadata_generator.core.slicing import select_slice
-from metadata_generator.core.validator import validate_entity_model
-from metadata_generator.engine.artifact_writer import ArtifactWriter, ExecutionPlan
-from metadata_generator.engine.format_registry import FormatRegistry
-from metadata_generator.engine.plugin_loader import build_format_registry, load_generators
-from metadata_generator.engine.report import (
+from eggpipe.config.app_config import AppConfig
+from eggpipe.config.generator_rules import GeneratorConfig, GeneratorRules
+from eggpipe.core.composition import Composition, CompositionResult
+from eggpipe.core.discovery import SourceGroup, discover_sources
+from eggpipe.core.document import ModelDocument
+from eggpipe.core.model import SourceModel
+from eggpipe.core.parser import Parser
+from eggpipe.core.slicing import select_slice
+from eggpipe.core.validator import validate_entity_model
+from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan
+from eggpipe.engine.format_registry import FormatRegistry
+from eggpipe.engine.plugin_loader import build_format_registry, load_generators
+from eggpipe.engine.report import (
     ArtifactReport,
     EngineReport,
     GeneratorReport,
 )
-from metadata_generator.interfaces.diagnostics import Diagnostic, error, warning
-from metadata_generator.interfaces.formats import EntityModelFormat
-from metadata_generator.interfaces.generator import (
+from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
+from eggpipe.interfaces.formats import EntityModelFormat
+from eggpipe.interfaces.generator import (
     GenerationContext,
     GenerationResult,
     GeneratorInput,
     GeneratorPlugin,
 )
-from metadata_generator.utils.exceptions import (
+from eggpipe.utils.exceptions import (
     ConfigValidationError,
     DocumentError,
     LockError,
     ManifestError,
 )
-from metadata_generator.version import __version__
+from eggpipe.version import __version__
 
 
 @dataclass
@@ -72,7 +72,7 @@ class Engine:
         self.generators = dict(generators) if generators is not None else load_generators()
         self.source_paths = source_paths
         self.variables = {**rules.variables, **(variables or {})}
-        self.writer = ArtifactWriter(mg_version=__version__)
+        self.writer = ArtifactWriter(eggpipe_version=__version__)
         self.run_id = uuid.uuid4().hex
         self._pending: list[_Pending] = []
         self._composition: CompositionResult | None = None
@@ -244,7 +244,7 @@ class Engine:
                 None,
             )
         if not self.rules.sources:
-            raise ConfigValidationError("в .mg.yaml нет sources")
+            raise ConfigValidationError("в .eggpipe.yaml нет sources")
         discovered = discover_sources(self.rules, self.config_dir)
         diagnostics.extend(discovered.diagnostics)
         return discovered.paths, discovered.groups

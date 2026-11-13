@@ -9,7 +9,7 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from metadata_generator import (
+from eggpipe import (
     UNSET,
     CustomType,
     Entity,
@@ -19,7 +19,7 @@ from metadata_generator import (
     FieldDef,
     SourceModel,
 )
-from metadata_generator.utils.exceptions import DocumentError
+from eggpipe.utils.exceptions import DocumentError
 
 NAMES = st.from_regex(r"^[A-Za-z_][A-Za-z0-9_]*$", fullmatch=True)
 DEFAULTS = {

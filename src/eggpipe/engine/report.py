@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from metadata_generator.interfaces.diagnostics import Diagnostic
+from eggpipe.interfaces.diagnostics import Diagnostic
 
 
 class ArtifactReport(BaseModel):

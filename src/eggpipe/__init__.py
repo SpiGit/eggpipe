@@ -1,17 +1,17 @@
-"""Metadata Generator — публичный API ядра v0.1."""
+"""Eggpipe — публичный API ядра v0.1."""
 
 from __future__ import annotations
 
-from metadata_generator.config.app_config import AppConfig
-from metadata_generator.config.generator_rules import (
+from eggpipe.config.app_config import AppConfig
+from eggpipe.config.generator_rules import (
     GeneratorConfig,
     GeneratorRules,
     GeneratorRulesLoader,
     SourceConfig,
 )
-from metadata_generator.core.composition import Composition, CompositionResult
-from metadata_generator.core.document import ImportSpec, ModelDocument
-from metadata_generator.core.model import (
+from eggpipe.core.composition import Composition, CompositionResult
+from eggpipe.core.document import ImportSpec, ModelDocument
+from eggpipe.core.model import (
     PRIMITIVE_TYPES,
     UNSET,
     Constraints,
@@ -25,17 +25,17 @@ from metadata_generator.core.model import (
     ModelSlice,
     SourceModel,
 )
-from metadata_generator.core.naming import NamingStyle, transform
-from metadata_generator.core.parser import Parser, normalize_version
-from metadata_generator.core.provenance import Provenance, git_provenance
-from metadata_generator.core.slicing import select_slice
-from metadata_generator.core.validator import validate_document, validate_entity_model
-from metadata_generator.engine.engine import Engine
-from metadata_generator.engine.format_registry import FormatInfo, FormatRegistry
-from metadata_generator.engine.report import ArtifactReport, EngineReport, GeneratorReport
-from metadata_generator.interfaces.diagnostics import Diagnostic, DiagnosticLocation
-from metadata_generator.interfaces.formats import EntityModelFormat, FormatPlugin
-from metadata_generator.interfaces.generator import (
+from eggpipe.core.naming import NamingStyle, transform
+from eggpipe.core.parser import Parser, normalize_version
+from eggpipe.core.provenance import Provenance, git_provenance
+from eggpipe.core.slicing import select_slice
+from eggpipe.core.validator import validate_document, validate_entity_model
+from eggpipe.engine.engine import Engine
+from eggpipe.engine.format_registry import FormatInfo, FormatRegistry
+from eggpipe.engine.report import ArtifactReport, EngineReport, GeneratorReport
+from eggpipe.interfaces.diagnostics import Diagnostic, DiagnosticLocation
+from eggpipe.interfaces.formats import EntityModelFormat, FormatPlugin
+from eggpipe.interfaces.generator import (
     Artifact,
     GenerationContext,
     GenerationResult,
@@ -43,7 +43,7 @@ from metadata_generator.interfaces.generator import (
     GeneratorPlugin,
     ImportedFile,
 )
-from metadata_generator.utils.exceptions import (
+from eggpipe.utils.exceptions import (
     ArtifactPathError,
     ConfigValidationError,
     DocumentError,
@@ -53,7 +53,7 @@ from metadata_generator.utils.exceptions import (
     MetadataGeneratorError,
     UnknownFormatError,
 )
-from metadata_generator.version import __version__
+from eggpipe.version import __version__
 
 __all__ = [
     "PRIMITIVE_TYPES",

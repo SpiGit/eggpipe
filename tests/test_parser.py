@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from metadata_generator import (
+from eggpipe import (
     UNSET,
     Parser,
 )
-from metadata_generator.utils.exceptions import DocumentError
+from eggpipe.utils.exceptions import DocumentError
 
 VALID = """\
 format: entity-model

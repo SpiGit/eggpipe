@@ -7,8 +7,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from metadata_generator.core.document import ModelDocument
-from metadata_generator.core.model import (
+from eggpipe.core.document import ModelDocument
+from eggpipe.core.model import (
     PRIMITIVE_TYPES,
     UNSET,
     Constraints,
@@ -19,7 +19,7 @@ from metadata_generator.core.model import (
     ModelSlice,
     SourceModel,
 )
-from metadata_generator.interfaces.diagnostics import Diagnostic, error, warning
+from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
 
 MAX_TYPE_DEPTH = 10
 MAX_IMPORT_DEPTH = 10

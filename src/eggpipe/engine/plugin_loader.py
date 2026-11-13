@@ -8,12 +8,12 @@ from dataclasses import dataclass
 from importlib.metadata import entry_points
 from pathlib import Path
 
-from metadata_generator.engine.format_registry import FormatRegistry
-from metadata_generator.interfaces.formats import FormatPlugin
-from metadata_generator.interfaces.generator import GeneratorPlugin
+from eggpipe.engine.format_registry import FormatRegistry
+from eggpipe.interfaces.formats import FormatPlugin
+from eggpipe.interfaces.generator import GeneratorPlugin
 
-GENERATOR_GROUP = "metadata_generator.generators"
-FORMAT_GROUP = "metadata_generator.formats"
+GENERATOR_GROUP = "eggpipe.generators"
+FORMAT_GROUP = "eggpipe.formats"
 
 
 @dataclass(frozen=True)
@@ -89,7 +89,7 @@ def build_format_registry() -> FormatRegistry:
 def load_local_generators(paths: list[Path]) -> dict[str, GeneratorPlugin]:
     result: dict[str, GeneratorPlugin] = {}
     for index, path in enumerate(paths):
-        module_name = f"_metadata_generator_local_{index}"
+        module_name = f"_eggpipe_local_{index}"
         spec = importlib.util.spec_from_file_location(module_name, path)
         if spec is None or spec.loader is None:
             continue

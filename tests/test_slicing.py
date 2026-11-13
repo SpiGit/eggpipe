@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from metadata_generator import (
+from eggpipe import (
     CustomType,
     Entity,
     EnumDef,

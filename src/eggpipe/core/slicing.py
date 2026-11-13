@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from metadata_generator.core.model import (
+from eggpipe.core.model import (
     Entity,
     InputSelection,
     ModelSlice,
     SourceModel,
 )
-from metadata_generator.interfaces.diagnostics import Diagnostic, error
+from eggpipe.interfaces.diagnostics import Diagnostic, error
 
 
 def select_slice(

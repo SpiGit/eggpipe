@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "metadata-generator-tpch-example"
+name = "eggpipe-tpch-example"
 version = "0.1.0"
-description = "TPC-H PostgreSQL DDL and Pydantic generators for metadata-generator"
+description = "TPC-H PostgreSQL DDL and Pydantic generators for eggpipe"
 requires-python = ">=3.11"
-dependencies = ["metadata-generator", "jinja2>=3.1"]
+dependencies = ["eggpipe", "jinja2>=3.1"]
 
-[project.entry-points."metadata_generator.generators"]
+[project.entry-points."eggpipe.generators"]
 tpch = "tpch_generator:TpchGenerator"
 tpch-ddl = "tpch_generator:TpchDdlGenerator"
 tpch-pydantic = "tpch_generator:TpchPydanticGenerator"

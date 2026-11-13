@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from metadata_generator.watch.watcher import should_ignore
+from eggpipe.watch.watcher import should_ignore
 
 
 def test_ignore_hidden_and_output(tmp_path: Path) -> None:
@@ -13,4 +13,7 @@ def test_ignore_hidden_and_output(tmp_path: Path) -> None:
     assert should_ignore(source, {output}, allow=set()) is False
     assert should_ignore(output / "generated.py", {output}, allow=set()) is True
     assert should_ignore(tmp_path / ".git" / "index", set(), allow=set()) is True
-    assert should_ignore(tmp_path / ".mg.yaml", set(), allow={tmp_path / ".mg.yaml"}) is False
+    assert (
+        should_ignore(tmp_path / ".eggpipe.yaml", set(), allow={tmp_path / ".eggpipe.yaml"})
+        is False
+    )

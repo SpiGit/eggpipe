@@ -17,9 +17,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from metadata_generator.interfaces.diagnostics import Diagnostic, error, warning
-from metadata_generator.interfaces.generator import Artifact
-from metadata_generator.utils.exceptions import (
+from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
+from eggpipe.interfaces.generator import Artifact
+from eggpipe.utils.exceptions import (
     ArtifactPathError,
     LockError,
     ManifestError,
@@ -46,7 +46,7 @@ class ManifestArtifact(BaseModel):
 class Manifest(BaseModel):
     manifest_version: int = 1
     generator: str
-    mg_version: str
+    eggpipe_version: str
     plugin_version: str
     format: dict[str, str]
     generated_at: datetime
@@ -77,8 +77,8 @@ class ExecutionPlan:
 
 
 class ArtifactWriter:
-    def __init__(self, *, mg_version: str) -> None:
-        self.mg_version = mg_version
+    def __init__(self, *, eggpipe_version: str) -> None:
+        self.eggpipe_version = eggpipe_version
 
     def plan(
         self,
@@ -215,10 +215,10 @@ class ArtifactWriter:
         if plan.has_errors:
             raise ManifestError("нельзя записывать план с ошибками")
         output_dir.mkdir(parents=True, exist_ok=True)
-        mg_dir = output_dir / ".mg"
-        manifests_dir = mg_dir / "manifests"
+        eggpipe_dir = output_dir / ".eggpipe"
+        manifests_dir = eggpipe_dir / "manifests"
         manifests_dir.mkdir(parents=True, exist_ok=True)
-        staging = output_dir / f".mg-staging-{os.getpid()}-{uuid.uuid4().hex}"
+        staging = output_dir / f".eggpipe-staging-{os.getpid()}-{uuid.uuid4().hex}"
         staging.mkdir()
         diagnostics: list[Diagnostic] = []
         try:
@@ -273,7 +273,7 @@ class ArtifactWriter:
                     entries.append(item)
             manifest = Manifest(
                 generator=generator_id,
-                mg_version=self.mg_version,
+                eggpipe_version=self.eggpipe_version,
                 plugin_version=plugin_version,
                 format={"name": format_name, "version": format_version},
                 generated_at=datetime.now(UTC),
@@ -311,7 +311,7 @@ class ArtifactWriter:
         generator_id: str,
         dry_run: bool = False,
     ) -> list[Diagnostic]:
-        manifest_path = output_dir / ".mg" / "manifests" / f"{generator_id}.json"
+        manifest_path = output_dir / ".eggpipe" / "manifests" / f"{generator_id}.json"
         if not manifest_path.is_file():
             return []
         manifest = self.load_manifest(output_dir, generator_id)
@@ -345,16 +345,16 @@ class ArtifactWriter:
                     "artifacts": kept,
                 }
             )
-            manifests_dir = output_dir / ".mg" / "manifests"
+            manifests_dir = output_dir / ".eggpipe" / "manifests"
             _write_json_atomic(manifests_dir / f"{generator_id}.json", updated)
         return diagnostics
 
     def load_manifest(self, output_dir: Path, generator_id: str) -> Manifest:
-        path = output_dir / ".mg" / "manifests" / f"{generator_id}.json"
+        path = output_dir / ".eggpipe" / "manifests" / f"{generator_id}.json"
         if not path.is_file():
             return Manifest(
                 generator=generator_id,
-                mg_version=self.mg_version,
+                eggpipe_version=self.eggpipe_version,
                 plugin_version="",
                 format={},
                 generated_at=datetime.now(UTC),
@@ -367,9 +367,9 @@ class ArtifactWriter:
 
     @contextmanager
     def write_lock(self, output_dir: Path) -> Generator[None, None, None]:
-        mg_dir = output_dir / ".mg"
-        mg_dir.mkdir(parents=True, exist_ok=True)
-        lock = mg_dir / "lock"
+        eggpipe_dir = output_dir / ".eggpipe"
+        eggpipe_dir.mkdir(parents=True, exist_ok=True)
+        lock = eggpipe_dir / "lock"
         try:
             descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError as exc:
@@ -400,7 +400,7 @@ def validate_artifact_path(output_dir: Path, artifact: Artifact) -> Path:
         stem = part.split(".", 1)[0].upper()
         if (
             part in {"", ".", ".."}
-            or part.startswith(".mg")
+            or part.startswith(".eggpipe")
             or stem in WIN_RESERVED
             or part.endswith((" ", "."))
             or "\x00" in part

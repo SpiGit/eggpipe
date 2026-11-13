@@ -24,15 +24,15 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_WHEEL_FILES = {
-    "metadata_generator/__init__.py",
-    "metadata_generator/py.typed",
+    "eggpipe/__init__.py",
+    "eggpipe/py.typed",
 }
 REQUIRED_SDIST_FILES = {
     "pyproject.toml",
     "README.md",
     "LICENSE",
-    "src/metadata_generator/__init__.py",
-    "src/metadata_generator/py.typed",
+    "src/eggpipe/__init__.py",
+    "src/eggpipe/py.typed",
 }
 REQUIRED_DEPENDENCIES = {
     "typer",
@@ -163,8 +163,8 @@ def check_wheel(path: Path, project: Project) -> None:
         if entry_points is None:
             raise CheckError("в wheel нет entry_points.txt")
         text = archive.read(entry_points).decode("utf-8")
-        if "mg = metadata_generator.cli.main:app" not in text:
-            raise CheckError("в wheel нет console script mg")
+        if "eggpipe = eggpipe.cli.main:app" not in text:
+            raise CheckError("в wheel нет console script eggpipe")
 
 
 def check_sdist(path: Path) -> None:
@@ -209,12 +209,12 @@ def smoke_install(wheel: Path, version: str) -> None:
             [
                 str(python),
                 "-c",
-                f"import metadata_generator; assert metadata_generator.__version__ == {version!r}",
+                f"import eggpipe; assert eggpipe.__version__ == {version!r}",
             ],
             "wheel не импортируется или версия не совпадает",
         )
-        script = environment / ("Scripts/mg.exe" if sys.platform == "win32" else "bin/mg")
-        run_checked([str(script), "--help"], "console script mg не работает")
+        script = environment / ("Scripts/eggpipe.exe" if sys.platform == "win32" else "bin/eggpipe")
+        run_checked([str(script), "--help"], "console script eggpipe не работает")
 
 
 def main(argv: list[str] | None = None) -> int:

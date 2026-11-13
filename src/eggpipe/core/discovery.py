@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from metadata_generator.config.generator_rules import GeneratorRules
-from metadata_generator.core.model import InputSelection
-from metadata_generator.interfaces.diagnostics import Diagnostic, error, warning
-from metadata_generator.utils.yaml import YamlLoadError, load_yaml
+from eggpipe.config.generator_rules import GeneratorRules
+from eggpipe.core.model import InputSelection
+from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
+from eggpipe.utils.yaml import YamlLoadError, load_yaml
 
-SKIP_PARTS = {".git", ".mg", "__pycache__", ".venv", "node_modules"}
+SKIP_PARTS = {".git", ".eggpipe", "__pycache__", ".venv", "node_modules"}
 
 
 @dataclass(frozen=True)
