@@ -283,7 +283,7 @@ def test_manifest_v1_is_rejected(tmp_path: Path) -> None:
     path = tmp_path / ".eggpipe" / "manifest.json"
     path.parent.mkdir()
     path.write_text(json.dumps({"manifest_version": 1, "locations": []}), encoding="utf-8")
-    with pytest.raises(ManifestError, match="MG052"):
+    with pytest.raises(ManifestError):
         writer(tmp_path).load_manifest()
 
 
@@ -291,5 +291,18 @@ def test_corrupted_manifest_is_rejected(tmp_path: Path) -> None:
     path = tmp_path / ".eggpipe" / "manifest.json"
     path.parent.mkdir()
     path.write_text("{", encoding="utf-8")
-    with pytest.raises(ManifestError, match="MG052"):
+    with pytest.raises(ManifestError):
         writer(tmp_path).load_manifest()
+
+
+def test_empty_plan_runs_cleanup_for_previous_location(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(tmp_path, output, plan_for(tmp_path, output, Artifact(path="old.txt", content="old")))
+    write(
+        tmp_path,
+        output,
+        plan_for(tmp_path, output),
+        cleanup="enabled",
+    )
+    assert not (output / "old.txt").exists()
+    assert writer(tmp_path).load_manifest().locations == []

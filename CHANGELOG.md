@@ -11,7 +11,10 @@
   package/import `eggpipe`.
 - ТЗ v2.0: breaking changes, решения v1.4 вошли без изменения смысла.
 - CLI/UX, diagnostics и JSON-отчёт v2 зафиксированы.
-- Переименование кода/пакета — отдельный этап плана.
+- Переименование кода/пакета выполнено: `eggpipe`, `eggpipe.*`, `.eggpipe*`.
+- Реализованы форматы/наследование, model units и слои, resources, decorator API,
+  `input_formats`/MG033, глобальный manifest/ownership/cleanup, CLI и JSON v2.
+- TPC-H example переведён на `directory-per-model` и decorator API.
 
 ## [0.1.0] - 2026-11-11
 

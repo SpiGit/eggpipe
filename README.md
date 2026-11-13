@@ -63,7 +63,7 @@ if not report.success:
 2. Плагин генерации:
    ```python
    # my_project/plugins.py
-   from eggpipe import Artifact, GeneratorConfig, GeneratorContext, ModelSlice, generator
+   from eggpipe import Artifact, GeneratorConfig, GenerationContext, ModelSlice, generator
 
    @generator(id="my-project-generator", input_formats={"entity-model"})
    def my_project_generator(
@@ -81,7 +81,7 @@ if not report.success:
    ```toml
    # pyproject.toml проекта N
    [project.entry-points."eggpipe.generators"]
-   my-project-generators = "my_project.plugins:MyProjectGenerator"
+   my-project-generator = "my_project.plugins:my_project_generator"
    ```
 
 4. Запуск:
@@ -191,5 +191,6 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** ядро v0.3 готово; далее — Eggpipe v2.0 (docs target) и переименование кода/пакета.
-Ядро и CLI можно готовить к первому релизу; дальше — стабилизация и backlog P1/P2.
+**Стадия:** Eggpipe v2.0 реализован (E0–E8): пакет/CLI/config/state переименованы,
+форматы и слои, decorator API, глобальный manifest, CLI/JSON v2. Дальше — E9: CI, версия
+пакета и release workflow.

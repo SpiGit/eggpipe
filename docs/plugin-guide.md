@@ -10,7 +10,7 @@
 Основной способ:
 
 ```python
-from eggpipe import Artifact, GeneratorConfig, GeneratorContext, ModelSlice, generator
+from eggpipe import Artifact, GeneratorConfig, GenerationContext, ModelSlice, generator
 
 
 @generator(id="my-generator", input_formats={"entity-model"})

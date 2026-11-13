@@ -5,7 +5,7 @@
 
 Статус указан для текущей реализации; часть проверок появится вместе со следующими слоями.
 
-| Код | Уровень | Фаза | Проверка | Статус v0.1 |
+| Код | Уровень | Фаза | Проверка | Статус |
 |-----|---------|------|----------|-------------|
 | MG000 | error | parse | Синтаксис YAML, duplicate keys, multi-document, не-dict корень | реализовано |
 | MG001 | error | validate | Ссылка на несуществующий enum/type | зарезервирован; неизвестный тип даёт MG004 |
@@ -21,7 +21,7 @@
 | MG011 | warning | validate | `required=true` + `nullable=true` | реализовано |
 | MG012 | warning | validate | Entity.name не в PascalCase | реализовано |
 | MG013 | warning | validate | Неиспользуемый enum/type | реализовано |
-| MG014 | warning | validate | `updated_at` старше mtime файла (opt-in) | реализовано |
+| MG014 | warning | validate | `updated_at` старше mtime файла (opt-in; file-per-model) | реализовано |
 | MG015 | warning | validate | Пустой description у required-поля | реализовано |
 | MG016 | error | validate | `default` не приводится к итоговому типу | реализовано |
 | MG017 | error | validate | `default` нарушает constraints/enum | реализовано |
@@ -34,36 +34,36 @@
 | MG024 | warning | discovery | Дубликат resolved-пути | реализовано |
 | MG025 | error | composition | Дубликат alias `as` / отсутствует alias у resource | реализовано (parse) |
 | MG026 | warning | validate | Case-insensitive коллизия имён | реализовано |
-| MG027 | warning | discovery | Пустой каталог модели в `directory-per-model` | v0.4 |
+| MG027 | warning | discovery | Пустой каталог модели в `directory-per-model` | реализовано |
 | MG028 | error | parse/validate | Имя не соответствует pattern | реализовано (Pydantic) |
-| MG029 | error | layers | Некорректная цепочка слоёв / конфликт layer merge | v0.4 |
+| MG029 | error | layers | Некорректная цепочка слоёв / конфликт layer merge | реализовано |
 | MG030 | warning | engine | Неподдерживаемый в текущем окружении режим; проигнорирован | реализовано |
-| MG031 | error | layers | Файл-слой содержит не одну сущность | v0.4 |
-| MG032 | error | resources | Дубликат alias ресурса | v0.4 |
-| MG033 | error | engine | Генератор не поддерживает формат сущности | v0.4 |
-| MG034 | error | formats | Цикл/глубина наследования, неверный `base_versions`, конфликт схем/примитивов | v0.4 |
-| MG035 | warning | layers | Дельта не добавляет ничего | v0.4 |
-| MG036 | warning | discovery | Glob не нашёл ни одного файла/каталога | v0.4 |
-| MG037 | error | discovery | `models.<dir>` указывает на неизвестный каталог | v0.4 |
-| MG038 | error | discovery | Путь одновременно в `files` и `resources` | v0.4 |
+| MG031 | error | layers | Файл-слой содержит не одну сущность | реализовано |
+| MG032 | error | resources | Дубликат alias ресурса | реализовано |
+| MG033 | error | engine | Генератор не поддерживает формат сущности | реализовано |
+| MG034 | error | formats | Цикл/глубина наследования, неверный `base_versions`, конфликт схем/примитивов | реализовано |
+| MG035 | warning | layers | Дельта не добавляет ничего | реализовано |
+| MG036 | warning | discovery | Glob не нашёл ни одного файла/каталога | реализовано |
+| MG037 | error | discovery | `models.<dir>` указывает на неизвестный каталог | реализовано |
+| MG038 | error | discovery | Путь одновременно в `files` и `resources` | реализовано |
 | MG300 | error | engine | Генератор/запись/check упали или обнаружен drift | реализовано |
-| MG301 | error | plugin | Нарушен контракт генератора: нет `input_formats`, неверная сигнатура/return type | v0.4 |
-| MG302 | error | plugin | Неизвестный инжектируемый параметр декоратора | v0.4 |
+| MG301 | error | plugin | Нарушен контракт генератора: нет `input_formats`, неверная сигнатура/return type | реализовано |
+| MG302 | error | plugin | Неизвестный инжектируемый параметр декоратора | реализовано |
 | MG040 | error | write | Некорректный artifact path / content | реализовано |
 | MG041 | error | write | Ownership-конфликт / `on_conflict: error` | реализовано |
-| MG042 | error | planning | Дубликат artifact path / case-collision | реализовано |
+| MG042 | error | planning | Дубликат artifact path / case-collision / prefix-конфликт | реализовано |
 | MG043 | warning | planning | `skip` для не-owned файла | реализовано |
-| MG050 | warning | cleanup | Changed owned-файл не удалён | v0.4 |
-| MG051 | warning | cleanup | Stale generated location в глобальном manifest | v0.4 |
-| MG052 | error | manifest | Manifest повреждён или версия не поддерживается | v0.4 |
+| MG050 | warning | cleanup | Changed owned-файл не удалён | реализовано |
+| MG051 | warning | cleanup | Stale generated location в глобальном manifest | реализовано |
+| MG052 | error | manifest | Manifest повреждён или версия не поддерживается | реализовано |
 
 ## MG030
 
 `MG030` — warning для режима, который невозможно применить в текущем окружении. Сейчас это
 `cleanup: prompt` без поддерживаемого tty-подтверждения: ядро откатывается к `cleanup: off`.
 
-`MG030` и `MG300` внесены в ТЗ v1.3 §9.1 и отражены в диапазонах §9.3.
-Коды MG027, MG029, MG031–MG038, MG051, MG052, MG301, MG302 введены в ТЗ v1.4 для слоёв,
-форматов, ресурсов, manifest и decorator API.
+`MG030` и `MG300` отражены в диапазонах ТЗ v2.0 §9.3.
+Коды MG027, MG029, MG031–MG038, MG051, MG052, MG301, MG302 относятся к слоям, форматам,
+ресурсам, manifest и decorator API и реализованы в v2.0.
 
 `diagnostics.ignore` и `--ignore` игнорируют только warnings; errors показываются всегда.

@@ -294,54 +294,39 @@ class ArtifactWriter:
     ) -> list[Diagnostic]:
         if plan.has_errors:
             raise ManifestError("нельзя записывать план с ошибками")
-        if not plan.artifacts:
-            return []
-        output_dir.mkdir(parents=True, exist_ok=True)
-        staging = output_dir / f".eggpipe-staging-{os.getpid()}-{uuid.uuid4().hex}"
-        staging.mkdir()
         diagnostics: list[Diagnostic] = []
-        try:
-            for item in plan.artifacts:
-                if item.action == "skip":
-                    continue
-                source = staging / item.path
-                source.parent.mkdir(parents=True, exist_ok=True)
-                source.write_text(item.content, encoding="utf-8", newline="\n")
-                item.target.parent.mkdir(parents=True, exist_ok=True)
-                os.replace(source, item.target)
+        if plan.artifacts:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            _stage_artifacts(plan, output_dir)
 
-            entries = self._current_entries(plan)
-            current_paths = {str(item.path) for item in plan.artifacts}
-            manifest = self.load_manifest()
-            old = self._find_location(manifest, generator_id, output_dir)
-            if old is not None:
-                kept = self._cleanup_location(
+        entries = self._current_entries(plan)
+        current_paths = {str(item.path) for item in plan.artifacts}
+        manifest = self.load_manifest()
+        old = self._find_location(manifest, generator_id, output_dir)
+        if old is not None:
+            entries.extend(
+                self._cleanup_location(
                     old,
                     output_dir,
                     current_paths,
                     cleanup,
                     diagnostics,
                 )
-                entries.extend(kept)
-            location = ManifestLocation(
-                generator=generator_id,
-                output_dir=self._output_rel(output_dir),
-                eggpipe_version=self.eggpipe_version,
-                plugin_version=plugin_version,
-                formats=_manifest_formats(plan.formats),
-                generated_at=datetime.now(UTC),
-                artifacts=entries,
             )
-            locations = [
-                item
-                for item in manifest.locations
-                if (item.generator, item.output_dir) != (generator_id, self._output_rel(output_dir))
-            ]
-            if entries:
-                locations.append(location)
-            self.save_manifest(Manifest(manifest_version=MANIFEST_VERSION, locations=locations))
-        finally:
-            shutil.rmtree(staging, ignore_errors=True)
+        location = ManifestLocation(
+            generator=generator_id,
+            output_dir=self._output_rel(output_dir),
+            eggpipe_version=self.eggpipe_version,
+            plugin_version=plugin_version,
+            formats=_manifest_formats(plan.formats),
+            generated_at=datetime.now(UTC),
+            artifacts=entries,
+        )
+        key = self.location_key(generator_id, output_dir)
+        locations = [self._prune_missing(item) for item in manifest.locations if item.key != key]
+        if entries:
+            locations.append(location)
+        self.save_manifest(Manifest(manifest_version=MANIFEST_VERSION, locations=locations))
         return diagnostics
 
     def check(self, *, plan: ExecutionPlan) -> list[Diagnostic]:
@@ -405,12 +390,10 @@ class ArtifactWriter:
             manifest = Manifest.model_validate(data)
         except (OSError, json.JSONDecodeError, ValidationError) as exc:
             raise ManifestError(
-                f"MG052: не удалось прочитать manifest {self.manifest_path}: {exc}"
+                f"не удалось прочитать manifest {self.manifest_path}: {exc}"
             ) from exc
         if manifest.manifest_version != MANIFEST_VERSION:
-            raise ManifestError(
-                f"MG052: manifest_version {manifest.manifest_version} не поддерживается"
-            )
+            raise ManifestError(f"manifest_version {manifest.manifest_version} не поддерживается")
         return manifest
 
     def save_manifest(self, manifest: Manifest) -> None:
@@ -520,6 +503,22 @@ class ArtifactWriter:
             return resolved.relative_to(self.config_dir).as_posix()
         except ValueError:
             return resolved.as_posix()
+
+
+def _stage_artifacts(plan: ExecutionPlan, output_dir: Path) -> None:
+    staging = output_dir / f".eggpipe-staging-{os.getpid()}-{uuid.uuid4().hex}"
+    staging.mkdir()
+    try:
+        for item in plan.artifacts:
+            if item.action == "skip":
+                continue
+            source = staging / item.path
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text(item.content, encoding="utf-8", newline="\n")
+            item.target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(source, item.target)
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 def _collision(seen: dict[str, str], normalized: str) -> str | None:

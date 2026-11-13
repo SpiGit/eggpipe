@@ -156,6 +156,22 @@
 
 ---
 
+## Статус исправлений (follow-up)
+
+Исправлено без новой версии ТЗ:
+
+- **P0-1:** `GeneratorContext` → `GenerationContext` в README, plugin-guide и примере ТЗ.
+- **P0-2:** skill `plugin-contract` переписан под публичный API v2.0.
+- **P1-8:** entry point в README приведён к decorator API и `id`.
+- **P1-10:** статусы `diagnostics.md` обновлены, MG042 дополнен prefix-конфликтом.
+- **P1-12:** устаревшая сводка v1.2 в `.session-context.md` заменена актуальной.
+- **P1-13:** статусы README/AGENTS/CHANGELOG синхронизированы с v2.0.
+- **K3:** пустой план теперь выполняет cleanup предыдущего location.
+- **K5:** двойной префикс `MG052: MG052:` убран.
+
+Остаются пункты, требующие ТЗ v2.1/ADR-0011: P1-3–P1-7, P1-9, P1-11 и код P2
+(K4, K6–K18).
+
 ## Рекомендуемый план действий
 
 1. **Сразу (без новой версии ТЗ):** P0-1 (`GeneratorContext` в README/plugin-guide), P0-2 (skill `plugin-contract`), P1-8 (README entry point), P1-12/P1-13 (статусы README/AGENTS/`.session-context.md`/CHANGELOG), P1-10 (diagnostics.md статусы), K3 (пустой план), K5 (двойной код).
