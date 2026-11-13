@@ -160,5 +160,6 @@
     "validate_document",
     "validate_entity_model"
   ],
-  "spec_version": "2.2"
+  "spec_version": "2.2",
+  "status": "beta"
 }

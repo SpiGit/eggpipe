@@ -108,6 +108,7 @@ def _llms_index() -> str:
     return """# Eggpipe documentation index
 
 > Eggpipe generates artifacts from YAML model definitions. Current spec: v2.2.
+> Project status: beta (0.x); breaking changes are possible before 1.0 (ADR-0014).
 
 ## User
 
@@ -149,6 +150,7 @@ def _llms_full() -> str:
 def _manifest() -> dict[str, Any]:
     return {
         "project": "eggpipe",
+        "status": "beta",
         "spec_version": "2.2",
         "package_version": eggpipe.__version__,
         "public_api": sorted(eggpipe.__all__),

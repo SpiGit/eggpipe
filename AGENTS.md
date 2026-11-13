@@ -17,7 +17,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 
 1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/engineering/requirements/index.md` (сейчас `v2.2.md`):
    поведение, контракты, CLI, запись артефактов.
-2. `docs/engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды).
+2. `docs/engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды, 0014 — beta-статус и совместимость до 1.0).
 3. `docs/engineering/system-design/index.md` — проектирование реализации (классы, потоки, структура).
 4. `docs/engineering/requirements/index.md` — реестр версий и changelog.
 5. `README.md` и `.session-context.md` — краткое состояние проекта.

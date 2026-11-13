@@ -3,18 +3,80 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Protocol
 
-from eggpipe.config.project_config import ProjectConfig, ResourceConfig, SourceConfig
 from eggpipe.core.model import InputSelection
 from eggpipe.core.paths import is_ignored_part
 from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
 from eggpipe.interfaces.generator import ImportedFile
 from eggpipe.utils.yaml import YamlLoadError, load_yaml
 
-SKIP_PARTS = {".git", ".eggpipe", "__pycache__", ".venv", "node_modules"}
 GLOB_CHARS = re.compile(r"[*?\[]")
+
+
+class ResourceLike(Protocol):
+    """Resource entry consumed by discovery."""
+
+    @property
+    def path(self) -> Path: ...
+
+    @property
+    def alias(self) -> str | None: ...
+
+
+class ModelOverrideLike(Protocol):
+    """Per-model file and resource override."""
+
+    @property
+    def files(self) -> tuple[str, ...] | None: ...
+
+    @property
+    def resources(self) -> tuple[ResourceLike, ...] | None: ...
+
+
+class SourceLike(Protocol):
+    """Source entry consumed by discovery."""
+
+    @property
+    def path(self) -> Path: ...
+
+    @property
+    def layout(self) -> str: ...
+
+    @property
+    def files(self) -> tuple[str, ...] | None: ...
+
+    @property
+    def model_dirs(self) -> tuple[str, ...] | None: ...
+
+    @property
+    def models(self) -> Mapping[str, ModelOverrideLike]: ...
+
+    @property
+    def input(self) -> InputSelection: ...
+
+
+class GeneratorLike(Protocol):
+    """Generator entry consumed by discovery."""
+
+    @property
+    def output_dir(self) -> Path: ...
+
+
+class ProjectConfigLike(Protocol):
+    """Project configuration consumed by discovery."""
+
+    @property
+    def resources(self) -> tuple[ResourceLike, ...]: ...
+
+    @property
+    def sources(self) -> tuple[SourceLike, ...]: ...
+
+    @property
+    def generators(self) -> tuple[GeneratorLike, ...]: ...
 
 
 @dataclass(frozen=True)
@@ -42,7 +104,7 @@ class DiscoveredSources:
 
 
 def discover_sources(
-    rules: ProjectConfig,
+    rules: ProjectConfigLike,
     config_dir: Path,
     *,
     allow_outside: bool = False,
@@ -91,7 +153,7 @@ def discover_sources(
 
 def _discover_monolith(
     root: Path,
-    source: SourceConfig,
+    source: SourceLike,
     seen: set[Path],
     result: DiscoveredSources,
 ) -> None:
@@ -115,7 +177,7 @@ def _discover_monolith(
 
 def _discover_file_per_model(
     root: Path,
-    source: SourceConfig,
+    source: SourceLike,
     output_dirs: set[Path],
     seen: set[Path],
     boundary: Path,
@@ -155,7 +217,7 @@ def _discover_file_per_model(
 
 def _discover_directory_per_model(
     root: Path,
-    source: SourceConfig,
+    source: SourceLike,
     output_dirs: set[Path],
     seen: set[Path],
     allow_outside: bool,
@@ -334,11 +396,11 @@ class _ResourceCollector:
     result: DiscoveredSources
     collected: list[Path] | None = None
 
-    def collect(self, resources: tuple[ResourceConfig, ...]) -> None:
+    def collect(self, resources: tuple[ResourceLike, ...]) -> None:
         for resource in resources:
             self._collect_one(resource)
 
-    def _collect_one(self, resource: ResourceConfig) -> None:
+    def _collect_one(self, resource: ResourceLike) -> None:
         raw = resource.path
         if raw.is_absolute():
             self.result.diagnostics.append(
@@ -360,7 +422,7 @@ class _ResourceCollector:
             return
         self._add(candidate, alias=resource.alias)
 
-    def _collect_glob(self, resource: ResourceConfig, pattern: str) -> None:
+    def _collect_glob(self, resource: ResourceLike, pattern: str) -> None:
         if resource.alias is not None:
             self.result.diagnostics.append(
                 error("EG032", "as is only allowed for a single file", path=pattern)
@@ -384,7 +446,7 @@ class _ResourceCollector:
 
     def _collect_directory(
         self,
-        resource: ResourceConfig,
+        resource: ResourceLike,
         pattern: str,
         directory: Path,
     ) -> None:
@@ -430,7 +492,7 @@ class _ResourceCollector:
 
 
 def _collect_resources(
-    resources: tuple[ResourceConfig, ...],
+    resources: tuple[ResourceLike, ...],
     *,
     base: Path,
     boundary: Path,

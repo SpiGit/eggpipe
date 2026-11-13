@@ -82,6 +82,11 @@ eggpipe format list
 eggpipe format info entity-model
 ```
 
+| Команда | Флаг | Значение |
+|---------|------|----------|
+| `config show` | `--show-secrets` | не редактировать секреты в выводе |
+| `gen list` | `--all` | показать также disabled-генераторы |
+
 ## clean
 
 ```bash

@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** E0–E8 выполнены; следующий этап — E9
+- **Статус:** E0–E10 выполнены; остаётся публикация релиза
 
 ---
 
@@ -196,14 +196,14 @@
 
 **Зависимости:** E0.
 
-- [ ] ADR-0007–0010: пометка «историческая ссылка на v1.4».
-- [ ] System Design pyproject fragment.
-- [ ] `--plugin` статус.
-- [ ] `gen list --all`, `--show-secrets` в таблице флагов.
-- [ ] Alias collision EG025/EG032.
-- [ ] Harness old names.
-- [ ] README stage.
-- [ ] Session context tree/ADR-0010.
+- [x] ADR-0007–0010: пометка «историческая ссылка на v1.4».
+- [x] System Design pyproject fragment.
+- [x] `--plugin` статус.
+- [x] `gen list --all`, `--show-secrets` в таблице флагов.
+- [x] Alias collision EG025/EG032.
+- [x] Harness old names.
+- [x] README stage.
+- [x] Session context tree/ADR-0010.
 
 ---
 
@@ -235,11 +235,11 @@
 
 ## 7. Definition of Done
 
-- [ ] ТЗ v2.0, System Design, README, AGENTS, session context согласованы.
-- [ ] Старые имена только в истории/migration.
-- [ ] `check_docs --strict`, `mkdocs --strict`.
-- [ ] `ruff`, `pyrefly`, `basedpyright`, `pytest --cov`.
-- [ ] `uv build`, `check_wheel`.
-- [ ] `eggpipe` install/run.
-- [ ] TPC-H golden.
-- [ ] Release checklist обновлён.
+- [x] ТЗ v2.2, System Design, README, AGENTS, session context согласованы.
+- [x] Старые имена только в истории/ADR.
+- [x] `check_docs --strict`, `mkdocs --strict`.
+- [x] `ruff`, `pyrefly`, `pytest --cov`.
+- [x] `uv build`, `check_wheel`.
+- [ ] `eggpipe` install/run из PyPI.
+- [x] TPC-H golden.
+- [x] Release checklist обновлён.

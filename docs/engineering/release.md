@@ -2,6 +2,9 @@
 
 ## Подготовка
 
+До 1.0 проект находится в beta-статусе: тег `v0.x` не гарантирует обратную совместимость
+(см. [ADR-0014](adr/0014-beta-status-and-compatibility.md)).
+
 1. Обновить версию в `pyproject.toml` (SemVer).
 2. Перенести `[Unreleased]` в `[<version>] - <date>` в `CHANGELOG.md`.
 3. Проверить `uv lock --check`.

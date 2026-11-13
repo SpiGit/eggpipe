@@ -18,6 +18,7 @@
 - Унифицированы ignore-константы; `WIN_RESERVED` → `WINDOWS_RESERVED_NAMES`.
 - Translation memory русских сообщений и docstrings: `docs/engineering/i18n/`.
 - ADR-0012 (English-only) и ADR-0013 (EG-коды).
+- Проект объявлен beta (0.x): до 1.0 breaking changes возможны (ADR-0014).
 - Проект переименован в **Eggpipe**: CLI `eggpipe`, конфиг `.eggpipe.yaml`, state `.eggpipe/`,
   package/import `eggpipe`.
 - ТЗ v2.0: breaking changes, решения v1.4 вошли без изменения смысла.

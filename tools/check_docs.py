@@ -82,6 +82,7 @@ REQUIRED_FILES = (
     "docs/engineering/adr/0011-public-api-v2-identity.md",
     "docs/engineering/adr/0013-diagnostic-code-namespace.md",
     "docs/engineering/adr/0012-english-only-source.md",
+    "docs/engineering/adr/0014-beta-status-and-compatibility.md",
     "docs/engineering/adr/index.md",
     "docs/index.md",
     "docs/engineering/decisions/eggpipe.md",

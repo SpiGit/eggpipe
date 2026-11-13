@@ -3,6 +3,7 @@
 - **Статус:** принято
 - **Дата:** 2026-11-12
 - **Связанные документы:** [ТЗ v1.4 §10](../requirements/v1.4.md), [ADR-0004](./0004-ownership-manifest-cleanup.md), [System Design §8](../system-design/index.md)
+- **Актуальность:** ссылки на v1.4 исторические; действующие контракты — [ТЗ v2.2](../requirements/v2.2.md).
 
 ---
 

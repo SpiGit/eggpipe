@@ -2,7 +2,7 @@
 
 - **Статус:** имя выбрано
 - **Дата:** 2026-11-12
-- **ТЗ:** [v2.1](../requirements/v2.1.md)
+- **ТЗ:** [v2.2](../requirements/v2.2.md)
 - **Бренд:** EggPipe
 - **Пакет / import / CLI:** `eggpipe`
 - **Конфиг:** `.eggpipe.yaml`
@@ -244,7 +244,7 @@ eggpipe generate [MODELS...]
 | `--include-disabled` | включить disabled-генераторы |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне root |
 | `--output-format text\|json` | формат отчёта |
-| `--ignore MGxxx,...` | игнорировать коды |
+| `--ignore EGxxx,...` | игнорировать коды |
 | `-q, --quiet`, `-v, --verbose` | вывод |
 
 `--force` не отбирает файлы у другого location.
