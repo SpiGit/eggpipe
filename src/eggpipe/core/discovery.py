@@ -316,6 +316,110 @@ def _expand(
     return [candidate]
 
 
+@dataclass
+class _ResourceCollector:
+    base: Path
+    boundary: Path
+    prefix: str | None
+    allow_outside: bool
+    result: DiscoveredSources
+    collected: list[Path] | None = None
+
+    def collect(self, resources: tuple[ResourceConfig, ...]) -> None:
+        for resource in resources:
+            self._collect_one(resource)
+
+    def _collect_one(self, resource: ResourceConfig) -> None:
+        raw = resource.path
+        if raw.is_absolute():
+            self.result.diagnostics.append(
+                error("MG000", f"абсолютный путь ресурса запрещён: {raw}", path=str(self.base))
+            )
+            return
+        pattern = raw.as_posix()
+        if GLOB_CHARS.search(pattern):
+            self._collect_glob(resource, pattern)
+            return
+        candidate = (self.base / raw).resolve()
+        if candidate.is_dir():
+            self._collect_directory(resource, pattern, candidate)
+            return
+        if not candidate.is_file():
+            self.result.diagnostics.append(
+                error("MG000", f"ресурс не найден: {pattern}", path=str(candidate))
+            )
+            return
+        self._add(candidate, alias=resource.alias)
+
+    def _collect_glob(self, resource: ResourceConfig, pattern: str) -> None:
+        if resource.alias is not None:
+            self.result.diagnostics.append(
+                error("MG032", "as допустим только для одного файла", path=pattern)
+            )
+            return
+        matches = [
+            path
+            for path in self.base.glob(pattern)
+            if path.is_file() and not _is_hidden(self.base, path)
+        ]
+        if not matches:
+            self.result.diagnostics.append(
+                warning(
+                    "MG036",
+                    f"glob ресурсов не нашёл совпадений: {pattern}",
+                    path=str(self.base),
+                )
+            )
+        for path in sorted(matches, key=lambda item: item.as_posix()):
+            self._add(path, alias=None)
+
+    def _collect_directory(
+        self,
+        resource: ResourceConfig,
+        pattern: str,
+        directory: Path,
+    ) -> None:
+        if resource.alias is not None:
+            self.result.diagnostics.append(
+                error("MG032", "as допустим только для одного файла", path=pattern)
+            )
+            return
+        files = sorted(
+            (
+                path
+                for path in directory.rglob("*")
+                if path.is_file() and not _is_hidden(directory, path)
+            ),
+            key=lambda item: item.as_posix(),
+        )
+        for path in files:
+            self._add(path, alias=None)
+
+    def _add(self, path: Path, *, alias: str | None) -> None:
+        resolved = path.resolve()
+        if not self.allow_outside and not resolved.is_relative_to(self.boundary.resolve()):
+            self.result.diagnostics.append(
+                error("MG022", "ресурс вне разрешённой границы", path=str(resolved))
+            )
+            return
+        if self.collected is not None:
+            self.collected.append(resolved)
+        name = alias or _default_alias(self.base, resolved, self.prefix)
+        if name in self.result.resources:
+            self.result.diagnostics.append(
+                error("MG032", f"дубликат alias ресурса: {name}", path=str(resolved))
+            )
+            return
+        try:
+            content = resolved.read_bytes()
+        except OSError as exc:
+            self.result.diagnostics.append(
+                error("MG000", f"не удалось прочитать ресурс: {exc}", path=str(resolved))
+            )
+            return
+        self.result.resources[name] = ImportedFile(name=name, path=resolved, content=content)
+
+
 def _collect_resources(
     resources: tuple[ResourceConfig, ...],
     *,
@@ -326,121 +430,14 @@ def _collect_resources(
     result: DiscoveredSources,
     collected: list[Path] | None = None,
 ) -> None:
-    for resource in resources:
-        raw = resource.path
-        if raw.is_absolute():
-            result.diagnostics.append(
-                error("MG000", f"абсолютный путь ресурса запрещён: {raw}", path=str(base))
-            )
-            continue
-        pattern = raw.as_posix()
-        if GLOB_CHARS.search(pattern):
-            if resource.alias is not None:
-                result.diagnostics.append(
-                    error("MG032", "as допустим только для одного файла", path=pattern)
-                )
-                continue
-            matches = [
-                path for path in base.glob(pattern) if path.is_file() and not _is_hidden(base, path)
-            ]
-            if not matches:
-                result.diagnostics.append(
-                    warning(
-                        "MG036",
-                        f"glob ресурсов не нашёл совпадений: {pattern}",
-                        path=str(base),
-                    )
-                )
-            for path in sorted(matches, key=lambda item: item.as_posix()):
-                _add_resource(
-                    path,
-                    base=base,
-                    boundary=boundary,
-                    prefix=prefix,
-                    alias=None,
-                    allow_outside=allow_outside,
-                    result=result,
-                    collected=collected,
-                )
-            continue
-
-        candidate = (base / raw).resolve()
-        if candidate.is_dir():
-            if resource.alias is not None:
-                result.diagnostics.append(
-                    error("MG032", "as допустим только для одного файла", path=pattern)
-                )
-                continue
-            files = sorted(
-                (
-                    path
-                    for path in candidate.rglob("*")
-                    if path.is_file() and not _is_hidden(candidate, path)
-                ),
-                key=lambda item: item.as_posix(),
-            )
-            for path in files:
-                _add_resource(
-                    path,
-                    base=base,
-                    boundary=boundary,
-                    prefix=prefix,
-                    alias=None,
-                    allow_outside=allow_outside,
-                    result=result,
-                    collected=collected,
-                )
-            continue
-        if not candidate.is_file():
-            result.diagnostics.append(
-                error("MG000", f"ресурс не найден: {pattern}", path=str(candidate))
-            )
-            continue
-        _add_resource(
-            candidate,
-            base=base,
-            boundary=boundary,
-            prefix=prefix,
-            alias=resource.alias,
-            allow_outside=allow_outside,
-            result=result,
-            collected=collected,
-        )
-
-
-def _add_resource(
-    path: Path,
-    *,
-    base: Path,
-    boundary: Path,
-    prefix: str | None,
-    alias: str | None,
-    allow_outside: bool,
-    result: DiscoveredSources,
-    collected: list[Path] | None,
-) -> None:
-    resolved = path.resolve()
-    if not allow_outside and not resolved.is_relative_to(boundary.resolve()):
-        result.diagnostics.append(
-            error("MG022", "ресурс вне разрешённой границы", path=str(resolved))
-        )
-        return
-    if collected is not None:
-        collected.append(resolved)
-    name = alias or _default_alias(base, resolved, prefix)
-    if name in result.resources:
-        result.diagnostics.append(
-            error("MG032", f"дубликат alias ресурса: {name}", path=str(resolved))
-        )
-        return
-    try:
-        content = resolved.read_bytes()
-    except OSError as exc:
-        result.diagnostics.append(
-            error("MG000", f"не удалось прочитать ресурс: {exc}", path=str(resolved))
-        )
-        return
-    result.resources[name] = ImportedFile(name=name, path=resolved, content=content)
+    _ResourceCollector(
+        base=base,
+        boundary=boundary,
+        prefix=prefix,
+        allow_outside=allow_outside,
+        result=result,
+        collected=collected,
+    ).collect(resources)
 
 
 def _check_resource_overlap(

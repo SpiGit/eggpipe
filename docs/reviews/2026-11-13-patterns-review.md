@@ -235,6 +235,28 @@ retry, cleanup, диагностику.
 5. **P6** — Pydantic-модели для `metadata.postgres` в example.
 6. **P9–P15** — по мере касания файлов, отдельными PR.
 
+## 6.1. Continue-аудит
+
+`continue` — не антипаттерн сам по себе. В проекте остались в основном guard clauses
+(пропуск невалидного/неподходящего элемента). Смell возникает при 3+ `continue`
+в одном цикле, когда они образуют дерево решений.
+
+До рефакторинга: 74 вхождения. После:
+
+| Файл | Было/стало | Что осталось |
+|------|-----------|--------------|
+| `artifact_writer.py` | 18 → 8 | skip/check/cleanup-фильтры |
+| `plugin_loader.py` | 16 → 6 | короткие циклы загрузки |
+| `discovery.py` | 17 → 11 | пропуск невалидных путей/resources |
+| `composition.py` | 6 | фильтрация input-выборок |
+| `engine.py` | 5 | guard clauses |
+| `layers.py` | 2 | пропуск пустых scalar |
+| `watcher.py` | 1 | уже запланированный каталог |
+
+`ArtifactWriter.plan` разбит на `_PlanState`, `_plan_artifact`, `_plan_existing`;
+`discovery._collect_resources` — на `_ResourceCollector`; `plugin_loader` — на
+`_generator_from_entry`, `_format_from_entry`, `_load_local_module`.
+
 ## 7. Follow-up
 
 После ревью применены P1–P8 и P15:

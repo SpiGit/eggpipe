@@ -110,6 +110,18 @@ class CleanResult:
     diagnostics: list[Diagnostic]
 
 
+@dataclass
+class _PlanState:
+    plan: ExecutionPlan
+    generator_id: str
+    output_resolved: Path
+    ownership: dict[Path, LocationKey]
+    current: LocationKey
+    on_conflict: Literal["overwrite", "skip", "error"]
+    force: bool
+    seen: dict[str, str] = field(default_factory=dict)
+
+
 class ArtifactWriter:
     def __init__(self, *, eggpipe_version: str, config_dir: Path) -> None:
         self.eggpipe_version = eggpipe_version
@@ -127,122 +139,128 @@ class ArtifactWriter:
         force: bool = False,
         formats: frozenset[FormatInfo] = frozenset(),
     ) -> ExecutionPlan:
-        plan = ExecutionPlan(formats=formats)
         manifest = self.load_manifest()
-        ownership = self._ownership(manifest)
-        current = self.location_key(generator_id, output_dir)
-        seen: dict[str, str] = {}
-        output_resolved = output_dir.resolve()
-
+        state = _PlanState(
+            plan=ExecutionPlan(formats=formats),
+            generator_id=generator_id,
+            output_resolved=output_dir.resolve(),
+            ownership=self._ownership(manifest),
+            current=self.location_key(generator_id, output_dir),
+            on_conflict=on_conflict,
+            force=force,
+        )
         for artifact in artifacts:
-            try:
-                target = validate_artifact_path(output_dir, artifact)
-            except ArtifactPathError as exc:
-                plan.diagnostics.append(error("MG040", str(exc), path=artifact.path))
-                continue
-            normalized = target.relative_to(output_resolved).as_posix()
-            collision = _collision(seen, normalized)
-            if collision is not None:
-                plan.diagnostics.append(
-                    error(
-                        "MG042",
-                        f"дубликат artifact path: {collision} и {normalized}",
-                        path=normalized,
-                    )
-                )
-                continue
-            seen[normalized.casefold()] = normalized
-            if target.is_dir():
-                plan.diagnostics.append(
-                    error("MG041", "artifact path указывает на каталог", path=normalized)
-                )
-                continue
-            owner = ownership.get(target)
-            if owner is not None and owner != current:
-                plan.diagnostics.append(
-                    error(
-                        "MG041",
-                        f"файл принадлежит другому location: {owner.generator}:{owner.output_dir}",
-                        path=normalized,
-                    )
-                )
-                continue
-            prefix = _owned_prefix(target, ownership, current)
-            if prefix is not None:
-                plan.diagnostics.append(
-                    error(
-                        "MG042",
-                        f"конфликт пути с другим location: {prefix}",
-                        path=normalized,
-                    )
-                )
-                continue
-            digest = hashlib.sha256(artifact.content.encode("utf-8")).hexdigest()
+            planned = self._plan_artifact(state, artifact)
+            if planned is not None:
+                state.plan.artifacts.append(planned)
+        return state.plan
 
-            if not target.exists():
-                plan.artifacts.append(
-                    self._planned(
-                        generator_id=generator_id,
-                        normalized=normalized,
-                        target=target,
-                        action="create",
-                        digest=digest,
-                        content=artifact.content,
-                    )
-                )
-                continue
-
-            if on_conflict == "error":
-                plan.diagnostics.append(
-                    error("MG041", "on_conflict: error — файл уже существует", path=normalized)
-                )
-                continue
-
-            if owner == current:
-                skipped = on_conflict == "skip"
-                plan.artifacts.append(
-                    self._planned(
-                        generator_id=generator_id,
-                        normalized=normalized,
-                        target=target,
-                        action="skip" if skipped else "update",
-                        digest=digest,
-                        content=artifact.content,
-                        skipped=skipped,
-                    )
-                )
-                continue
-
-            if on_conflict == "skip":
-                plan.diagnostics.append(
-                    warning(
-                        "MG043",
-                        "не-owned файл не перезаписан и не добавлен в manifest",
-                        path=normalized,
-                    )
-                )
-                continue
-
-            if not force:
-                plan.diagnostics.append(
-                    error(
-                        "MG041",
-                        "файл не принадлежит генератору; перезапись только с --force",
-                        path=normalized,
-                    )
-                )
-                continue
-            plan.artifacts.append(
-                self._planned(
-                    generator_id=generator_id,
-                    normalized=normalized,
-                    target=target,
-                    action="update",
-                    digest=digest,
-                    content=artifact.content,
+    def _plan_artifact(
+        self,
+        state: _PlanState,
+        artifact: Artifact,
+    ) -> PlannedArtifact | None:
+        try:
+            target = validate_artifact_path(state.output_resolved, artifact)
+        except ArtifactPathError as exc:
+            state.plan.diagnostics.append(error("MG040", str(exc), path=artifact.path))
+            return None
+        normalized = target.relative_to(state.output_resolved).as_posix()
+        collision = _collision(state.seen, normalized)
+        if collision is not None:
+            state.plan.diagnostics.append(
+                error(
+                    "MG042",
+                    f"дубликат artifact path: {collision} и {normalized}",
+                    path=normalized,
                 )
             )
-        return plan
+            return None
+        state.seen[normalized.casefold()] = normalized
+        if target.is_dir():
+            state.plan.diagnostics.append(
+                error("MG041", "artifact path указывает на каталог", path=normalized)
+            )
+            return None
+        owner = state.ownership.get(target)
+        if owner is not None and owner != state.current:
+            state.plan.diagnostics.append(
+                error(
+                    "MG041",
+                    f"файл принадлежит другому location: {owner.generator}:{owner.output_dir}",
+                    path=normalized,
+                )
+            )
+            return None
+        prefix = _owned_prefix(target, state.ownership, state.current)
+        if prefix is not None:
+            state.plan.diagnostics.append(
+                error("MG042", f"конфликт пути с другим location: {prefix}", path=normalized)
+            )
+            return None
+        digest = hashlib.sha256(artifact.content.encode("utf-8")).hexdigest()
+        if not target.exists():
+            return self._planned(
+                generator_id=state.generator_id,
+                normalized=normalized,
+                target=target,
+                action="create",
+                digest=digest,
+                content=artifact.content,
+            )
+        return self._plan_existing(state, artifact, target, normalized, digest, owner)
+
+    def _plan_existing(
+        self,
+        state: _PlanState,
+        artifact: Artifact,
+        target: Path,
+        normalized: str,
+        digest: str,
+        owner: LocationKey | None,
+    ) -> PlannedArtifact | None:
+        if state.on_conflict == "error":
+            state.plan.diagnostics.append(
+                error("MG041", "on_conflict: error — файл уже существует", path=normalized)
+            )
+            return None
+        if owner == state.current:
+            skipped = state.on_conflict == "skip"
+            return self._planned(
+                generator_id=state.generator_id,
+                normalized=normalized,
+                target=target,
+                action="skip" if skipped else "update",
+                digest=digest,
+                content=artifact.content,
+                skipped=skipped,
+            )
+        if state.on_conflict == "skip":
+            state.plan.diagnostics.append(
+                warning(
+                    "MG043",
+                    "не-owned файл не перезаписан и не добавлен в manifest",
+                    path=normalized,
+                )
+            )
+            return None
+        if not state.force:
+            state.plan.diagnostics.append(
+                error(
+                    "MG041",
+                    "файл не принадлежит генератору; перезапись только с --force",
+                    path=normalized,
+                )
+            )
+            return None
+        return self._planned(
+            generator_id=state.generator_id,
+            normalized=normalized,
+            target=target,
+            action="update",
+            digest=digest,
+            content=artifact.content,
+        )
 
     @staticmethod
     def _planned(
