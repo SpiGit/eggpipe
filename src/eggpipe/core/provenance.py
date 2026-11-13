@@ -33,8 +33,9 @@ def git_provenance(path: Path) -> Provenance | None:
             capture_output=True,
             text=True,
             check=False,
+            timeout=5,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return None
     if result.returncode != 0:
         return None

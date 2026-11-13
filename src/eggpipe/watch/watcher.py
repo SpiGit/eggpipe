@@ -34,6 +34,9 @@ class _Debouncer:
         self._callback = callback
         self._delay = delay_ms / 1000
         self._timer: threading.Timer | None = None
+        self._lock = threading.Lock()
+        self._running = False
+        self._pending = False
 
     def trigger(self) -> None:
         if self._timer is not None:
@@ -43,10 +46,22 @@ class _Debouncer:
         self._timer.start()
 
     def _fire(self) -> None:
+        with self._lock:
+            if self._running:
+                self._pending = True
+                return
+            self._running = True
         try:
             self._callback()
         except Exception:  # watch не должен падать от одной ошибки
             LOGGER.exception("watch generation failed")
+        finally:
+            with self._lock:
+                self._running = False
+                pending = self._pending
+                self._pending = False
+            if pending:
+                self.trigger()
 
 
 @dataclass

@@ -178,7 +178,11 @@
 
 Кодовые P1 тоже исправлены: `artifacts[].action`, все шесть `timings`, MG014 только для
 `file-per-model`, `model validate` с plugin-реестром, удалён неиспользуемый `LookupError`.
-Остаются код P2: K4, K8–K10, K12–K18.
+
+Из кода P2 исправлены K4 (stale lock), K8 (sweep staging), K12 (watch overlap),
+K13 (fsync + уникальный tmp), K14 (drive-relative), K16 (git timeout), K17 (stat OSError),
+K18 (plugin version default). Остаются K9 (`delete/conflict` в плане), K10 (слой core → engine)
+и K15 (mutable containers в `GenerationContext`).
 
 ## Рекомендуемый план действий
 

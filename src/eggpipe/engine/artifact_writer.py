@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import unicodedata
 import uuid
@@ -297,6 +298,7 @@ class ArtifactWriter:
         diagnostics: list[Diagnostic] = []
         if plan.artifacts:
             output_dir.mkdir(parents=True, exist_ok=True)
+            _sweep_staging(output_dir)
             _stage_artifacts(plan, output_dir)
 
         entries = self._current_entries(plan)
@@ -406,10 +408,7 @@ class ArtifactWriter:
     def write_lock(self) -> Generator[None, None, None]:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         lock = self.state_dir / "lock"
-        try:
-            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError as exc:
-            raise LockError(f"manifest уже используется: {lock}") from exc
+        descriptor = _acquire_lock(lock)
         try:
             os.write(descriptor, f"{os.getpid()}\n".encode())
             yield
@@ -505,6 +504,56 @@ class ArtifactWriter:
             return resolved.as_posix()
 
 
+def _sweep_staging(output_dir: Path) -> None:
+    for path in output_dir.glob(".eggpipe-staging-*"):
+        if path.is_dir():
+            shutil.rmtree(path, ignore_errors=True)
+
+
+def _acquire_lock(lock: Path) -> int:
+    try:
+        return os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        if not _stale_lock(lock):
+            pid = _lock_pid(lock)
+            hint = f" (PID {pid})" if pid is not None else ""
+            raise LockError(
+                f"manifest уже используется: {lock}{hint}; "
+                "если процесс не запущен, удалите lock вручную"
+            ) from exc
+        lock.unlink(missing_ok=True)
+        try:
+            return os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError as retry:
+            raise LockError(f"manifest уже используется: {lock}") from retry
+
+
+def _stale_lock(lock: Path) -> bool:
+    pid = _lock_pid(lock)
+    return pid is None or not _pid_alive(pid)
+
+
+def _lock_pid(lock: Path) -> int | None:
+    try:
+        return int(lock.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return None
+
+
+def _pid_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+
+
 def _stage_artifacts(plan: ExecutionPlan, output_dir: Path) -> None:
     staging = output_dir / f".eggpipe-staging-{os.getpid()}-{uuid.uuid4().hex}"
     staging.mkdir()
@@ -571,6 +620,7 @@ def validate_artifact_path(output_dir: Path, artifact: Artifact) -> Path:
         stem = part.split(".", 1)[0].upper()
         if (
             part in {"", ".", ".."}
+            or re.match(r"^[A-Za-z]:", part)
             or part.startswith(".eggpipe")
             or stem in WIN_RESERVED
             or part.endswith((" ", "."))
@@ -594,12 +644,31 @@ def _sha256_file(path: Path) -> str:
 
 def _write_json_atomic(path: Path, value: BaseModel) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(
-        json.dumps(value.model_dump(mode="json"), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    os.replace(temporary, path)
+    temporary = path.with_name(f"{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(
+                json.dumps(value.model_dump(mode="json"), ensure_ascii=False, indent=2) + "\n"
+            )
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        _fsync_directory(path.parent)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _fsync_directory(path: Path) -> None:
+    try:
+        descriptor = os.open(path, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(descriptor)
+    except OSError:
+        pass
+    finally:
+        os.close(descriptor)
 
 
 __all__ = [

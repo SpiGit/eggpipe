@@ -88,6 +88,7 @@ def test_path_traversal_and_invalid_content(tmp_path: Path) -> None:
         Artifact(path="../escape.txt", content="x"),
         Artifact(path="/absolute.txt", content="x"),
         Artifact(path="CON", content="x"),
+        Artifact(path="C:drive.txt", content="x"),
         Artifact(path="a.txt", content="\ufeffbom"),
         Artifact(path="a.txt", content="crlf\r\n"),
     ):
@@ -196,6 +197,32 @@ def test_lock(tmp_path: Path) -> None:
     instance = writer(tmp_path)
     with instance.write_lock(), pytest.raises(LockError), instance.write_lock():
         pass
+
+
+def test_stale_lock_is_removed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from eggpipe.engine import artifact_writer
+
+    lock = tmp_path / ".eggpipe" / "lock"
+    lock.parent.mkdir()
+    lock.write_text("999999\n", encoding="utf-8")
+    def never_alive(pid: int) -> bool:
+        return False
+
+    monkeypatch.setattr(artifact_writer, "_pid_alive", never_alive)
+    with writer(tmp_path).write_lock():
+        pass
+    assert not lock.exists()
+
+
+def test_staging_sweep(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    stale = output / ".eggpipe-staging-old" / "nested"
+    stale.mkdir(parents=True)
+    write(tmp_path, output, plan_for(tmp_path, output, Artifact(path="a.txt", content="a")))
+    assert not (output / ".eggpipe-staging-old").exists()
 
 
 def test_symlink_escape_is_rejected(tmp_path: Path) -> None:

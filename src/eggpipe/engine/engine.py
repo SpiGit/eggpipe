@@ -523,7 +523,7 @@ def _elapsed(started: float) -> int:
 
 
 def _plugin_version(plugin: GeneratorPlugin) -> str:
-    return str(getattr(plugin, "__version__", "1"))
+    return str(getattr(plugin, "__version__", "unknown"))
 
 
 def _stale_date_diagnostics(
@@ -534,7 +534,11 @@ def _stale_date_diagnostics(
     for document in documents:
         if document.path not in allowed_paths:
             continue
-        file_date = datetime.fromtimestamp(document.path.stat().st_mtime, tz=UTC).date()
+        try:
+            modified = document.path.stat().st_mtime
+        except OSError:
+            continue
+        file_date = datetime.fromtimestamp(modified, tz=UTC).date()
         for entity in document.model.entities:
             if entity.updated_at is None:
                 continue
