@@ -205,5 +205,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** Eggpipe 0.3.0, ТЗ v2.2. Реализованы E0–E8 и E9: пакет/CLI/config/state,
-форматы и слои, decorator API, глобальный manifest, CLI/JSON v2, CI и release workflow.
+**Стадия:** Eggpipe 0.3.0, ТЗ v2.2. Реализованы E0–E9, пакет опубликован на PyPI:
+CLI/config/state, форматы и слои, decorator API, глобальный manifest, CLI/JSON v2, CI и release workflow.

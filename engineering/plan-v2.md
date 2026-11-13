@@ -240,6 +240,6 @@
 - [x] `check_docs --strict`, `mkdocs --strict`.
 - [x] `ruff`, `pyrefly`, `pytest --cov`.
 - [x] `uv build`, `check_wheel`.
-- [ ] `eggpipe` install/run из PyPI.
+- [x] `eggpipe` install/run из PyPI.
 - [x] TPC-H golden.
 - [x] Release checklist обновлён.
