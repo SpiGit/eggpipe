@@ -98,4 +98,5 @@ watch, JSON-отчёт, provenance, writer/manifest/lock, cleanup, `Engine`, CLI
 - Skill `spec-consistency` — чек-лист кросс-документной проверки.
 - Skill `plugin-contract` — контракты плагинов и публичный API.
 - Skill `clean-code` — принципы чистого кода и чек-лист code review.
+- Skill `python-patterns` — паттерны, антипаттерны и решающее дерево рефакторинга.
 - Subagent `spec-reviewer` — независимое read-only ревью документации.
