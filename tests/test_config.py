@@ -38,7 +38,8 @@ def test_load_rules(tmp_path: Path) -> None:
 
 def test_absolute_output_dir_is_rejected(tmp_path: Path) -> None:
     path = tmp_path / ".eggpipe.yaml"
-    path.write_text(RULES.replace("./out", "/tmp/out"), encoding="utf-8")
+    absolute = (tmp_path / "out").resolve().as_posix()
+    path.write_text(RULES.replace("./out", absolute), encoding="utf-8")
     with pytest.raises(ConfigValidationError):
         ProjectConfigLoader().load(path)
 
