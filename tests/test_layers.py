@@ -445,3 +445,58 @@ def test_non_model_yaml_reports_mg023(tmp_path: Path) -> None:
     discovered = discover_sources(rules, tmp_path)
     assert "MG023" in {item.code for item in discovered.diagnostics}
     assert [path.name for path in discovered.paths] == ["user.yaml"]
+
+
+def test_metadata_merge_is_nested_and_additive(tmp_path: Path) -> None:
+    base_path = write_model(
+        tmp_path / "user" / "base.yaml",
+        BASE.replace(
+            "    - name: User\n",
+            (
+                "    - name: User\n"
+                "      metadata:\n"
+                "        postgres:\n"
+                "          table: user\n"
+                "        tags: [base]\n"
+            ),
+        ),
+    )
+    delta_path = write_model(
+        tmp_path / "user" / "postgres.yaml",
+        DELTA.replace(
+            "    - name: User\n",
+            (
+                "    - name: User\n"
+                "      metadata:\n"
+                "        postgres:\n"
+                "          schema: public\n"
+                "        tags: [delta]\n"
+            ),
+        ),
+    )
+    result = merge_model_layers([parse(base_path), parse(delta_path)], registry())
+    metadata = result.document.model.entity("User").metadata
+    assert metadata == {
+        "postgres": {"table": "user", "schema": "public"},
+        "tags": ["base", "delta"],
+    }
+
+
+def test_metadata_conflict_is_error(tmp_path: Path) -> None:
+    base_path = write_model(
+        tmp_path / "user" / "base.yaml",
+        BASE.replace(
+            "    - name: User\n",
+            "    - name: User\n      metadata:\n        owner: base\n",
+        ),
+    )
+    delta_path = write_model(
+        tmp_path / "user" / "postgres.yaml",
+        DELTA.replace(
+            "    - name: User\n",
+            "    - name: User\n      metadata:\n        owner: delta\n",
+        ),
+    )
+    with pytest.raises(DocumentError) as caught:
+        merge_model_layers([parse(base_path), parse(delta_path)], registry())
+    assert caught.value.code == "MG029"

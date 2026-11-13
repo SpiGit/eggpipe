@@ -11,7 +11,6 @@ from eggpipe import (
     ModelSlice,
     generator,
 )
-from eggpipe.templating import TemplateError
 from tpch_generator.ddl import render_ddl
 from tpch_generator.pydantic_models import render_pydantic
 
@@ -33,26 +32,26 @@ def _templates_dir(config: GeneratorConfig, context: GenerationContext) -> Path 
     return path
 
 
-def _render_ddl(
+def _ddl_artifact(
     model: ModelSlice,
     config: GeneratorConfig,
     context: GenerationContext,
-) -> str:
-    try:
-        return render_ddl(model, _schema(config), _templates_dir(config, context))
-    except (TemplateError, ValueError) as exc:
-        raise ValueError(str(exc)) from exc
+) -> Artifact:
+    return Artifact(
+        path="postgres/schema.sql",
+        content=render_ddl(model, _schema(config), _templates_dir(config, context)),
+    )
 
 
-def _render_pydantic(
+def _pydantic_artifact(
     model: ModelSlice,
     config: GeneratorConfig,
     context: GenerationContext,
-) -> str:
-    try:
-        return render_pydantic(model, _templates_dir(config, context))
-    except (TemplateError, ValueError) as exc:
-        raise ValueError(str(exc)) from exc
+) -> Artifact:
+    return Artifact(
+        path="python/tpch_models.py",
+        content=render_pydantic(model, _templates_dir(config, context)),
+    )
 
 
 @generator(
@@ -66,8 +65,8 @@ def tpch(
     config: GeneratorConfig,
 ) -> list[Artifact]:
     return [
-        Artifact(path="postgres/schema.sql", content=_render_ddl(model, config, context)),
-        Artifact(path="python/tpch_models.py", content=_render_pydantic(model, config, context)),
+        _ddl_artifact(model, config, context),
+        _pydantic_artifact(model, config, context),
     ]
 
 
@@ -81,7 +80,7 @@ def tpch_ddl(
     context: GenerationContext,
     config: GeneratorConfig,
 ) -> list[Artifact]:
-    return [Artifact(path="postgres/schema.sql", content=_render_ddl(model, config, context))]
+    return [_ddl_artifact(model, config, context)]
 
 
 @generator(
@@ -94,12 +93,7 @@ def tpch_pydantic(
     context: GenerationContext,
     config: GeneratorConfig,
 ) -> list[Artifact]:
-    return [
-        Artifact(
-            path="python/tpch_models.py",
-            content=_render_pydantic(model, config, context),
-        )
-    ]
+    return [_pydantic_artifact(model, config, context)]
 
 
 TpchGenerator = tpch

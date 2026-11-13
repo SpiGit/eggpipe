@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Generic, Protocol, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -17,6 +18,18 @@ from eggpipe.utils.exceptions import DocumentError
 
 class FormatLookup(Protocol):
     def get(self, name: str) -> FormatPlugin: ...
+
+
+T = TypeVar("T")
+
+
+@dataclass(frozen=True)
+class MergeChange(Generic[T]):
+    value: T
+    changed: bool = False
+
+
+_MISSING = object()
 
 
 @dataclass(frozen=True)
@@ -63,23 +76,35 @@ def merge_model_layers(
                 delta_doc.path,
                 f"слой {delta_doc.format} описывает {delta.name}, ожидался {merged.name}",
             )
-        added = False
-        merged, merged_added = _merge_entity(merged, delta, delta_doc.path)
-        added |= merged_added
-        enums, enums_added = _merge_enums(enums, delta_doc.model.enums, delta_doc.path)
-        added |= enums_added
-        types, types_added = _merge_types(types, delta_doc.model.types, delta_doc.path)
-        added |= types_added
-        metadata, metadata_added = _merge_metadata(
+        merged_change = _merge_entity(merged, delta, delta_doc.path)
+        enums_change = _merge_enums(enums, delta_doc.model.enums, delta_doc.path)
+        types_change = _merge_types(types, delta_doc.model.types, delta_doc.path)
+        metadata_change = _merge_metadata(
             metadata,
             delta_doc.model.metadata,
             delta_doc.path,
         )
-        added |= metadata_added
-        document_metadata, doc_added = _merge_metadata(
-            document_metadata, delta_doc.metadata, delta_doc.path
+        document_metadata_change = _merge_metadata(
+            document_metadata,
+            delta_doc.metadata,
+            delta_doc.path,
+            path="document.metadata",
         )
-        added |= doc_added
+        merged = merged_change.value
+        enums = enums_change.value
+        types = types_change.value
+        metadata = metadata_change.value
+        document_metadata = document_metadata_change.value
+        added = any(
+            change.changed
+            for change in (
+                merged_change,
+                enums_change,
+                types_change,
+                metadata_change,
+                document_metadata_change,
+            )
+        )
         layer_sources.append(delta_doc.path)
         if not added:
             diagnostics.append(
@@ -222,7 +247,7 @@ def _merge_entity(
     base: Entity,
     delta: Entity,
     source: Path,
-) -> tuple[Entity, bool]:
+) -> MergeChange[Entity]:
     added = False
     values: dict[str, Any] = {}
     for name in ("description", "version", "updated_at"):
@@ -239,9 +264,9 @@ def _merge_entity(
                 source,
                 f"конфликт scalar {name}: {left!r} и {right!r}",
             )
-    metadata, metadata_added = _merge_metadata(base.metadata, delta.metadata, source)
-    if metadata_added:
-        values["metadata"] = metadata
+    metadata_change = _merge_metadata(base.metadata, delta.metadata, source)
+    if metadata_change.changed:
+        values["metadata"] = metadata_change.value
         added = True
 
     fields = list(base.fields)
@@ -253,14 +278,15 @@ def _merge_entity(
             by_name[field.name] = len(fields) - 1
             added = True
             continue
-        fields[index], field_added = _merge_field(fields[index], field, source)
-        added |= field_added
+        field_change = _merge_field(fields[index], field, source)
+        fields[index] = field_change.value
+        added |= field_change.changed
     if added or len(fields) != len(base.fields):
         values["fields"] = tuple(fields)
-    return base.model_copy(update=values), added
+    return MergeChange(base.model_copy(update=values), added)
 
 
-def _merge_field(base: FieldDef, delta: FieldDef, source: Path) -> tuple[FieldDef, bool]:
+def _merge_field(base: FieldDef, delta: FieldDef, source: Path) -> MergeChange[FieldDef]:
     left = base.model_dump(exclude={"metadata"})
     right = delta.model_dump(exclude={"metadata"})
     if left != right:
@@ -269,83 +295,87 @@ def _merge_field(base: FieldDef, delta: FieldDef, source: Path) -> tuple[FieldDe
             source,
             f"переопределение поля {base.name} запрещено",
         )
-    metadata, added = _merge_metadata(base.metadata, delta.metadata, source)
-    if not added:
-        return base, False
-    return base.model_copy(update={"metadata": metadata}), True
+    metadata_change = _merge_metadata(base.metadata, delta.metadata, source)
+    if not metadata_change.changed:
+        return MergeChange(base)
+    return MergeChange(
+        base.model_copy(update={"metadata": metadata_change.value}),
+        True,
+    )
 
 
 def _merge_enums(
     base: list[EnumDef],
     delta: tuple[EnumDef, ...],
     source: Path,
-) -> tuple[list[EnumDef], bool]:
-    result = list(base)
-    by_name = {item.name: item for item in result}
-    added = False
-    for item in delta:
-        existing = by_name.get(item.name)
-        if existing is None:
-            result.append(item)
-            by_name[item.name] = item
-            added = True
-            continue
-        if existing != item:
-            raise DocumentError("MG029", source, f"переопределение enum {item.name} запрещено")
-    return result, added
+) -> MergeChange[list[EnumDef]]:
+    return _merge_append(base, delta, source, label="enum", key=lambda item: item.name)
 
 
 def _merge_types(
     base: list[CustomType],
     delta: tuple[CustomType, ...],
     source: Path,
-) -> tuple[list[CustomType], bool]:
+) -> MergeChange[list[CustomType]]:
+    return _merge_append(base, delta, source, label="type", key=lambda item: item.name)
+
+
+def _merge_append(
+    base: list[T],
+    delta: tuple[T, ...],
+    source: Path,
+    *,
+    label: str,
+    key: Callable[[T], str],
+) -> MergeChange[list[T]]:
+    by_name = {key(item): item for item in base}
     result = list(base)
-    by_name = {item.name: item for item in result}
     added = False
     for item in delta:
-        existing = by_name.get(item.name)
+        name = key(item)
+        existing = by_name.get(name)
         if existing is None:
             result.append(item)
-            by_name[item.name] = item
+            by_name[name] = item
             added = True
-            continue
-        if existing != item:
-            raise DocumentError("MG029", source, f"переопределение type {item.name} запрещено")
-    return result, added
+        elif existing != item:
+            raise DocumentError("MG029", source, f"переопределение {label} {name} запрещено")
+    return MergeChange(result, added)
 
 
 def _merge_metadata(
     base: dict[str, Any],
     delta: dict[str, Any],
     source: Path,
-) -> tuple[dict[str, Any], bool]:
+    *,
+    path: str = "metadata",
+) -> MergeChange[dict[str, Any]]:
     result = dict(base)
     changed = False
     for key, value in delta.items():
-        if key not in result:
-            result[key] = value
+        change = _merge_value(result.get(key, _MISSING), value, source, f"{path}.{key}")
+        if change.changed:
+            result[key] = change.value
             changed = True
-            continue
-        current = result[key]
-        if isinstance(current, dict) and isinstance(value, dict):
-            merged, nested = _merge_metadata(current, value, source)
-            if nested:
-                result[key] = merged
-                changed = True
-            continue
-        if isinstance(current, list) and isinstance(value, list):
-            if value:
-                result[key] = [*current, *value]
-                changed = True
-            continue
-        if current != value:
+    return MergeChange(result, changed)
+
+
+def _merge_value(current: Any, incoming: Any, source: Path, path: str) -> MergeChange[Any]:
+    if current is _MISSING:
+        return MergeChange(incoming, True)
+    match current, incoming:
+        case dict(), dict():
+            return _merge_metadata(current, incoming, source, path=path)
+        case list(), list():
+            return MergeChange([*current, *incoming], bool(incoming))
+        case _ if current == incoming:
+            return MergeChange(current)
+        case _:
             raise DocumentError(
                 "MG029",
                 source,
-                f"конфликт metadata.{key}: {current!r} и {value!r}",
+                f"конфликт {path}: {current!r} и {incoming!r}",
             )
-    return result, changed
 
 
 __all__ = ["FormatLookup", "LayerMergeResult", "merge_model_layers"]

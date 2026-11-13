@@ -235,7 +235,20 @@ retry, cleanup, диагностику.
 5. **P6** — Pydantic-модели для `metadata.postgres` в example.
 6. **P9–P15** — по мере касания файлов, отдельными PR.
 
-## 7. Обновление skills
+## 7. Follow-up
+
+После ревью применены P1, P2, P7, P8:
+
+- `MergeChange[T]` — generic value object вместо `tuple[value, bool]`;
+- `_merge_value` с `match` вместо цепочки `isinstance/continue`;
+- generic `_merge_append` вместо копипасты `_merge_enums`/`_merge_types`;
+- `_render_ddl`/`_render_pydantic` удалены; остались только artifact-хелперы без
+  перевыброса исключений;
+- добавлены тесты nested metadata merge и конфликта metadata.
+
+Остальные пункты (P3–P6, P9–P15) остаются в плане.
+
+## 8. Обновление skills
 
 - В `clean-code` добавлена ссылка на новый skill.
 - Новый skill `python-patterns` содержит каталог паттернов, антипаттернов и решающее
@@ -243,7 +256,7 @@ retry, cleanup, диагностику.
 - В `python-patterns` зафиксированы два разобранных случая как эталонные примеры:
   `_merge_metadata` и wrapper-функции.
 
-## 8. Проверенные файлы
+## 9. Проверенные файлы
 
 `src/eggpipe`: `__init__.py`, `cli/main.py`, `config/*`, `core/*`, `engine/*`,
 `interfaces/*`, `utils/*`, `watch/watcher.py`, `templating.py`;
