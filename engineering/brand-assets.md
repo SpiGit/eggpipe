@@ -75,10 +75,15 @@ PNG-экспорты:
 - `lockup/eggpipe-wordmark-light.png`, `lockup/eggpipe-wordmark-dark.png`;
 - `lockup/eggpipe-lockup-light.png`, `lockup/eggpipe-lockup-dark.png`.
 
+PNG для README и docs собраны из исходного растрового wordmark: так сохраняется
+тоньше штрих. SVG-версии — черновой автотрейс, они тяжелее и пока не используются
+для экспорта.
+
 ## Ограничения
 
-- SVG иконки и wordmark получены автотрассировкой исходных PNG. Перед публичным
-  релизом желательно перерисовать кривые вручную в Figma/Inkscape.
+- SVG иконки и wordmark получены автотрассировкой исходных PNG. Wordmark SVG
+  тяжелее оригинала; PNG-экспорты собраны из растрового источника.
+  Перед публичным релизом кривые желательно перерисовать вручную в Figma/Inkscape.
 - `social/eggpipe-social-1280x640.png` собран из векторного lockup; tagline в нём
   пока растровый.
 - `apple-touch-icon.png` — единственный PNG с фоном, так требует iOS.
