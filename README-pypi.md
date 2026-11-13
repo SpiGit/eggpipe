@@ -67,7 +67,7 @@ sql-model = "my_package:SqlModelFormat"
 
 ## Documentation
 
-- [Documentation](https://github.com/SpiGit/eggpipe/tree/main/docs)
+- [Documentation](https://spigit.github.io/eggpipe/)
 - [Quick start](https://github.com/SpiGit/eggpipe/blob/main/docs/user/quickstart.md)
 - [CLI reference](https://github.com/SpiGit/eggpipe/blob/main/docs/user/cli.md)
 - [Plugin guide](https://github.com/SpiGit/eggpipe/blob/main/docs/user/plugins.md)

@@ -174,7 +174,8 @@ mypy не входит в блокирующий CI; решение зафикс
 uv run python tools/check_docs.py --strict
 ```
 
-- [Документация](./docs/index.md) — пользователям и AI-агентам
+- [Документация](https://spigit.github.io/eggpipe/) — опубликованный сайт
+- [Исходники документации](./docs/index.md) — пользователям и AI-агентам
 - [Инженерная документация](./engineering/index.md) — ТЗ, ADR, System Design, ревью
 - [Быстрый старт](./docs/user/quickstart.md)
 - [Плагины](./docs/user/plugins.md)
