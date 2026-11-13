@@ -40,6 +40,15 @@ class FormatInheritanceError(ConfigValidationError):
     code = "MG034"
 
 
+class PluginContractError(ConfigValidationError):
+    """Нарушен контракт плагина."""
+
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        self.message = message
+        super().__init__(f"{code}: {message}")
+
+
 class UnknownFormatError(ConfigValidationError):
     """Формат не найден в реестре."""
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 from pydantic import ValidationError
@@ -25,6 +26,7 @@ from eggpipe import (
 
 class Demo(GeneratorPlugin):
     id = "demo"
+    input_formats: ClassVar[set[str] | None] = None
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult()

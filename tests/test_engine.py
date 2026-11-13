@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -36,6 +37,7 @@ model:
 
 class DemoGenerator(GeneratorPlugin):
     id = "demo"
+    input_formats: ClassVar[set[str] | None] = None
     name = "Demo"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
@@ -44,6 +46,7 @@ class DemoGenerator(GeneratorPlugin):
 
 class FailingGenerator(GeneratorPlugin):
     id = "fail"
+    input_formats: ClassVar[set[str] | None] = None
     name = "Fail"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
@@ -52,6 +55,7 @@ class FailingGenerator(GeneratorPlugin):
 
 class ContextGenerator(GeneratorPlugin):
     id = "context"
+    input_formats: ClassVar[set[str] | None] = None
     name = "Context"
 
     def __init__(self) -> None:

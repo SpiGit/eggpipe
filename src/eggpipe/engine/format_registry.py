@@ -59,6 +59,23 @@ class FormatRegistry:
         except KeyError as exc:
             raise UnknownFormatError(f"неизвестный формат: {name}") from exc
 
+    def accepts(self, format_name: str, accepted: set[str] | None) -> bool:
+        """Проверить формат с учётом цепочки extends."""
+        if accepted is None:
+            return True
+        self.validate()
+        current: str | None = format_name
+        seen: set[str] = set()
+        while current is not None and current not in seen:
+            if current in accepted:
+                return True
+            seen.add(current)
+            plugin = self._formats.get(current)
+            if plugin is None:
+                return False
+            current = plugin.extends
+        return False
+
     def list(self) -> list[FormatRegistryInfo]:
         self.validate()
         return [

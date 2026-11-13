@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 from eggpipe import (
     AppConfig,
@@ -48,6 +49,7 @@ model:
 
 class CaptureGenerator(GeneratorPlugin):
     id = "capture"
+    input_formats: ClassVar[set[str] | None] = None
     name = "Capture"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:

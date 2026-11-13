@@ -14,6 +14,7 @@ from eggpipe.config.generator_rules import GeneratorConfig, GeneratorRules
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
 from eggpipe.core.document import ModelDocument
+from eggpipe.core.model import ModelSlice
 from eggpipe.core.parser import Parser
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
@@ -109,7 +110,7 @@ class Engine:
         success = not _has_errors(diagnostics)
         return self._report(
             success,
-            0 if success else 1,
+            _exit_code(success, diagnostics),
             self._filter_ignored(diagnostics),
             run.generators,
             started,
@@ -143,17 +144,22 @@ class Engine:
         composition: CompositionResult,
         diagnostics: list[Diagnostic],
     ) -> None:
-        format_plugin = self.registry.get(composition.format)
+        plugins = [self.registry.get(document.format) for document in composition.documents]
+        primitives: set[str] = set()
+        for plugin in plugins:
+            primitives.update(plugin.primitive_types)
+        if not primitives:
+            primitives.update(self.registry.get(composition.format).primitive_types)
         diagnostics.extend(
             validate_entity_model(
                 composition.model,
-                primitive_types=format_plugin.primitive_types,
+                primitive_types=primitives,
             )
         )
-        if isinstance(format_plugin, EntityModelFormat):
-            return
-        for document in composition.documents:
-            diagnostics.extend(format_plugin.validate(document))
+        for document, plugin in zip(composition.documents, plugins, strict=True):
+            if isinstance(plugin, EntityModelFormat):
+                continue
+            diagnostics.extend(plugin.validate(document))
 
     def _run_generators(self, composition: CompositionResult) -> _GeneratorRun:
         run = _GeneratorRun(generators=[], artifacts=[], pending=[], diagnostics=[])
@@ -263,7 +269,7 @@ class Engine:
         return report.model_copy(
             update={
                 "success": success,
-                "exit_code": 0 if success else 1,
+                "exit_code": _exit_code(success, diagnostics),
                 "diagnostics": diagnostics,
             }
         )
@@ -296,21 +302,6 @@ class Engine:
         generator_config: GeneratorConfig,
         plugin: GeneratorPlugin,
     ) -> tuple[GenerationResult, ExecutionPlan]:
-        try:
-            config_diagnostics = plugin.validate_config(generator_config)
-        except Exception as exc:
-            return (
-                GenerationResult(
-                    errors=[
-                        error(
-                            "MG300",
-                            f"validate_config {generator_config.id} упал: "
-                            f"{type(exc).__name__}: {exc}",
-                        )
-                    ]
-                ),
-                ExecutionPlan(),
-            )
         slice_, slice_diagnostics = select_slice(composition.model, generator_config.input)
         context = GenerationContext(
             variables=dict(self.variables),
@@ -321,17 +312,35 @@ class Engine:
             run_id=self.run_id,
             config_dir=self.config_dir,
         )
-        config_errors, config_warnings = _partition(config_diagnostics)
         slice_errors, slice_warnings = _partition(slice_diagnostics)
-        errors = config_errors + slice_errors
-        if errors:
+        if slice_errors:
+            return GenerationResult(warnings=slice_warnings, errors=slice_errors), ExecutionPlan()
+
+        format_errors = _check_input_formats(plugin, generator_config.id, slice_, self.registry)
+        if format_errors:
+            return GenerationResult(warnings=slice_warnings, errors=format_errors), ExecutionPlan()
+
+        try:
+            config_diagnostics = plugin.validate_config(generator_config)
+        except Exception as exc:
             return (
                 GenerationResult(
-                    warnings=config_warnings + slice_warnings,
-                    errors=errors,
+                    warnings=slice_warnings,
+                    errors=[
+                        error(
+                            "MG300",
+                            f"validate_config {generator_config.id} упал: "
+                            f"{type(exc).__name__}: {exc}",
+                        )
+                    ],
                 ),
                 ExecutionPlan(),
             )
+        config_errors, config_warnings = _partition(config_diagnostics)
+        warnings = slice_warnings + config_warnings
+        if config_errors:
+            return GenerationResult(warnings=warnings, errors=config_errors), ExecutionPlan()
+
         try:
             result = plugin.generate(
                 GeneratorInput(model=slice_, config=generator_config, context=context)
@@ -339,16 +348,16 @@ class Engine:
         except Exception as exc:
             return (
                 GenerationResult(
+                    warnings=warnings,
                     errors=[
                         error(
                             "MG300",
                             f"генератор {generator_config.id} упал: {type(exc).__name__}: {exc}",
                         )
-                    ]
+                    ],
                 ),
                 ExecutionPlan(),
             )
-        warnings = config_warnings + slice_warnings
         if warnings:
             result = result.model_copy(update={"warnings": [*warnings, *result.warnings]})
         if not result.success:
@@ -428,6 +437,35 @@ def _composition_sources(composition: CompositionResult) -> list[Path]:
     return sorted(paths, key=lambda item: item.as_posix())
 
 
+def _check_input_formats(
+    plugin: GeneratorPlugin,
+    generator_id: str,
+    slice_: ModelSlice,
+    registry: FormatRegistry,
+) -> list[Diagnostic]:
+    if not slice_.entities:
+        return []
+    missing = object()
+    accepted = getattr(type(plugin), "input_formats", missing)
+    if accepted is missing:
+        return [error("MG301", f"генератор {generator_id}: input_formats обязателен")]
+    if accepted is not None and not isinstance(accepted, set):
+        return [error("MG301", f"генератор {generator_id}: input_formats должен быть set[str]")]
+    errors: list[Diagnostic] = []
+    for entity in slice_.entities:
+        if entity.format is None:
+            continue
+        if not registry.accepts(entity.format, accepted):
+            errors.append(
+                error(
+                    "MG033",
+                    f"генератор {generator_id} не поддерживает формат {entity.format}",
+                    entity=entity.name,
+                )
+            )
+    return errors
+
+
 def _partition(
     diagnostics: list[Diagnostic],
 ) -> tuple[list[Diagnostic], list[Diagnostic]]:
@@ -438,6 +476,12 @@ def _partition(
 
 def _has_errors(diagnostics: list[Diagnostic]) -> bool:
     return any(item.level == "error" for item in diagnostics)
+
+
+def _exit_code(success: bool, diagnostics: list[Diagnostic]) -> int:
+    if success:
+        return 0
+    return 2 if any(item.code == "MG033" for item in diagnostics) else 1
 
 
 __all__ = ["Engine"]

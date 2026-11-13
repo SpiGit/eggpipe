@@ -234,3 +234,35 @@ def registry_with(plugin: FormatPlugin) -> FormatRegistry:
     registry.register(plugin)
     registry.validate()
     return registry
+
+
+def test_composition_accepts_mixed_root_formats(tmp_path: Path) -> None:
+    from eggpipe import Composition
+
+    base = tmp_path / "base.yaml"
+    base.write_text(
+        'format: entity-model\nversion: "1.0"\nmodel:\n  entities:\n    - name: User\n',
+        encoding="utf-8",
+    )
+    delta = tmp_path / "delta.yaml"
+    delta.write_text(
+        'format: extended\nversion: "2.0"\nmodel:\n  entities:\n    - name: Post\n',
+        encoding="utf-8",
+    )
+    registry = FormatRegistry()
+    registry.register(ExtendedFormat())
+    result = Composition(Parser(registry), project_root=tmp_path).resolve([base, delta])
+    assert {entity.format for entity in result.model.entities} == {
+        "entity-model",
+        "extended",
+    }
+
+
+def test_registry_accepts_descendants() -> None:
+    registry = FormatRegistry()
+    registry.register(ExtendedFormat())
+    assert registry.accepts("extended", {"entity-model"}) is True
+    assert registry.accepts("extended", {"extended"}) is True
+    assert registry.accepts("extended", set()) is False
+    assert registry.accepts("extended", None) is True
+    assert registry.accepts("missing", {"entity-model"}) is False

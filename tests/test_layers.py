@@ -70,6 +70,7 @@ class PostgresFormat(EntityModelFormat):
 
 class Capture(GeneratorPlugin):
     id = "capture"
+    input_formats: ClassVar[set[str] | None] = None
     name = "Capture"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:

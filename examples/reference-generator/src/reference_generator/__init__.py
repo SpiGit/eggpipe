@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from eggpipe import (
     UNSET,
@@ -20,6 +20,7 @@ class ReferenceGenerator(GeneratorPlugin):
 
     id = "reference"
     name = "Reference Generator"
+    input_formats: ClassVar[set[str] | None] = {"entity-model"}
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         payload = {

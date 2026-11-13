@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 from eggpipe import (
     AppConfig,
@@ -19,6 +20,7 @@ from eggpipe import (
 
 class StableGenerator(GeneratorPlugin):
     id = "stable"
+    input_formats: ClassVar[set[str] | None] = None
     name = "Stable"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:

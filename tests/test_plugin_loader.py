@@ -8,21 +8,30 @@ from typing import Any, ClassVar
 import pytest
 
 from eggpipe import (
+    Artifact,
     Entity,
     FormatSchema,
     GenerationResult,
     GeneratorInput,
     GeneratorPlugin,
     ModelDocument,
+    ModelSlice,
     SourceModel,
+    generator,
 )
 from eggpipe.engine import plugin_loader
 from eggpipe.interfaces.formats import FormatPlugin
 
 
+@generator(input_formats={"entity-model"})
+def Decorated(model: ModelSlice) -> list[Artifact]:
+    return []
+
+
 class DemoGenerator(GeneratorPlugin):
     id = "demo"
     name = "Demo"
+    input_formats: ClassVar[set[str] | None] = None
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult()
@@ -31,6 +40,7 @@ class DemoGenerator(GeneratorPlugin):
 class BrokenGenerator(GeneratorPlugin):
     api_version = "2"  # type: ignore[assignment]
     id = "broken"
+    input_formats: ClassVar[set[str] | None] = None
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult()
@@ -93,6 +103,34 @@ def test_generator_issues(monkeypatch: pytest.MonkeyPatch) -> None:
     assert {item.entry_point for item in issues} == {"wrong-name", "broken"}
 
 
+def test_decorator_generator_is_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return [EntryPoint("decorated", Decorated)]
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    plugins, issues = plugin_loader.load_generators_with_issues()
+    assert issues == []
+    assert set(plugins) == {"decorated"}
+
+
+def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Missing(GeneratorPlugin):
+        id = "missing"
+
+        def generate(self, input: GeneratorInput) -> GenerationResult:
+            return GenerationResult()
+
+    entries = [EntryPoint("missing", Missing)]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    plugins, issues = plugin_loader.load_generators_with_issues()
+    assert plugins == {}
+    assert issues[0].code == "MG301"
+
+
 def test_load_formats_and_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_entry_points(*, group: str) -> list[EntryPoint]:
         if group == plugin_loader.FORMAT_GROUP:
@@ -126,11 +164,14 @@ def test_load_local_generators(tmp_path: Path) -> None:
     module = tmp_path / "local_plugin.py"
     module.write_text(
         """\
+from typing import ClassVar
+
 from eggpipe import GenerationResult, GeneratorInput, GeneratorPlugin
 
 class Local(GeneratorPlugin):
     id = "local"
     name = "Local"
+    input_formats: ClassVar[set[str] | None] = None
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult()

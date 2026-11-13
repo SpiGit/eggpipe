@@ -137,7 +137,7 @@ def _print_report(
         and all(generator.status != "error" for generator in report.generators)
         and not (strict and warnings)
     )
-    exit_code = 0 if success else 1
+    exit_code = 0 if success else (2 if report.exit_code == 2 else 1)
     report = report.model_copy(
         update={"diagnostics": diagnostics, "success": success, "exit_code": exit_code}
     )
@@ -536,7 +536,11 @@ def gen_list(
         typer.echo("no generators")
         return
     for generator_id, plugin in sorted(plugins.items()):
-        typer.echo(f"{generator_id}\t{plugin.name or generator_id}\tapi={plugin.api_version}")
+        formats = _input_formats_label(plugin.input_formats)
+        typer.echo(
+            f"{generator_id}\t{plugin.name or generator_id}\t"
+            f"api={plugin.api_version}\tinput_formats={formats}"
+        )
 
 
 @gen_app.command("info")
@@ -549,7 +553,14 @@ def gen_info(generator_id: str) -> None:
     typer.echo(f"id: {plugin.id}")
     typer.echo(f"name: {plugin.name or plugin.id}")
     typer.echo(f"api_version: {plugin.api_version}")
+    typer.echo(f"input_formats: {_input_formats_label(plugin.input_formats)}")
     typer.echo(f"entry point group: {GENERATOR_GROUP}")
+
+
+def _input_formats_label(formats: set[str] | None) -> str:
+    if formats is None:
+        return "any"
+    return ",".join(sorted(formats)) if formats else "none"
 
 
 @format_app.command("list")

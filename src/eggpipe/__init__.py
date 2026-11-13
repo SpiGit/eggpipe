@@ -47,6 +47,7 @@ from eggpipe.interfaces.generator import (
     GeneratorInput,
     GeneratorPlugin,
     ImportedFile,
+    generator,
 )
 from eggpipe.utils.exceptions import (
     ArtifactPathError,
@@ -57,6 +58,7 @@ from eggpipe.utils.exceptions import (
     FormatInheritanceError,
     LockError,
     ManifestError,
+    PluginContractError,
     UnknownFormatError,
 )
 from eggpipe.version import __version__
@@ -111,11 +113,13 @@ __all__ = [
     "ModelSlice",
     "NamingStyle",
     "Parser",
+    "PluginContractError",
     "Provenance",
     "SourceConfig",
     "SourceModel",
     "UnknownFormatError",
     "__version__",
+    "generator",
     "git_provenance",
     "normalize_version",
     "select_slice",

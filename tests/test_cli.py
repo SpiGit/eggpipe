@@ -185,6 +185,7 @@ from eggpipe import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
 class Local(GeneratorPlugin):
     id = "local"
     name = "Local"
+    input_formats = None
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult(artifacts=[Artifact(path="local.txt", content="local\\n")])
@@ -212,3 +213,35 @@ def test_init_with_layout(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0
     assert "layout: directory-per-model" in path.read_text(encoding="utf-8")
+
+
+def test_incompatible_format_exits_2(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    rules.write_text(
+        RULES.replace(
+            "generators: []",
+            "generators:\n  - id: no-formats\n    output_dir: ./out",
+        ),
+        encoding="utf-8",
+    )
+    plugin = tmp_path / "no_formats.py"
+    plugin.write_text(
+        """\
+from eggpipe import GenerationResult, GeneratorInput, GeneratorPlugin
+
+class NoFormats(GeneratorPlugin):
+    id = "no-formats"
+    input_formats = set()
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult()
+""",
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--plugin", str(plugin)],
+    )
+    assert result.exit_code == 2
+    assert "MG033" in result.stderr
+    assert not (tmp_path / "out").exists()

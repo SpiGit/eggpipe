@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** E0–E4 выполнены; следующий этап — E5
+- **Статус:** E0–E5 выполнены; следующий этап — E6
 
 ---
 
@@ -120,13 +120,13 @@
 
 Задачи:
 
-- [ ] `@generator` decorator: metadata, validation, registration.
-- [ ] Инъекция `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
-- [ ] Нормализация return types.
-- [ ] `input_formats` обязателен; MG301/MG302.
-- [ ] Pre-flight проверка форматов; MG033 exit 2.
-- [ ] Plugin loader: decorator objects, entry points.
-- [ ] `gen list/info` с `input_formats`.
+- [x] `@generator` decorator: metadata, validation, registration.
+- [x] Инъекция `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
+- [x] Нормализация return types.
+- [x] `input_formats` обязателен; MG301/MG302.
+- [x] Pre-flight проверка форматов; MG033 exit 2.
+- [x] Plugin loader: decorator objects, entry points.
+- [x] `gen list/info` с `input_formats`.
 
 **Критерий:** contract-тесты, decorator/class API, mixed formats.
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 from typing_extensions import override
 
@@ -20,6 +21,8 @@ from tpch_generator.pydantic_models import render_pydantic
 
 
 class _TpchBase(GeneratorPlugin):
+    input_formats: ClassVar[set[str] | None] = {"entity-model"}
+
     @override
     def validate_config(self, config: GeneratorConfig) -> list[Diagnostic]:
         schema = config.options.get("schema", "public")

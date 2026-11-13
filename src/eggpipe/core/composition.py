@@ -76,22 +76,16 @@ class Composition:
             resource_aliases=set(resources or {}),
         )
         diagnostics: list[Diagnostic] = []
-        root_format: str | None = None
-        root_version: str | None = None
         visited_keys: list[Path] = []
         grouped: dict[int, tuple[SourceGroup, list[Path]]] = {}
         for group, unit in unit_refs:
-            keys = self._visit_unit(unit, state, root_format, root_version, diagnostics)
+            keys = self._visit_unit(unit, state, None, None, diagnostics)
             if not keys:
                 continue
             visited_keys.extend(keys)
             if group is not None:
                 _, group_keys = grouped.setdefault(id(group), (group, []))
                 group_keys.extend(keys)
-            if root_format is None:
-                first_document = state.cache[keys[0]]
-                root_format = first_document.format
-                root_version = first_document.version
         if not visited_keys:
             raise DocumentError("MG000", None, "нет источников модели")
 

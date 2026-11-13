@@ -10,7 +10,8 @@ from pathlib import Path
 
 from eggpipe.engine.format_registry import FormatRegistry
 from eggpipe.interfaces.formats import FormatPlugin
-from eggpipe.interfaces.generator import GeneratorPlugin
+from eggpipe.interfaces.generator import GeneratorPlugin, validate_generator_contract
+from eggpipe.utils.exceptions import PluginContractError
 
 GENERATOR_GROUP = "eggpipe.generators"
 FORMAT_GROUP = "eggpipe.formats"
@@ -20,6 +21,7 @@ FORMAT_GROUP = "eggpipe.formats"
 class PluginIssue:
     entry_point: str
     message: str
+    code: str | None = None
 
 
 def load_generators_with_issues() -> tuple[dict[str, GeneratorPlugin], list[PluginIssue]]:
@@ -35,6 +37,11 @@ def load_generators_with_issues() -> tuple[dict[str, GeneratorPlugin], list[Plug
             continue
         if not isinstance(plugin, GeneratorPlugin):
             issues.append(PluginIssue(entry_point.name, "не является GeneratorPlugin"))
+            continue
+        try:
+            validate_generator_contract(plugin)
+        except PluginContractError as exc:
+            issues.append(PluginIssue(entry_point.name, str(exc), exc.code))
             continue
         if plugin.api_version != "1":
             issues.append(
@@ -136,6 +143,11 @@ def load_local_generators_with_issues(
                         f"не удалось создать плагин: {exc}",
                     )
                 )
+                continue
+            try:
+                validate_generator_contract(plugin)
+            except PluginContractError as exc:
+                issues.append(PluginIssue(f"{entry_name}:{value.__name__}", str(exc), exc.code))
                 continue
             if plugin.api_version != "1":
                 issues.append(
