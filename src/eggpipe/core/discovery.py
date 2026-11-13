@@ -22,6 +22,7 @@ class ModelUnit:
     layered: bool = False
     model_dir: Path | None = None
     single_entity: bool = False
+    stale_dates: bool = False
 
 
 @dataclass(frozen=True)
@@ -140,7 +141,10 @@ def _discover_file_per_model(
         canonical_files.append(canonical)
     if canonical_files:
         _check_resource_overlap(canonical_files, result)
-        units = tuple(ModelUnit(paths=(path,), single_entity=True) for path in canonical_files)
+        units = tuple(
+            ModelUnit(paths=(path,), single_entity=True, stale_dates=True)
+            for path in canonical_files
+        )
         result.groups.append(
             SourceGroup(paths=tuple(canonical_files), input=source.input, units=units)
         )

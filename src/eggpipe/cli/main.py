@@ -209,7 +209,7 @@ def _print_report(report: EngineReport, options: ReportOptions) -> int:
             typer.echo(f"[{generator.status}] {generator.id} ({generator.duration_ms} ms)")
         if options.verbose:
             for artifact in report.artifacts:
-                typer.echo(f"  {artifact.status}: {artifact.path}")
+                typer.echo(f"  {artifact.action}: {artifact.path}")
         typer.echo("OK" if success else "FAILED")
     return exit_code
 
@@ -549,7 +549,7 @@ def model_validate(
     output_format: Annotated[str, typer.Option("--output-format")] = "text",
 ) -> None:
     """Проверить модели."""
-    parser = Parser()
+    parser = Parser(_load_format_registry())
     diagnostics = []
     for path in models:
         try:

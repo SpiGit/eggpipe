@@ -17,6 +17,7 @@ nav:
   - Project review: reviews/2026-11-13-project-review.md
   - Требования:
       - Обзор: requirements/index.md
+      - v2.1: requirements/v2.1.md
       - v2.0: requirements/v2.0.md
       - v1.4: requirements/v1.4.md
       - v1.3: requirements/v1.3.md
@@ -36,6 +37,7 @@ nav:
       - 0008 — model units/layouts: adr/0008-model-units-and-source-layouts.md
       - 0009 — global manifest: adr/0009-global-manifest-ownership.md
       - 0010 — generator decorators: adr/0010-decorator-generator-api.md
+      - 0011 — public API and identity: adr/0011-public-api-v2-identity.md
   - Плагины: plugin-guide.md
   - Диагностики: reference/diagnostics.md
   - Релиз: release.md

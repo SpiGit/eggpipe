@@ -324,3 +324,36 @@ def test_model_schema_for_format() -> None:
     assert schema["version"] == "1.0"
     assert "full_entity" in schema
     assert "layer_entity" in schema
+
+
+def test_json_report_v2_action_and_timings(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, rules = project(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    entries = [EntryPoint("reference", ReferenceGenerator)]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--output-format", "json"],
+    )
+    assert result.exit_code == 0
+    report = json.loads(result.stdout)
+    assert report["artifacts"][0]["action"] == "create"
+    assert set(report["timings"]) == {
+        "discovery_ms",
+        "parse_ms",
+        "validate_ms",
+        "generate_ms",
+        "write_ms",
+        "total_ms",
+    }
+    assert report["generators"][0]["status"] == "ok"

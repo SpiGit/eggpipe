@@ -7,7 +7,7 @@
 `eggpipe` — инструмент, который генерирует артефакты (SQL, Python, TypeScript и т.д.)
 из YAML-описания модели данных. Архитектура: нейтральное ядро + плагины генераторов и форматов.
 
-Репозиторий содержит реализацию ТЗ v2.0: composition, форматы и слои, decorator API,
+Репозиторий содержит реализацию ТЗ v2.1: composition, форматы и слои, decorator API,
 watch, JSON-отчёт v2, provenance, глобальный manifest/lock, cleanup, `Engine`, CLI,
 reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, версия пакета и release.
 
@@ -15,9 +15,9 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 
 Приоритет при расхождении — сверху вниз:
 
-1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/requirements/index.md` (сейчас `v2.0.md`):
+1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/requirements/index.md` (сейчас `v2.1.md`):
    поведение, контракты, CLI, запись артефактов.
-2. `docs/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API).
+2. `docs/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность).
 3. `docs/system-design/index.md` — проектирование реализации (классы, потоки, структура).
 4. `docs/requirements/index.md` — реестр версий и changelog.
 5. `README.md` и `.session-context.md` — краткое состояние проекта.
@@ -76,7 +76,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
       прежняя актуальная версия добавлена в `deny`-список.
 - [ ] Термины, коды `MGxxx`, флаги CLI и exit codes совпадают во всех документах.
 - [ ] `uv run python tools/check_docs.py --strict` проходит без ошибок.
-- [ ] `uv run ruff check .`, `uv run ruff format --check src tests tools`, `uv run pyrefly check`
+- [ ] `uv run ruff check .`, `uv run ruff format --check src tests tools examples`, `uv run pyrefly check`
       и `uv run pytest` проходят.
 - [ ] `uv build` и `uv run python tools/check_wheel.py dist` проходят.
 - [ ] `git diff` просмотрен; в diff нет случайных файлов и переформатирования.

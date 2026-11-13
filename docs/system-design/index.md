@@ -1,8 +1,8 @@
 # System Design — Eggpipe
 
-> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.0](../requirements/v2.0.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
+> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.1](../requirements/v2.1.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 2.0. Дата: 2026-11-12.*
+*Версия документа: 2.1. Дата: 2026-11-13.*
 
 ---
 
@@ -258,7 +258,7 @@ class EntityModelFormat(FormatPlugin):
 - `layer_entity` валидирует один файл-слой, `full_entity` — итог после merge.
 - `EntityIdentity` / `FieldIdentity` дают дельта-моделям только identity-поля (`name`).
 - Обязательность новых полей определяет формат: `layer_entity` может быть partial, `full_entity` — complete.
-- Документ остаётся общим конвертом; first-class document-level поля — future, в v2.0 через `metadata`.
+- Документ остаётся общим конвертом; first-class document-level поля — future, в v2.1 через `metadata`.
 - `entity-model` зарезервирован; попытка переопределить — Error при регистрации.
 - Дополнительные поля могут быть first-class полями модели; `metadata` остаётся extension point.
 - Формат и версия передаются через `Entity.format` / `Entity.format_version`;
@@ -763,7 +763,7 @@ def validate(
 | MG011 | `required=true` + `nullable=true` | warning | validate |
 | MG012 | Entity.name не PascalCase | warning | validate |
 | MG013 | Неиспользуемый enum/type | warning | validate |
-| MG014 | `updated_at` устарела (file-per-entity, opt-in) | warning | validate |
+| MG014 | `updated_at` устарела (file-per-model, opt-in) | warning | validate |
 | MG015 | Пустой description у required-поля | warning | validate |
 | MG016 | `default` не приводится к итоговому type | error | validate |
 | MG017 | `default` нарушает constraints/enum | error | validate |
@@ -809,7 +809,7 @@ def validate(
 
 ## 4.5 Model units и слои форматов
 
-Новая модель сборки (v2.0):
+Новая модель сборки (v2.1):
 
 ```text
 sources[].layout
@@ -1011,7 +1011,7 @@ pip install -e ./plugins/my-generator   # editable install
 eggpipe gen list                             # плагин виден
 ```
 
-(Future, v0.3+: `--plugin path/to/module.py` — явный importlib spec loading, без правки sys.path.)
+(`--plugin path/to/module.py` — dev-only загрузка через importlib spec, без правки `sys.path`.)
 
 ---
 
@@ -1022,7 +1022,7 @@ eggpipe gen list                             # плагин виден
 ```python
 app = typer.Typer(name="eggpipe", help="Eggpipe", no_args_is_help=True)
 app.add_typer(config_app, name="config")   # show, validate
-app.add_typer(model_app,  name="model")    # validate, schema (P2)
+app.add_typer(model_app,  name="model")    # validate, schema
 app.add_typer(gen_app,    name="gen")      # list, info
 app.add_typer(format_app, name="format")   # list
 
@@ -1157,6 +1157,10 @@ class JsonFormatter(OutputFormatter): ...    # только JSON в stdout
 
 - `EngineReport` — общий результат запуска (не путается с `GenerationResult` одного плагина).
 - `report_version: 2`; `artifacts` — плоский список с `generator`, без дублирования в `generators[]`.
+- `artifacts[].action` — `create|update|skip|delete|conflict|error|drift`;
+  `generators[].status` — `ok|error|skipped`.
+- `timings` содержит обязательные `discovery_ms`, `parse_ms`, `validate_ms`, `generate_ms`,
+  `write_ms`, `total_ms`.
 - `formats` — глобальная сводка; `manifest` — только locations; `stale_locations` — для MG051.
 - JSON-отчёт печатается только в stdout; логи — stderr/file.
 - `--quiet` подавляет человекочитаемый вывод, но не JSON.
@@ -1350,110 +1354,74 @@ class CacheStrategy(ABC):
 
 ## 10. Структура проекта (код)
 
+```text
+src/eggpipe/
+├── __init__.py                  # публичный API, __all__
+├── py.typed
+├── cli/main.py                  # typer app и все команды
+├── config/
+│   ├── app_config.py            # AppConfig
+│   ├── generator_rules.py       # GeneratorRules, GeneratorRulesLoader
+│   └── logging.py               # setup_logging()
+├── core/
+│   ├── document.py              # ModelDocument, ImportSpec
+│   ├── model.py                 # SourceModel, ModelSlice, Entity, FieldDef, ...
+│   ├── parser.py                # Parser, header, imports
+│   ├── discovery.py             # layouts, model units, resources
+│   ├── layers.py                # layer validation/merge
+│   ├── composition.py           # imports/extends, merge, closure
+│   ├── slicing.py               # select_slice()
+│   ├── validator.py             # semantic validation
+│   ├── naming.py                # NamingStyle, transform()
+│   └── provenance.py            # git_provenance()
+├── engine/
+│   ├── engine.py                # Engine facade and orchestration
+│   ├── artifact_writer.py       # plan, atomic write, manifest, cleanup, lock
+│   ├── plugin_loader.py         # entry points (generators + formats)
+│   ├── format_registry.py       # FormatRegistry
+│   ├── policy.py                # DiagnosticPolicy
+│   └── report.py                # EngineReport and JSON DTOs
+├── interfaces/
+│   ├── generator.py             # GeneratorPlugin, @generator, GeneratorInput
+│   ├── formats.py               # FormatPlugin, EntityModelFormat
+│   └── diagnostics.py           # Diagnostic, DiagnosticLocation
+├── watch/watcher.py             # WatchRunner, debounce
+├── utils/
+│   ├── yaml.py                  # load_yaml() поверх ruamel.yaml
+│   └── exceptions.py
+└── templating.py                # optional Jinja2 helper
+
+tests/                           # flat suite: unit, contract, security, golden, property
+examples/
+├── reference-generator/
+├── tpc-h-generator/
+└── tpc-h/
+docs/
+├── requirements/                # index, v1.0–v1.4, v2.0, v2.1
+├── system-design/
+├── reviews/
+├── adr/
+└── reference/
+tools/
+├── check_docs.py
+└── check_wheel.py
+.github/workflows/               # docs, ci, release
+pyproject.toml
+pyrightconfig.json
+uv.lock
+README.md
+CONTRIBUTING.md
+CHANGELOG.md
+LICENSE
 ```
-eggpipe/
-├── src/eggpipe/
-│   ├── __init__.py                  # публичный API (см. §2), __all__, py.typed
-│   ├── py.typed
-│   ├── cli/
-│   │   ├── __init__.py
-│   │   ├── main.py                  # typer app (generate/watch/init/clean) + sub-apps
-│   │   ├── config_cmds.py           # eggpipe config show/validate
-│   │   ├── model_cmds.py            # eggpipe model validate/schema
-│   │   ├── gen_cmds.py              # eggpipe gen list/info
-│   │   ├── format_cmds.py           # eggpipe format list
-│   │   └── formatters.py            # TextFormatter, JsonFormatter
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── document.py              # ModelDocument, ImportSpec
-│   │   ├── model.py                 # SourceModel, ModelSlice, Entity, FieldDef, EnumDef, CustomType
-│   │   ├── parser.py                # Parser (ruamel.yaml), header, imports
-│   │   ├── discovery.py             # layout, model_dirs/files/resources
-│   │   ├── layers.py                # model unit, layer parse/merge, format chain
-│   │   ├── composition.py           # imports/extends, merge (ADR-0001), closure
-│   │   ├── validator.py             # semantic валидация (Diagnostic)
-│   │   └── naming.py                # NamingStyle, transform()
-│   ├── config/
-│   │   ├── __init__.py
-│   │   ├── app_config.py            # AppConfig
-│   │   ├── generator_rules.py       # GeneratorRules, GeneratorRulesLoader
-│   │   └── logging.py               # setup_logging(), get_logger() — ЕДИНСТВЕННАЯ точка
-│   ├── engine/
-│   │   ├── __init__.py
-│   │   ├── engine.py                # Engine orchestration + public Engine facade
-│   │   ├── planning.py              # ExecutionPlan: create/update/skip/delete/conflict
-│   │   ├── locking.py               # .eggpipe/lock (O_EXCL, PID, stale)
-│   │   ├── plugin_loader.py         # PluginLoader (generators + formats)
-│   │   ├── format_registry.py       # FormatRegistry
-│   │   └── artifact_writer.py       # validate paths, ownership, atomic write, manifest, cleanup
-│   ├── interfaces/
-│   │   ├── __init__.py
-│   │   ├── generator.py             # GeneratorPlugin, GeneratorInput, GenerationContext, Artifact
-│   │   ├── formats.py               # FormatPlugin, EntityModelFormat
-│   │   └── diagnostics.py           # Diagnostic, DiagnosticLocation
-│   ├── watch/
-│   │   ├── __init__.py
-│   │   ├── watcher.py               # Watcher (lazy watchdog), DebounceHandler
-│   │   └── cache.py                 # CacheStrategy (future)
-│   ├── templating.py                # optional Jinja2 helper (extra [jinja])
-│   └── utils/
-│       ├── __init__.py
-│       ├── yaml.py                  # load_yaml() поверх ruamel.yaml
-│       └── exceptions.py            # ConfigValidationError, CyclicImportError, ...
-├── examples/                        # reference-плагин + примеры моделей/конфигов
-│   ├── reference-generator/
-│   ├── reference-format/
-│   └── models/
-├── tests/
-│   ├── unit/
-│   │   ├── test_parser.py
-│   │   ├── test_composition.py      # каждый пункт ADR-0001
-│   │   ├── test_validator.py
-│   │   ├── test_config.py
-│   │   ├── test_planning.py
-│   │   ├── test_artifact_writer.py
-│   │   └── test_naming.py
-│   ├── property/
-│   │   ├── test_parser.py           # hypothesis: мусор + round-trip
-│   │   └── test_validator.py        # валидные/невалидные стратегии
-│   ├── integration/
-│   │   ├── test_generate.py
-│   │   ├── test_cleanup.py
-│   │   └── test_cli.py
-│   ├── contract/
-│   │   ├── test_generator_contract.py
-│   │   └── test_format_contract.py
-│   ├── security/
-│   │   ├── test_paths.py
-│   │   ├── test_symlinks.py
-│   │   └── test_imports.py
-│   ├── golden/
-│   │   ├── fixtures/models/
-│   │   ├── fixtures/expected/
-│   │   └── test_golden.py
-│   └── conftest.py
-├── docs/
-│   ├── requirements/                # ТЗ (index, v1.0, v1.1, v1.2, v1.3, v1.4, v2.0)
-│   ├── system-design/
-│   ├── reviews/
-│   ├── adr/                         # 0001-composition-merge-semantics.md
-│   └── reference/                   # diagnostics.md (при реализации)
-├── tools/
-│   ├── check_docs.py                # проверка документации
-│   └── check_wheel.py               # проверка wheel/sdist + smoke-install
-├── .github/workflows/               # docs, ci, release
-├── pyproject.toml
-├── pyrightconfig.json               # basedpyright/Pyright: src-layout, extraPaths, .venv
-├── uv.lock
-├── README.md
-├── CONTRIBUTING.md
-├── CHANGELOG.md
-└── LICENSE
-```
+
+Отдельных `cli/*_cmds.py`, `engine/planning.py`, `engine/locking.py`, `watch/cache.py`
+в v2.1 нет: команды находятся в `cli/main.py`, planning/lock — в `artifact_writer.py`,
+cache остаётся future-направлением.
 
 ---
 
-## 11. Тестирование (охват v2.0)
+## 11. Тестирование (охват v2.1)
 
 ### 11.1 Приоритеты
 
@@ -1461,7 +1429,7 @@ eggpipe/
 2. Merge-семантика ADR-0001 и layer merge ADR-0008 — тесты на каждое правило.
 3. **Null-matrix** — все 12 комбинаций из ТЗ §3.6, включая `UNSET` vs explicit `null`.
 4. Parser: simple / imports / entity.extends / cycle / depth / unknown format / unknown version / duplicate keys / YAML 1.2-скаляры.
-5. **Форматы v2.0**: наследование, цикл/глубина, `input_formats`, совместимость генератора, смешанные форматы в запуске (MG033).
+5. **Форматы v2.1**: наследование, цикл/глубина, `input_formats`, совместимость генератора, смешанные форматы в запуске (MG033).
 6. **Model units**: `monolith`/`file-per-model`/`directory-per-model`, `model_dirs`/`files`/`resources`, пустой каталог, duplicate format, unrelated formats, layer entity count (MG027/MG029/MG031/MG032).
 7. Integration CLI: полный цикл, exit codes, `--strict`, `--var`, `--dry-run`/`--plan`/`--check`, `--include-disabled`.
 8. **Contract-тесты plugin API**: reference-generator и reference-format проходят публичный контракт; несовместимый `api_version` ведёт себя по §6.
@@ -1527,16 +1495,21 @@ dependencies = [
     "pydantic-settings>=2.2.0",
     "ruamel.yaml>=0.18.6",
     "rich>=13.7.0",
+    "typing-extensions>=4.10.0",
 ]
 
 [project.optional-dependencies]
 watch = ["watchdog>=4.0.0"]
+jinja = ["jinja2>=3.1.0"]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "hypothesis>=6.100.0",
     "ruff>=0.4.0",
     "pyrefly>=1.4.0",
+    "watchdog>=4.0.0",
+    "mkdocs>=1.6.0",
+    "jinja2>=3.1.0",
 ]
 
 [project.scripts]
@@ -1549,6 +1522,12 @@ Documentation = "https://github.com/<org>/eggpipe/tree/main/docs"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eggpipe"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [".github", ".opencode", ".session-context.md", "opencode.json", "AGENTS.md"]
 ```
 
 Конфигурация инструментов:
@@ -1585,7 +1564,7 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v2.0, сводка)
+## 13. Проектировочные решения (v2.1, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|

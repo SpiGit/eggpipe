@@ -141,17 +141,26 @@ def test_source_input_through_engine(tmp_path: Path) -> None:
 
 
 def test_stale_dates_opt_in(tmp_path: Path) -> None:
-    (tmp_path / "model.yaml").write_text(
+    models = tmp_path / "models"
+    models.mkdir()
+    (models / "base.yaml").write_text(
         BASE.replace(
             "    - name: Audit\n",
             "    - name: Audit\n      updated_at: 2000-01-01\n",
         ),
         encoding="utf-8",
     )
+    (models / "post.yaml").write_text(POST, encoding="utf-8")
     rules = GeneratorRules(
         version="1.0",
         diagnostics=DiagnosticsConfig(stale_dates=True),
-        sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
+        sources=(
+            SourceConfig(
+                path=Path("models"),
+                layout="file-per-model",
+                files=("*.yaml",),
+            ),
+        ),
         generators=(GeneratorConfig(id="capture", output_dir=Path("out")),),
     )
     engine = Engine(

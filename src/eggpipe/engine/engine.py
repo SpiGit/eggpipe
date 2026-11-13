@@ -93,28 +93,42 @@ class Engine:
         self._pending: list[_Pending] = []
         self._formats: list[FormatSummary] = []
         self._stale: list[StaleLocation] = []
+        self._stale_paths: set[Path] = set()
+        self._timings: dict[str, int] = {}
+        self._started = 0.0
 
     def build(self) -> EngineReport:
         started = time.perf_counter()
+        self._started = started
+        self._timings = _empty_timings()
         self._pending = []
         self._formats = []
         self._stale = []
+        self._stale_paths = set()
         diagnostics: list[Diagnostic] = []
+        phase = time.perf_counter()
         sources, source_groups, resources = self._source_paths(diagnostics)
+        self._timings["discovery_ms"] = _elapsed(phase)
         if not sources:
             return self._report(False, 1, diagnostics, [], started)
 
+        phase = time.perf_counter()
         composition = self._load_composition(sources, source_groups, resources, diagnostics)
+        self._timings["parse_ms"] = _elapsed(phase)
         if composition is None:
             return self._report(False, 1, diagnostics, [], started)
 
+        phase = time.perf_counter()
         self._formats = _format_summaries(composition)
         self._validate_model(composition, diagnostics)
+        self._timings["validate_ms"] = _elapsed(phase)
         diagnostics = self._filter_ignored(diagnostics)
         if _has_errors(diagnostics):
             return self._report(False, 1, diagnostics, [], started)
 
+        phase = time.perf_counter()
         run = self._run_generators(composition)
+        self._timings["generate_ms"] = _elapsed(phase)
         diagnostics.extend(run.diagnostics)
         self._pending = list(run.pending)
         if not any(item.code == "MG052" for item in diagnostics):
@@ -149,7 +163,7 @@ class Engine:
             return None
         diagnostics.extend(result.diagnostics)
         if self.rules.diagnostics.stale_dates:
-            diagnostics.extend(_stale_date_diagnostics(result.documents))
+            diagnostics.extend(_stale_date_diagnostics(result.documents, self._stale_paths))
         return result
 
     def _validate_model(
@@ -206,7 +220,7 @@ class Engine:
                 ArtifactReport(
                     generator=generator_config.id,
                     path=str(item.path),
-                    status=item.action,
+                    action=item.action,
                     sha256=item.sha256,
                 )
                 for item in plan.artifacts
@@ -258,6 +272,7 @@ class Engine:
     def _write_pending(self, report: EngineReport) -> EngineReport:
         diagnostics = list(report.diagnostics)
         generators = list(report.generators)
+        phase = time.perf_counter()
         try:
             for pending in self._pending:
                 cleanup = "enabled" if self.config.clean else pending.config.cleanup
@@ -287,6 +302,7 @@ class Engine:
                     item.model_copy(update={"status": "error"}) if item.id in failed else item
                     for item in generators
                 ]
+        self._timings["write_ms"] = _elapsed(phase)
         success = not _has_errors(diagnostics)
         return report.model_copy(
             update={
@@ -295,6 +311,7 @@ class Engine:
                 "diagnostics": diagnostics,
                 "generators": generators,
                 "manifest": self._manifest_summary(),
+                "timings": self._timings_with_total(),
             }
         )
 
@@ -347,6 +364,10 @@ class Engine:
             allow_outside=self.config.allow_outside_imports,
         )
         diagnostics.extend(discovered.diagnostics)
+        for group in discovered.groups:
+            for unit in group.units or ():
+                if unit.stale_dates:
+                    self._stale_paths.update(unit.paths)
         return discovered.paths, discovered.groups, discovered.resources
 
     def _run_generator(
@@ -460,8 +481,14 @@ class Engine:
             artifacts=artifacts or [],
             manifest=self._manifest_summary(),
             stale_locations=list(self._stale),
-            timings={"total_ms": int((time.perf_counter() - started) * 1000)},
+            timings=self._timings_with_total(),
         )
+
+    def _timings_with_total(self) -> dict[str, int]:
+        return {
+            **self._timings,
+            "total_ms": _elapsed(self._started),
+        }
 
     def _manifest_summary(self) -> ManifestSummary | None:
         try:
@@ -481,15 +508,32 @@ class Engine:
         )
 
 
+def _empty_timings() -> dict[str, int]:
+    return {
+        "discovery_ms": 0,
+        "parse_ms": 0,
+        "validate_ms": 0,
+        "generate_ms": 0,
+        "write_ms": 0,
+    }
+
+
+def _elapsed(started: float) -> int:
+    return int((time.perf_counter() - started) * 1000)
+
+
 def _plugin_version(plugin: GeneratorPlugin) -> str:
     return str(getattr(plugin, "__version__", "1"))
 
 
 def _stale_date_diagnostics(
     documents: tuple[ModelDocument, ...],
+    allowed_paths: set[Path],
 ) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     for document in documents:
+        if document.path not in allowed_paths:
+            continue
         file_date = datetime.fromtimestamp(document.path.stat().st_mtime, tz=UTC).date()
         for entity in document.model.entities:
             if entity.updated_at is None:

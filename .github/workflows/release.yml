@@ -35,7 +35,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Format check
-        run: uv run ruff format --check src tests tools
+        run: uv run ruff format --check src tests tools examples
 
       - name: Type check
         run: uv run pyrefly check

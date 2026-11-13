@@ -23,7 +23,7 @@ class FormatSummary(FormatReport):
 class ArtifactReport(BaseModel):
     generator: str = ""
     path: str
-    status: Literal["create", "update", "skip", "error", "drift"]
+    action: Literal["create", "update", "skip", "delete", "conflict", "error", "drift"]
     sha256: str | None = None
 
     model_config = ConfigDict(extra="forbid", frozen=True)

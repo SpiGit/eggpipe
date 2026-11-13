@@ -29,7 +29,7 @@ uv sync --extra dev
 
 ```bash
 uv run ruff check .
-uv run ruff format --check src tests tools
+uv run ruff format --check src tests tools examples
 uv run pyrefly check
 uv run pytest --cov
 uv run python tools/check_docs.py --strict

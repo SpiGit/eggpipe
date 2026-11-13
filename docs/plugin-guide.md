@@ -133,7 +133,7 @@ sql-model = "my_package.formats:SqlModelFormat"
 - `layer_entity` валидирует слой, `full_entity` — итоговую сущность после merge.
 - Дельта-модели наследуют `EntityIdentity`/`FieldIdentity`; полные — `Entity`/`FieldDef`.
 - Обязательность новых полей определяет формат: partial в слое, complete в итоге.
-- Документ остаётся общим конвертом; first-class document-level поля — future, в v2.0 через `metadata`.
+- Документ остаётся общим конвертом; first-class document-level поля — future, в v2.1 через `metadata`.
 - Для списков формат объявляет `MergePolicy` через `json_schema_extra`:
   - `KEYED` — патч существующих + новые (`fields`);
   - `APPEND` — только новые (`types`, `enums`, `enum.values`);

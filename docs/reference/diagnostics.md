@@ -8,7 +8,7 @@
 | Код | Уровень | Фаза | Проверка | Статус |
 |-----|---------|------|----------|-------------|
 | MG000 | error | parse | Синтаксис YAML, duplicate keys, multi-document, не-dict корень | реализовано |
-| MG001 | error | validate | Ссылка на несуществующий enum/type | зарезервирован; неизвестный тип даёт MG004 |
+| MG001 | — | validate | Зарезервирован; не эмитируется | неизвестный тип даёт MG004 |
 | MG002 | error | composition | Дубликаты имён entity/enum/type после композиции | реализовано |
 | MG003 | error | validate | Дубликат имени поля в entity | реализовано |
 | MG004 | error | validate | Тип не входит в primitive_types и не является enum/type | реализовано |

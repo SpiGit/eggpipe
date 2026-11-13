@@ -137,7 +137,7 @@ eggpipe generate --plugin ./my_plugin.py
 uv sync --extra dev
 
 uv run ruff check .
-uv run ruff format --check src tests tools
+uv run ruff format --check src tests tools examples
 uv run pyrefly check
 uv run pytest --cov
 uv run python tools/check_docs.py --strict
@@ -163,7 +163,7 @@ mypy не входит в блокирующий CI; решение зафикс
 uv run python tools/check_docs.py --strict
 ```
 
-- [Техническое задание](./docs/requirements/index.md) — актуальная версия v2.0
+- [Техническое задание](./docs/requirements/index.md) — актуальная версия v2.1
 - [System Design](./docs/system-design/index.md)
 - [ADR index](./docs/adr/index.md)
 - [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
@@ -191,6 +191,6 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** Eggpipe v2.0 реализован (E0–E8): пакет/CLI/config/state переименованы,
+**Стадия:** Eggpipe v2.1 реализован (E0–E8): пакет/CLI/config/state переименованы,
 форматы и слои, decorator API, глобальный manifest, CLI/JSON v2. Дальше — E9: CI, версия
 пакета и release workflow.

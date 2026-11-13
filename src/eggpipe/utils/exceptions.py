@@ -53,10 +53,6 @@ class UnknownFormatError(ConfigValidationError):
     """Формат не найден в реестре."""
 
 
-class LookupError(EggpipeError):
-    """Имя не найдено в модели."""
-
-
 class ArtifactPathError(EggpipeError):
     """Некорректный путь или содержимое артефакта."""
 

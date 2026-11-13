@@ -93,7 +93,7 @@ def test_build_does_not_write(tmp_path: Path) -> None:
     engine = make_engine(tmp_path)
     report = engine.build()
     assert report.success is True
-    assert report.artifacts[0].status == "create"
+    assert report.artifacts[0].action == "create"
     assert not (tmp_path / "out" / "user.txt").exists()
 
 

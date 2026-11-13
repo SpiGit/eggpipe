@@ -10,7 +10,7 @@
    ```bash
    uv run python tools/check_docs.py --strict
    uv run ruff check .
-   uv run ruff format --check src tests tools
+   uv run ruff format --check src tests tools examples
    uv run pyrefly check
    uv run pytest --cov
    uv build

@@ -2,7 +2,7 @@
 
 - **Статус:** имя выбрано
 - **Дата:** 2026-11-12
-- **ТЗ:** [v2.0](requirements/v2.0.md)
+- **ТЗ:** [v2.1](requirements/v2.1.md)
 - **Бренд:** EggPipe
 - **Пакет / import / CLI:** `eggpipe`
 - **Конфиг:** `.eggpipe.yaml`
@@ -302,9 +302,9 @@ eggpipe model schema --format postgres-model [--version 2.0]
 ```
 
 - `validate` парсит и валидирует модели;
-- `schema` требует явный `--format`;
+- `schema --format` печатает JSON Schema выбранного формата;
 - `--version` опционален: нет — latest;
-- без `--format` — ошибка, потому что в проекте могут быть разные форматы.
+- без `--format` печатается JSON Schema `ModelDocument`.
 
 ### `gen`
 
@@ -467,4 +467,4 @@ CI, docs, примеры и manifest paths обновляются вместе.
 
 1. Нужен ли отдельный бренд-гайд с логотипом и палитрой?
 2. Проверить товарный знак и поисковую выдачу.
-3. Переименование пакета/import `metadata_generator` → `eggpipe` — отдельный этап после v2.0.
+3. Переименование пакета/import `metadata_generator` → `eggpipe` — выполнено.
