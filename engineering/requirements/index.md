@@ -34,7 +34,7 @@
 - удалён `InputSlice`, используется `InputSelection`;
 - удалены `CompositionResult.format`/`version`;
 - унифицированы ignore-константы, `WIN_RESERVED` переименован;
-- translation memory сохранён в `docs/engineering/i18n/`;
+- translation memory сохранён в `engineering/i18n/`;
 - ADR-0012 (English-only) и ADR-0013 (EG-коды).
 
 ### v2.1 (2026-11-13)

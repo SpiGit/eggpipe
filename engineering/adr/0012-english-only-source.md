@@ -31,11 +31,11 @@
 Перед переводом сохраняется translation memory:
 
 ```text
-docs/engineering/i18n/ru-messages.yaml
-docs/engineering/i18n/ru-docstrings.yaml
+engineering/i18n/ru-messages.yaml
+engineering/i18n/ru-docstrings.yaml
 ```
 
-Baseline commit фиксируется в `docs/engineering/i18n/README.md`.
+Baseline commit фиксируется в `engineering/i18n/README.md`.
 Комментарии и исторические версии кода доступны в Git.
 
 ## 4. i18n

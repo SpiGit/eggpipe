@@ -64,38 +64,39 @@ REQUIRED_FILES = (
     "tests/test_check_docs.py",
     "tests/test_check_wheel.py",
     "tests/test_package.py",
-    "docs/engineering/requirements/index.md",
-    "docs/engineering/requirements/v2.0.md",
-    "docs/engineering/requirements/v2.1.md",
-    "docs/engineering/requirements/v2.2.md",
-    "docs/engineering/system-design/index.md",
-    "docs/engineering/adr/0001-composition-merge-semantics.md",
-    "docs/engineering/adr/0002-type-checker-pyrefly.md",
-    "docs/engineering/adr/0003-null-semantics.md",
-    "docs/engineering/adr/0004-ownership-manifest-cleanup.md",
-    "docs/engineering/adr/0005-library-api.md",
-    "docs/engineering/adr/0006-format-extension.md",
-    "docs/engineering/adr/0007-format-inheritance.md",
-    "docs/engineering/adr/0008-model-units-and-source-layouts.md",
-    "docs/engineering/adr/0009-global-manifest-ownership.md",
-    "docs/engineering/adr/0010-decorator-generator-api.md",
-    "docs/engineering/adr/0011-public-api-v2-identity.md",
-    "docs/engineering/adr/0013-diagnostic-code-namespace.md",
-    "docs/engineering/adr/0012-english-only-source.md",
-    "docs/engineering/adr/0014-beta-status-and-compatibility.md",
-    "docs/engineering/adr/index.md",
+    "engineering/requirements/index.md",
+    "engineering/requirements/v2.0.md",
+    "engineering/requirements/v2.1.md",
+    "engineering/requirements/v2.2.md",
+    "engineering/system-design/index.md",
+    "engineering/adr/0001-composition-merge-semantics.md",
+    "engineering/adr/0002-type-checker-pyrefly.md",
+    "engineering/adr/0003-null-semantics.md",
+    "engineering/adr/0004-ownership-manifest-cleanup.md",
+    "engineering/adr/0005-library-api.md",
+    "engineering/adr/0006-format-extension.md",
+    "engineering/adr/0007-format-inheritance.md",
+    "engineering/adr/0008-model-units-and-source-layouts.md",
+    "engineering/adr/0009-global-manifest-ownership.md",
+    "engineering/adr/0010-decorator-generator-api.md",
+    "engineering/adr/0011-public-api-v2-identity.md",
+    "engineering/adr/0013-diagnostic-code-namespace.md",
+    "engineering/adr/0012-english-only-source.md",
+    "engineering/adr/0014-beta-status-and-compatibility.md",
+    "engineering/adr/index.md",
     "docs/index.md",
-    "docs/engineering/decisions/eggpipe.md",
-    "docs/engineering/decisions/logo-brief.md",
-    "docs/engineering/plan-v2.md",
-    "docs/engineering/reviews/2026-11-12-v2-review.md",
-    "docs/engineering/reviews/2026-11-13-code-quality-review.md",
-    "docs/engineering/reviews/2026-11-13-patterns-review.md",
-    "docs/engineering/reviews/2026-11-13-project-review.md",
+    "engineering/decisions/eggpipe.md",
+    "engineering/decisions/logo-brief.md",
+    "engineering/brand-assets.md",
+    "engineering/plan-v2.md",
+    "engineering/reviews/2026-11-12-v2-review.md",
+    "engineering/reviews/2026-11-13-code-quality-review.md",
+    "engineering/reviews/2026-11-13-patterns-review.md",
+    "engineering/reviews/2026-11-13-project-review.md",
     "docs/user/reference/diagnostics.md",
     "docs/user/plugins.md",
-    "docs/engineering/release.md",
-    "docs/engineering/index.md",
+    "engineering/release.md",
+    "engineering/index.md",
     "docs/user/index.md",
     "docs/user/status.md",
     "docs/user/quickstart.md",
@@ -326,7 +327,7 @@ class Checker:
                     self.error("DOC103", path, number, f"broken relative link: {target}")
 
     def check_versions(self) -> None:
-        index = self.root / "docs/engineering/requirements/index.md"
+        index = self.root / "engineering/requirements/index.md"
         text = self.read(index)
         if text is None:
             return
@@ -402,7 +403,7 @@ class Checker:
             return
         expected = (
             (
-                "docs/engineering/system-design/index.md",
+                "engineering/system-design/index.md",
                 rf"{DOCUMENT_VERSION_LABEL}\s*{re.escape(version)}\b",
             ),
             ("README.md", rf"v{re.escape(version)}\b"),
@@ -481,7 +482,7 @@ class Checker:
         for item in self.versions:
             if SUPERSEDED_STATUS not in item.status:
                 continue
-            relative = f"docs/engineering/requirements/v{item.version}.md"
+            relative = f"engineering/requirements/v{item.version}.md"
             if not any(fnmatch.fnmatch(relative, rule["resource"]) for rule in deny_edits):
                 self.error(
                     "DOC136",
@@ -491,7 +492,7 @@ class Checker:
                 )
 
         if self.current_version:
-            relative = f"docs/engineering/requirements/v{self.current_version}.md"
+            relative = f"engineering/requirements/v{self.current_version}.md"
             if any(fnmatch.fnmatch(relative, rule["resource"]) for rule in deny_edits):
                 self.error(
                     "DOC137",
@@ -561,10 +562,10 @@ class Checker:
     def check_terms(self) -> None:
         if self.current_version is None:
             return
-        current = self.root / f"docs/engineering/requirements/v{self.current_version}.md"
+        current = self.root / f"engineering/requirements/v{self.current_version}.md"
         text_files = [
             current,
-            self.root / "docs/engineering/system-design/index.md",
+            self.root / "engineering/system-design/index.md",
             self.root / "README.md",
             self.root / "AGENTS.md",
         ]
@@ -596,7 +597,7 @@ class Checker:
                     )
 
         terms = ("ModelDocument", "SourceModel", "ModelSlice", "FieldDef", "EnumDef")
-        for path in (current, self.root / "docs/engineering/system-design/index.md"):
+        for path in (current, self.root / "engineering/system-design/index.md"):
             text = self.read(path)
             if text is None:
                 continue
@@ -607,7 +608,7 @@ class Checker:
     def check_diagnostic_codes(self) -> None:
         if self.current_version is None:
             return
-        current = self.root / f"docs/engineering/requirements/v{self.current_version}.md"
+        current = self.root / f"engineering/requirements/v{self.current_version}.md"
         text = self.read(current)
         if text is None:
             return
@@ -617,11 +618,11 @@ class Checker:
         if reference_text is not None:
             known |= set(re.findall(r"EG\d{3}", reference_text))
         targets = [
-            self.root / "docs/engineering/system-design/index.md",
+            self.root / "engineering/system-design/index.md",
             self.root / "README.md",
             self.root / "AGENTS.md",
         ]
-        targets.extend(sorted((self.root / "docs/engineering/adr").glob("*.md")))
+        targets.extend(sorted((self.root / "engineering/adr").glob("*.md")))
         targets.extend(sorted((self.root / ".opencode").rglob("*.md")))
         for path in targets:
             text = self.read(path)

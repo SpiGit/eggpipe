@@ -67,8 +67,8 @@ class TestChecker(unittest.TestCase):
     def test_unknown_diagnostic_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            requirements = root / "docs/engineering/requirements"
-            design = root / "docs/engineering/system-design"
+            requirements = root / "engineering/requirements"
+            design = root / "engineering/system-design"
             requirements.mkdir(parents=True)
             design.mkdir(parents=True)
             (requirements / "v1.0.md").write_text("EG000\n", encoding="utf-8")

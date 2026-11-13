@@ -13,7 +13,7 @@
 - Проект: **Eggpipe**.
 - Package/import/CLI: `eggpipe`.
 - Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
-- Актуальное ТЗ: `docs/engineering/requirements/v2.2.md`.
+- Актуальное ТЗ: `engineering/requirements/v2.2.md`.
 - Версия пакета: `0.3.0`; версия ТЗ: `2.2`.
 - Статус: beta (0.x); до 1.0 breaking changes возможны (ADR-0014).
 - Brand assets: `docs/assets/brand/`.
@@ -62,7 +62,7 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 
 - Пользователям: `docs/user/`.
 - AI: `docs/ai/`.
-- Разработка: `docs/engineering/`.
+- Разработка: `engineering/`.
 - Harness: `AGENTS.md`, `.opencode/`, `.session-context.md`.
 
 ## Главные инварианты
@@ -85,7 +85,7 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 
 ## Добавить генератор
 
-1. Прочитать `docs/engineering/requirements/v2.2.md` §6.1 и `docs/user/plugins.md`.
+1. Прочитать `engineering/requirements/v2.2.md` §6.1 и `docs/user/plugins.md`.
 2. Создать функцию с `@generator(id=..., input_formats=...)`.
 3. Аннотировать аргументы только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
 4. Вернуть `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]` или `GenerationResult`.
@@ -144,7 +144,7 @@ uv run python tools/check_wheel.py dist
 ## Документация
 
 - Актуальное ТЗ — только файл со статусом **Актуальная** в
-  `docs/engineering/requirements/index.md` (сейчас `v2.2.md`).
+  `engineering/requirements/index.md` (сейчас `v2.2.md`).
 - Исторические ТЗ (`v1.0`–`v2.0`) и старые ADR не редактировать.
 - Новое поведение — новая версия ТЗ; ADR не переписываются задним числом.
 - Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `Entity`, `FieldDef`, `EnumDef`,

@@ -7,7 +7,7 @@
 - Проект: **Eggpipe**.
 - Package/import/CLI: `eggpipe`.
 - Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
-- Актуальное ТЗ: `docs/engineering/requirements/v2.2.md`.
+- Актуальное ТЗ: `engineering/requirements/v2.2.md`.
 - Версия пакета: `0.3.0`; версия ТЗ: `2.2`.
 - Статус: beta (0.x); до 1.0 breaking changes возможны (ADR-0014).
 - Brand assets: `docs/assets/brand/`.
@@ -56,7 +56,7 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 
 - Пользователям: `docs/user/`.
 - AI: `docs/ai/`.
-- Разработка: `docs/engineering/`.
+- Разработка: `engineering/`.
 - Harness: `AGENTS.md`, `.opencode/`, `.session-context.md`.
 
 ## Главные инварианты

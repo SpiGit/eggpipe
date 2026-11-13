@@ -15,11 +15,11 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 
 Приоритет при расхождении — сверху вниз:
 
-1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/engineering/requirements/index.md` (сейчас `v2.2.md`):
+1. Актуальное ТЗ — файл со статусом **Актуальная** в `engineering/requirements/index.md` (сейчас `v2.2.md`):
    поведение, контракты, CLI, запись артефактов.
-2. `docs/engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды, 0014 — beta-статус и совместимость до 1.0).
-3. `docs/engineering/system-design/index.md` — проектирование реализации (классы, потоки, структура).
-4. `docs/engineering/requirements/index.md` — реестр версий и changelog.
+2. `engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды, 0014 — beta-статус и совместимость до 1.0).
+3. `engineering/system-design/index.md` — проектирование реализации (классы, потоки, структура).
+4. `engineering/requirements/index.md` — реестр версий и changelog.
 5. `README.md` и `.session-context.md` — краткое состояние проекта.
 
 Если System Design или ADR противоречат ТЗ без ADR-обоснования — это дефект документации. Сообщи
@@ -29,23 +29,23 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 
 | Документ | Назначение |
 |----------|------------|
-| `docs/engineering/requirements/` | Актуальное ТЗ и история (статусы — в `index.md`) |
-| `docs/engineering/system-design/index.md` | System Design |
-| `docs/engineering/adr/` | Принятые архитектурные решения |
-| `docs/engineering/reviews/` | Ревью и backlog P1/P2 |
-| `docs/engineering/decisions/eggpipe.md` | Имя, CLI/конфиг, бренд и идеи лого |
+| `engineering/requirements/` | Актуальное ТЗ и история (статусы — в `index.md`) |
+| `engineering/system-design/index.md` | System Design |
+| `engineering/adr/` | Принятые архитектурные решения |
+| `engineering/reviews/` | Ревью и backlog P1/P2 |
+| `engineering/decisions/eggpipe.md` | Имя, CLI/конфиг, бренд и идеи лого |
 | `docs/user/plugins.md` | Руководство по плагинам |
-| `docs/engineering/release.md` | Релизный чек-лист |
+| `engineering/release.md` | Релизный чек-лист |
 | `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE` | Процесс разработки, история и лицензия |
 | `docs/user/` | Пользовательская документация и справочники |
 | `docs/ai/` | Компактный контекст и задачи для AI-агентов |
-| `docs/engineering/` | ТЗ, ADR, System Design, ревью, план, релиз |
+| `engineering/` | ТЗ, ADR, System Design, ревью, план, релиз |
 
 ## Правила версионирования
 
 - Все версии ТЗ со статусом «Замещена» — история. **Не редактировать.**
 - Новое или изменённое поведение оформляется новой версией ТЗ `vX.Y`, а не правкой текущей.
-- При выпуске версии обнови: ТЗ, `docs/engineering/requirements/index.md` (статус + changelog),
+- При выпуске версии обнови: ТЗ, `engineering/requirements/index.md` (статус + changelog),
   System Design, README и `.session-context.md`.
 - ADR не переписываются задним числом. Новое архитектурное решение — новый ADR.
 - Диагностические коды `EGxxx` стабильны; не переиспользуй код для другого смысла.

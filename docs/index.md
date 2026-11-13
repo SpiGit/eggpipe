@@ -35,8 +35,5 @@
 
 ### Для разработки
 
-- [Engineering home](engineering/index.md) — ТЗ, ADR, System Design, ревью, план и релиз.
-- [Актуальное ТЗ v2.2](engineering/requirements/v2.2.md).
-- [System Design](engineering/system-design/index.md).
-- [ADR](engineering/adr/index.md).
-- [План v2.0](engineering/plan-v2.md).
+Инженерная документация (ТЗ, ADR, System Design, ревью, план и релиз) находится
+в каталоге `engineering/` репозитория и не входит в сайт документации.

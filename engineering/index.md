@@ -13,3 +13,4 @@
 - [Релиз](release.md) — чек-лист и публикация.
 - [Решения о проекте](decisions/eggpipe.md) — имя, бренд и идентичность.
 - [Требования к логотипу](decisions/logo-brief.md) — концепция, файлы и критерии приёмки.
+- [Brand assets](brand-assets.md) — где лежат иконки, wordmark и social preview.

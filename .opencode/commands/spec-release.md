@@ -6,14 +6,14 @@ description: Подготовить новую версию ТЗ и синхро
 
 Порядок работы:
 
-1. Прочитай `AGENTS.md`, `docs/engineering/requirements/index.md`, актуальное ТЗ, System Design, ADR-0001,
+1. Прочитай `AGENTS.md`, `engineering/requirements/index.md`, актуальное ТЗ, System Design, ADR-0001,
    `README.md` и `.session-context.md`.
 2. Определи тип изменения (patch/minor) и номер версии. Если версия не указана в аргументах —
    предложи её и дождись подтверждения.
 3. Не изменяй версии ТЗ со статусом «Замещена».
-4. Создай `docs/engineering/requirements/v<версия>.md` на основе актуального ТЗ. Внеси только согласованные
+4. Создай `engineering/requirements/v<версия>.md` на основе актуального ТЗ. Внеси только согласованные
    изменения, сохранив структуру разделов и стабильные коды `EGxxx`.
-5. Обнови `docs/engineering/requirements/index.md`: статус версий и changelog. Предыдущую актуальную версию
+5. Обнови `engineering/requirements/index.md`: статус версий и changelog. Предыдущую актуальную версию
    переведи в статус «Замещена».
 6. Синхронизируй System Design, README и `.session-context.md` с новой версией.
 7. Обнови хардкоды версий в `AGENTS.md` и во всём `.opencode/` (skills, commands, agents).

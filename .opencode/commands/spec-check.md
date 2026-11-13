@@ -10,10 +10,10 @@ agent: spec-reviewer
 Обязательно прочитай:
 
 - `AGENTS.md`
-- `docs/engineering/requirements/index.md`
+- `engineering/requirements/index.md`
 - актуальное ТЗ (файл со статусом «Актуальная»)
-- `docs/engineering/system-design/index.md`
-- `docs/engineering/adr/0001-composition-merge-semantics.md`
+- `engineering/system-design/index.md`
+- `engineering/adr/0001-composition-merge-semantics.md`
 - `README.md`
 
 Проверь:
@@ -23,7 +23,7 @@ agent: spec-reviewer
 3. Диагностические коды `EGxxx`, их диапазоны и смысл.
 4. CLI-команды, флаги и exit codes (0 / 1 / 2 / 130).
 5. Правила путей, ownership, manifest и cleanup.
-6. Версии и статусы в `docs/engineering/requirements/index.md` и README.
+6. Версии и статусы в `engineering/requirements/index.md` и README.
 7. Противоречия между ТЗ, System Design и ADR-0001.
 
 Ограничения: ничего не редактируй. Shell, webfetch и websearch запрещены; используй только `read`, `glob`, `grep`.

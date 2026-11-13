@@ -6,8 +6,8 @@ description: Создать новый ADR по шаблону
 
 Порядок работы:
 
-1. Найди существующие ADR в `docs/engineering/adr/` и определи следующий номер `NNNN`.
-2. Имя файла: `docs/engineering/adr/NNNN-<kebab-case-название>.md`.
+1. Найди существующие ADR в `engineering/adr/` и определи следующий номер `NNNN`.
+2. Имя файла: `engineering/adr/NNNN-<kebab-case-название>.md`.
 3. Используй структуру:
 
    ```md

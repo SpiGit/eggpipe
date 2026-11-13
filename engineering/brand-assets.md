@@ -1,6 +1,6 @@
 # Brand assets
 
-Иконка и изображения Eggpipe. Исходная концепция — [logo-brief](../../engineering/decisions/logo-brief.md).
+Иконка и изображения Eggpipe. Исходная концепция — [logo-brief](decisions/logo-brief.md).
 
 ## Структура
 
@@ -12,35 +12,34 @@ docs/assets/brand/
 ├── social/                      # GitHub social preview
 ├── favicon.ico
 ├── preview.png
-├── preview-small-sizes.png
-└── README.md
+└── preview-small-sizes.png
 ```
 
 ## Preview
 
-![Icon variants](preview.png)
+![Icon variants](../docs/assets/brand/preview.png)
 
-![Small sizes](preview-small-sizes.png)
+![Small sizes](../docs/assets/brand/preview-small-sizes.png)
 
-<img src="lockup/eggpipe-wordmark-light.png" alt="Eggpipe wordmark" width="420">
+<img src="../docs/assets/brand/lockup/eggpipe-wordmark-light.png" alt="Eggpipe wordmark" width="420">
 
-<img src="lockup/eggpipe-lockup-light.png" alt="Eggpipe lockup" width="420">
+<img src="../docs/assets/brand/lockup/eggpipe-lockup-light.png" alt="Eggpipe lockup" width="420">
 
 ## Где используется
 
 | Место | Файл |
 |-------|------|
-| MkDocs, логотип в сайдбаре | `png/eggpipe-icon-128.png` |
-| MkDocs, favicon | `favicon.ico` → копия в `docs/img/favicon.ico` |
-| README, светлая тема | `lockup/eggpipe-wordmark-light.png` |
-| README, тёмная тема | `lockup/eggpipe-wordmark-dark.png` |
-| `docs/index.md` | `lockup/eggpipe-wordmark-light.png` и dark-вариант |
-| Lockup с иконкой | `lockup/eggpipe-lockup-light.png`, `lockup/eggpipe-lockup-dark.png` |
-| GitHub social preview | `social/eggpipe-social-1280x640.png` |
-| GitHub avatar | `png/eggpipe-icon-512.png` |
+| MkDocs, логотип в сайдбаре | `docs/assets/brand/png/eggpipe-icon-128.png` |
+| MkDocs, favicon | `docs/assets/brand/favicon.ico` → копия в `docs/img/favicon.ico` |
+| README, светлая тема | `docs/assets/brand/lockup/eggpipe-wordmark-light.png` |
+| README, тёмная тема | `docs/assets/brand/lockup/eggpipe-wordmark-dark.png` |
+| `docs/index.md` | `docs/assets/brand/lockup/eggpipe-wordmark-light.png` и dark-вариант |
+| Lockup с иконкой | `docs/assets/brand/lockup/eggpipe-lockup-light.png`, `docs/assets/brand/lockup/eggpipe-lockup-dark.png` |
+| GitHub social preview | `docs/assets/brand/social/eggpipe-social-1280x640.png` |
+| GitHub avatar | `docs/assets/brand/png/eggpipe-icon-512.png` |
 | PyPI README | те же PNG по абсолютным URL после появления репозитория |
-| Android / PWA | `png/android-chrome-192x192.png`, `png/android-chrome-512x512.png` |
-| Apple touch icon | `png/apple-touch-icon.png` |
+| Android / PWA | `docs/assets/brand/png/android-chrome-192x192.png`, `docs/assets/brand/png/android-chrome-512x512.png` |
+| Apple touch icon | `docs/assets/brand/png/apple-touch-icon.png` |
 
 ## Размеры
 

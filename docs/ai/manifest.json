@@ -91,11 +91,11 @@
     },
     {
       "exists": true,
-      "path": "docs/engineering/requirements/v2.2.md"
+      "path": "engineering/requirements/v2.2.md"
     },
     {
       "exists": true,
-      "path": "docs/engineering/system-design/index.md"
+      "path": "engineering/system-design/index.md"
     }
   ],
   "package_version": "0.3.0",

@@ -4,7 +4,7 @@
 
 ## Добавить генератор
 
-1. Прочитать `docs/engineering/requirements/v2.2.md` §6.1 и `docs/user/plugins.md`.
+1. Прочитать `engineering/requirements/v2.2.md` §6.1 и `docs/user/plugins.md`.
 2. Создать функцию с `@generator(id=..., input_formats=...)`.
 3. Аннотировать аргументы только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
 4. Вернуть `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]` или `GenerationResult`.

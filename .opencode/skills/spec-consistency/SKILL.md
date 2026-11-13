@@ -10,7 +10,7 @@ description: Проверка согласованности документо�
 
 ## Порядок
 
-1. Прочитай `AGENTS.md` и определи актуальную версию в `docs/engineering/requirements/index.md`.
+1. Прочитай `AGENTS.md` и определи актуальную версию в `engineering/requirements/index.md`.
 2. Прочитай актуальное ТЗ, System Design, ADR-0001, README и `.session-context.md`.
 3. Пройди чек-лист ниже. Для каждой находки зафиксируй `file:line`.
 4. Ничего не исправляй без отдельного разрешения: сначала отчёт.
@@ -68,7 +68,7 @@ description: Проверка согласованности документо�
 
 ### Версии и статусы
 
-- [ ] В `docs/engineering/requirements/index.md` ровно одна актуальная версия.
+- [ ] В `engineering/requirements/index.md` ровно одна актуальная версия.
 - [ ] Предыдущая версия помечена «Замещена», файл не изменён.
 - [ ] Changelog соответствует фактическим изменениям.
 - [ ] README и `.session-context.md` ссылаются на актуальную версию.
@@ -77,7 +77,7 @@ description: Проверка согласованности документо�
 ## Как искать
 
 Используй `grep`/`glob` по `docs/` и `README.md`. Не считай находки в исторических версиях
-ТЗ (статус «Замещена») и в changelog `docs/engineering/requirements/index.md`: там старые термины
+ТЗ (статус «Замещена») и в changelog `engineering/requirements/index.md`: там старые термины
 упоминаются намеренно.
 
 Что искать:
@@ -86,7 +86,7 @@ description: Проверка согласованности документо�
 - `Field`/`Enum` без суффикса `Def` — только в исторических версиях и changelog.
 - `--format` — только как часть `--output-format`; отдельного флага быть не должно.
 - `EGxxx` — каждый код должен иметь один смысл; диапазоны — см. примечание в чек-листе.
-- `v1.x` — сверь статусы в `docs/engineering/requirements/index.md` с README и System Design.
+- `v1.x` — сверь статусы в `engineering/requirements/index.md` с README и System Design.
 
 ## Формат отчёта
 

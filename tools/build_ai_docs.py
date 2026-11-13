@@ -52,8 +52,8 @@ DOCUMENTS = (
     "docs/ai/context.md",
     "docs/ai/tasks.md",
     "docs/ai/invariants.md",
-    "docs/engineering/requirements/v2.2.md",
-    "docs/engineering/system-design/index.md",
+    "engineering/requirements/v2.2.md",
+    "engineering/system-design/index.md",
 )
 
 COMMANDS = (
@@ -136,9 +136,9 @@ def _llms_index() -> str:
 
 ## Engineering
 
-- [Requirements v2.2](../engineering/requirements/v2.2.md)
-- [System Design](../engineering/system-design/index.md)
-- [ADR index](../engineering/adr/index.md)
+- [Requirements v2.2](../../engineering/requirements/v2.2.md)
+- [System Design](../../engineering/system-design/index.md)
+- [ADR index](../../engineering/adr/index.md)
 """
 
 
