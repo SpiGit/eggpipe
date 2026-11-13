@@ -16,7 +16,7 @@ immutable, диагностики структурированы, публичн
 - повторяющиеся проверки формата/версии в `Composition`;
 - 96 строковых литералов диагностик и несколько наборов дублирующихся констант.
 
-Метрики по `src/eggpipe`:
+Метрики по `src/eggpipe` на момент ревью:
 
 | Метрика | Значение |
 |---------|----------|
@@ -31,6 +31,10 @@ immutable, диагностики структурированы, публичн
 
 После ревью исправлены быстрые дефекты:
 
+- **M1** — `_run_generator` получает `CompositionResult` явно; скрытое состояние
+  `self._composition` удалено, `_Pending` хранит `format_name`/`format_version`.
+- **M2** — `Engine.build` разделён на `_load_composition`, `_validate_model`,
+  `_run_generators`; промежуточный результат собирается в `_GeneratorRun`.
 - **M4** — мёртвая ветка `on_conflict == "error"` удалена, `PlannedArtifact` собирается через
   `_planned()`; поведение покрыто существующими тестами.
 - **M6** — `load_formats_with_issues`, `build_format_registry_with_issues` и

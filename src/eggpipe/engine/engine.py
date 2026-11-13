@@ -14,7 +14,6 @@ from eggpipe.config.generator_rules import GeneratorConfig, GeneratorRules
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
 from eggpipe.core.document import ModelDocument
-from eggpipe.core.model import SourceModel
 from eggpipe.core.parser import Parser
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
@@ -50,6 +49,16 @@ class _Pending:
     result: GenerationResult
     plan: ExecutionPlan
     output_dir: Path
+    format_name: str
+    format_version: str
+
+
+@dataclass
+class _GeneratorRun:
+    generators: list[GeneratorReport]
+    artifacts: list[ArtifactReport]
+    pending: list[_Pending]
+    diagnostics: list[Diagnostic]
 
 
 class Engine:
@@ -75,7 +84,6 @@ class Engine:
         self.writer = ArtifactWriter(eggpipe_version=__version__)
         self.run_id = uuid.uuid4().hex
         self._pending: list[_Pending] = []
-        self._composition: CompositionResult | None = None
 
     def build(self) -> EngineReport:
         started = time.perf_counter()
@@ -84,6 +92,35 @@ class Engine:
         sources, source_groups = self._source_paths(diagnostics)
         if not sources:
             return self._report(False, 1, diagnostics, [], started)
+
+        composition = self._load_composition(sources, source_groups, diagnostics)
+        if composition is None:
+            return self._report(False, 1, diagnostics, [], started)
+
+        self._validate_model(composition, diagnostics)
+        diagnostics = self._filter_ignored(diagnostics)
+        if _has_errors(diagnostics):
+            return self._report(False, 1, diagnostics, [], started)
+
+        run = self._run_generators(composition)
+        diagnostics.extend(run.diagnostics)
+        self._pending = run.pending
+        success = not _has_errors(diagnostics)
+        return self._report(
+            success,
+            0 if success else 1,
+            self._filter_ignored(diagnostics),
+            run.generators,
+            started,
+            run.artifacts,
+        )
+
+    def _load_composition(
+        self,
+        sources: list[Path],
+        source_groups: list[SourceGroup] | None,
+        diagnostics: list[Diagnostic],
+    ) -> CompositionResult | None:
         composition = Composition(
             self.parser,
             project_root=self.config_dir,
@@ -93,25 +130,31 @@ class Engine:
             result = composition.resolve(sources, source_groups)
         except DocumentError as exc:
             diagnostics.append(error(exc.code, exc.message, file=exc.path))
-            return self._report(False, 1, diagnostics, [], started)
-        self._composition = result
+            return None
         diagnostics.extend(result.diagnostics)
         if self.rules.diagnostics.stale_dates:
             diagnostics.extend(_stale_date_diagnostics(result.documents))
-        model = result.model
-        format_plugin = self.registry.get(result.format)
-        diagnostics.extend(
-            validate_entity_model(model, primitive_types=format_plugin.primitive_types)
-        )
-        if not isinstance(format_plugin, EntityModelFormat):
-            for document in result.documents:
-                diagnostics.extend(format_plugin.validate(document))
-        diagnostics = self._filter_ignored(diagnostics)
-        if _has_errors(diagnostics):
-            return self._report(False, 1, diagnostics, [], started)
+        return result
 
-        generators: list[GeneratorReport] = []
-        artifacts: list[ArtifactReport] = []
+    def _validate_model(
+        self,
+        composition: CompositionResult,
+        diagnostics: list[Diagnostic],
+    ) -> None:
+        format_plugin = self.registry.get(composition.format)
+        diagnostics.extend(
+            validate_entity_model(
+                composition.model,
+                primitive_types=format_plugin.primitive_types,
+            )
+        )
+        if isinstance(format_plugin, EntityModelFormat):
+            return
+        for document in composition.documents:
+            diagnostics.extend(format_plugin.validate(document))
+
+    def _run_generators(self, composition: CompositionResult) -> _GeneratorRun:
+        run = _GeneratorRun(generators=[], artifacts=[], pending=[], diagnostics=[])
         for generator_config in self.rules.generators:
             if not generator_config.enabled and not self.config.include_disabled:
                 continue
@@ -119,10 +162,10 @@ class Engine:
             if plugin is None:
                 raise ConfigValidationError(f"неизвестный генератор: {generator_config.id}")
             generator_started = time.perf_counter()
-            result, plan = self._run_generator(generator_config, plugin, model)
-            diagnostics.extend(result.warnings)
-            diagnostics.extend(result.errors)
-            diagnostics.extend(plan.diagnostics)
+            result, plan = self._run_generator(composition, generator_config, plugin)
+            run.diagnostics.extend(result.warnings)
+            run.diagnostics.extend(result.errors)
+            run.diagnostics.extend(plan.diagnostics)
             status = "ok" if result.success and not plan.has_errors else "error"
             artifact_reports = [
                 ArtifactReport(
@@ -132,8 +175,8 @@ class Engine:
                 )
                 for item in plan.artifacts
             ]
-            artifacts.extend(artifact_reports)
-            generators.append(
+            run.artifacts.extend(artifact_reports)
+            run.generators.append(
                 GeneratorReport(
                     id=generator_config.id,
                     status=status,
@@ -142,25 +185,18 @@ class Engine:
                 )
             )
             if status == "ok":
-                output_dir = self._output_dir(generator_config)
-                self._pending.append(
+                run.pending.append(
                     _Pending(
                         config=generator_config,
                         plugin=plugin,
                         result=result,
                         plan=plan,
-                        output_dir=output_dir,
+                        output_dir=self._output_dir(generator_config),
+                        format_name=composition.format,
+                        format_version=composition.version,
                     )
                 )
-        success = not _has_errors(diagnostics)
-        return self._report(
-            success,
-            0 if success else 1,
-            self._filter_ignored(diagnostics),
-            generators,
-            started,
-            artifacts,
-        )
+        return run
 
     def generate(self) -> EngineReport:
         report = self.build()
@@ -168,8 +204,6 @@ class Engine:
             return report
         diagnostics = list(report.diagnostics)
         generators = list(report.generators)
-        if self._composition is None:
-            return report
         for pending in self._pending:
             try:
                 cleanup = "enabled" if self.config.clean else pending.config.cleanup
@@ -189,8 +223,8 @@ class Engine:
                             output_dir=pending.output_dir,
                             plan=pending.plan,
                             plugin_version=_plugin_version(pending.plugin),
-                            format_name=self._composition.format,
-                            format_version=self._composition.version,
+                            format_name=pending.format_name,
+                            format_version=pending.format_version,
                             cleanup=cleanup,
                         )
                     )
@@ -251,9 +285,9 @@ class Engine:
 
     def _run_generator(
         self,
+        composition: CompositionResult,
         generator_config: GeneratorConfig,
         plugin: GeneratorPlugin,
-        model: SourceModel,
     ) -> tuple[GenerationResult, ExecutionPlan]:
         try:
             config_diagnostics = plugin.validate_config(generator_config)
@@ -270,28 +304,24 @@ class Engine:
                 ),
                 ExecutionPlan(),
             )
-        slice_, slice_diagnostics = select_slice(model, generator_config.input)
-        if self._composition is None:
-            raise ConfigValidationError("composition не инициализирована")
-        formats = slice_.formats
+        slice_, slice_diagnostics = select_slice(composition.model, generator_config.input)
         context = GenerationContext(
             variables=dict(self.variables),
             naming_hint=self.rules.defaults.naming_convention,
-            imports=dict(self._composition.imports),
-            sources=[document.path for document in self._composition.documents],
-            formats=formats,
+            imports=dict(composition.imports),
+            sources=[document.path for document in composition.documents],
+            formats=slice_.formats,
             run_id=self.run_id,
             config_dir=self.config_dir,
         )
-        config_errors = [item for item in config_diagnostics if item.level == "error"]
-        config_warnings = [item for item in config_diagnostics if item.level == "warning"]
-        slice_errors = [item for item in slice_diagnostics if item.level == "error"]
-        slice_warnings = [item for item in slice_diagnostics if item.level == "warning"]
-        if config_errors or slice_errors:
+        config_errors, config_warnings = _partition(config_diagnostics)
+        slice_errors, slice_warnings = _partition(slice_diagnostics)
+        errors = config_errors + slice_errors
+        if errors:
             return (
                 GenerationResult(
                     warnings=config_warnings + slice_warnings,
-                    errors=config_errors + slice_errors,
+                    errors=errors,
                 ),
                 ExecutionPlan(),
             )
@@ -311,10 +341,9 @@ class Engine:
                 ),
                 ExecutionPlan(),
             )
-        if config_warnings or slice_warnings:
-            result = result.model_copy(
-                update={"warnings": [*config_warnings, *slice_warnings, *result.warnings]}
-            )
+        warnings = config_warnings + slice_warnings
+        if warnings:
+            result = result.model_copy(update={"warnings": [*warnings, *result.warnings]})
         if not result.success:
             return result, ExecutionPlan()
         plan = self.writer.plan(
@@ -382,6 +411,14 @@ def _stale_date_diagnostics(
                     )
                 )
     return diagnostics
+
+
+def _partition(
+    diagnostics: list[Diagnostic],
+) -> tuple[list[Diagnostic], list[Diagnostic]]:
+    errors = [item for item in diagnostics if item.level == "error"]
+    warnings = [item for item in diagnostics if item.level == "warning"]
+    return errors, warnings
 
 
 def _has_errors(diagnostics: list[Diagnostic]) -> bool:
