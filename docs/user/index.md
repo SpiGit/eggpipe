@@ -20,7 +20,6 @@ Eggpipe читает YAML-описание модели данных и гене
 
 - [Cookbook](cookbook/index.md) — типовые рецепты.
 - [Troubleshooting](troubleshooting.md) — что делать при ошибке.
-- [Migration v1 → v2](migration-v1-to-v2.md).
 - [FAQ](faq.md).
 
 ## Базовые понятия

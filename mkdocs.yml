@@ -25,7 +25,6 @@ nav:
       - Плагины: user/plugins.md
       - Диагностики: user/reference/diagnostics.md
       - Troubleshooting: user/troubleshooting.md
-      - Migration v1 → v2: user/migration-v1-to-v2.md
       - FAQ: user/faq.md
   - AI:
       - Обзор: ai/index.md

@@ -71,10 +71,6 @@
     },
     {
       "exists": true,
-      "path": "docs/user/migration-v1-to-v2.md"
-    },
-    {
-      "exists": true,
       "path": "docs/user/faq.md"
     },
     {

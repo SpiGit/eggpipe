@@ -93,7 +93,6 @@ REQUIRED_FILES = (
     "docs/user/api/models.md",
     "docs/user/cookbook/index.md",
     "docs/user/troubleshooting.md",
-    "docs/user/migration-v1-to-v2.md",
     "docs/user/faq.md",
     "docs/ai/llms-full.txt",
     "docs/ai/manifest.json",

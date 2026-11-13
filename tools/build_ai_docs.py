@@ -46,7 +46,6 @@ DOCUMENTS = (
     "docs/user/plugins.md",
     "docs/user/reference/diagnostics.md",
     "docs/user/troubleshooting.md",
-    "docs/user/migration-v1-to-v2.md",
     "docs/user/faq.md",
     "docs/ai/context.md",
     "docs/ai/tasks.md",
@@ -122,7 +121,6 @@ def _llms_index() -> str:
 - [Plugins](../user/plugins.md)
 - [Diagnostics](../user/reference/diagnostics.md)
 - [Troubleshooting](../user/troubleshooting.md)
-- [Migration](../user/migration-v1-to-v2.md)
 
 ## AI
 
