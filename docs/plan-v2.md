@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** E0–E2 выполнены; следующий этап — E3
+- **Статус:** E0–E3 выполнены; следующий этап — E4
 
 ---
 
@@ -89,12 +89,12 @@
 
 Задачи:
 
-- [ ] `FormatPlugin`: `extends`, `base_versions`, `supported_versions`, `schemas`.
-- [ ] `EntityModelFormat`: `schemas` по версиям, `layer_entity`/`full_entity`.
-- [ ] Registry: цепочка `extends`, цикл/глубина, проверка `base_versions`.
-- [ ] `version` опционален: latest.
-- [ ] Проверка `full_entity` — подкласс базовой; `primitive_types` — надмножество.
-- [ ] Ошибки MG008/MG034.
+- [x] `FormatPlugin`: `extends`, `base_versions`, `supported_versions`, `schemas`.
+- [x] `EntityModelFormat`: `schemas` по версиям, `layer_entity`/`full_entity`.
+- [x] Registry: цепочка `extends`, цикл/глубина, проверка `base_versions`.
+- [x] `version` опционален: latest.
+- [x] Проверка `full_entity` — подкласс базовой; `primitive_types` — надмножество.
+- [x] Ошибки MG008/MG034.
 
 **Критерий:** тесты наследования, версий, схем, latest, циклов.
 

@@ -71,8 +71,14 @@ def test_unknown_format(tmp_path: Path) -> None:
     assert code(write(tmp_path, VALID.replace("entity-model", "unknown"))) == "MG007"
 
 
-def test_missing_version(tmp_path: Path) -> None:
-    assert code(write(tmp_path, VALID.replace('version: "1.0"\n', ""))) == "MG008"
+def test_missing_version_uses_latest(tmp_path: Path) -> None:
+    document = Parser().parse_document(write(tmp_path, VALID.replace('version: "1.0"\n', "")))
+    assert document.version == "1.0"
+
+
+def test_invalid_version_type(tmp_path: Path) -> None:
+    path = write(tmp_path, VALID.replace('version: "1.0"', "version: true"))
+    assert code(path) == "MG008"
 
 
 def test_unsupported_version(tmp_path: Path) -> None:

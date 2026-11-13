@@ -43,21 +43,24 @@ class Parser:
         if not isinstance(format_name, str) or not format_name:
             raise DocumentError("MG007", path, "`format` обязателен")
 
-        version = normalize_version(raw.get("version"))
-        if version is None:
-            raise DocumentError("MG008", path, "`version` обязателен")
-
         try:
             plugin = self.registry.get(format_name)
         except UnknownFormatError as exc:
             raise DocumentError("MG007", path, str(exc)) from exc
 
-        if version not in plugin.supported_versions:
-            raise DocumentError(
-                "MG008",
-                path,
-                f"{format_name} не поддерживает версию {version}",
-            )
+        raw_version = raw.get("version")
+        if raw_version is None:
+            version = plugin.supported_versions[-1]
+        else:
+            version = normalize_version(raw_version)
+            if version is None:
+                raise DocumentError("MG008", path, "`version` должен быть строкой или числом")
+            if version not in plugin.supported_versions:
+                raise DocumentError(
+                    "MG008",
+                    path,
+                    f"{format_name} не поддерживает версию {version}",
+                )
 
         raw["format"] = format_name
         raw["version"] = version

@@ -39,6 +39,7 @@ immutable, диагностики структурированы, публичн
   `_planned()`; поведение покрыто существующими тестами.
 - **M6** — `load_formats_with_issues`, `build_format_registry_with_issues` и
   `load_local_generators_with_issues` возвращают `PluginIssue`; CLI печатает warnings.
+- **M7** — проверка format/version в `Composition` сведена в `_ensure_compatible`.
 - **M8** — пустой `primitive_types` больше не подменяется встроенными примитивами.
 
 Остальные пункты остаются в плане по приоритетам.

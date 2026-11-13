@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from typing_extensions import override
 
 from eggpipe.core.document import ImportSpec, ModelDocument
-from eggpipe.core.model import PRIMITIVE_TYPES, SourceModel
+from eggpipe.core.model import PRIMITIVE_TYPES, Entity, FormatSchema, LayerEntity, SourceModel
 from eggpipe.interfaces.diagnostics import Diagnostic
 from eggpipe.utils.exceptions import DocumentError
 
@@ -21,7 +21,10 @@ class FormatPlugin(ABC):
     api_version: ClassVar[Literal["1"]] = "1"
     format_names: ClassVar[list[str]]
     supported_versions: ClassVar[list[str]]
+    extends: ClassVar[str | None] = None
+    base_versions: ClassVar[dict[str, str]] = {}
     primitive_types: ClassVar[set[str]]
+    schemas: ClassVar[dict[str, FormatSchema]]
 
     @abstractmethod
     def parse(self, raw: dict[str, Any], base_path: Path) -> ModelDocument:
@@ -37,6 +40,9 @@ class EntityModelFormat(FormatPlugin):
     format_names: ClassVar[list[str]] = ["entity-model"]
     supported_versions: ClassVar[list[str]] = ["1.0"]
     primitive_types: ClassVar[set[str]] = set(PRIMITIVE_TYPES)
+    schemas: ClassVar[dict[str, FormatSchema]] = {
+        "1.0": FormatSchema(layer_entity=LayerEntity, full_entity=Entity)
+    }
 
     def parse(self, raw: dict[str, Any], base_path: Path) -> ModelDocument:
         model_raw = raw.get("model", {})

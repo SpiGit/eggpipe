@@ -77,14 +77,6 @@ class Composition:
             if root_format is None:
                 root_format = document.format
                 root_version = document.version
-            elif document.format != root_format:
-                raise DocumentError(
-                    "MG007", canonical, "импортированный документ имеет другой format"
-                )
-            elif document.version != root_version:
-                raise DocumentError(
-                    "MG008", canonical, "импортированный документ имеет другую version"
-                )
 
         resolved = self._resolve_extends(state)
         selections = self._selections(state, groups, diagnostics)
@@ -192,21 +184,11 @@ class Composition:
             raise DocumentError("MG006", canonical, "глубина импорта больше 10")
         cached = state.cache.get(canonical)
         if cached is not None:
-            if root_format is not None and cached.format != root_format:
-                raise DocumentError(
-                    "MG007", canonical, "импортированный документ имеет другой format"
-                )
-            if root_version is not None and cached.version != root_version:
-                raise DocumentError(
-                    "MG008", canonical, "импортированный документ имеет другую version"
-                )
+            self._ensure_compatible(cached, root_format, root_version, canonical)
             return cached
 
         document = self.parser.parse_document(canonical)
-        if root_format is not None and document.format != root_format:
-            raise DocumentError("MG007", canonical, "импортированный документ имеет другой format")
-        if root_version is not None and document.version != root_version:
-            raise DocumentError("MG008", canonical, "импортированный документ имеет другую version")
+        self._ensure_compatible(document, root_format, root_version, canonical)
         state.cache[canonical] = document
         closure = {canonical}
         aliases: dict[str, Path] = {}
@@ -229,14 +211,7 @@ class Composition:
                 root_format or document.format,
                 root_version or document.version,
             )
-            if imported.format != document.format:
-                raise DocumentError(
-                    "MG007", resolved, "импортированный документ имеет другой format"
-                )
-            if imported.version != document.version:
-                raise DocumentError(
-                    "MG008", resolved, "импортированный документ имеет другую version"
-                )
+            self._ensure_compatible(imported, document.format, document.version, resolved)
             closure |= state.closures[resolved]
 
         state.closures[canonical] = closure
@@ -244,6 +219,18 @@ class Composition:
         state.alias_names[canonical] = aliases_seen
         state.order.append(canonical)
         return document
+
+    def _ensure_compatible(
+        self,
+        document: ModelDocument,
+        root_format: str | None,
+        root_version: str | None,
+        path: Path,
+    ) -> None:
+        if root_format is not None and document.format != root_format:
+            raise DocumentError("MG007", path, "импортированный документ имеет другой format")
+        if root_version is not None and document.version != root_version:
+            raise DocumentError("MG008", path, "импортированный документ имеет другую version")
 
     def _resolve_import_path(
         self,

@@ -156,6 +156,14 @@ class ExtendsRef(BaseModel):
     )
 
 
+class LayerEntity(EntityIdentity):
+    """Частичная схема сущности для файла-слоя."""
+
+    description: str | None = None
+    fields: tuple[FieldDef, ...] = ()
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class Entity(BaseModel):
     name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     description: str | None = None
@@ -290,6 +298,7 @@ __all__ = [
     "FormatInfo",
     "FormatSchema",
     "InputSelection",
+    "LayerEntity",
     "MergePolicy",
     "ModelSlice",
     "SourceModel",

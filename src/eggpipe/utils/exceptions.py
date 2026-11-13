@@ -34,6 +34,12 @@ class FormatConflictError(ConfigValidationError):
     """Конфликт регистрации формата."""
 
 
+class FormatInheritanceError(ConfigValidationError):
+    """Нарушен контракт наследования формата (MG034)."""
+
+    code = "MG034"
+
+
 class UnknownFormatError(ConfigValidationError):
     """Формат не найден в реестре."""
 

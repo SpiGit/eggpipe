@@ -8,6 +8,8 @@ from typing import Any, ClassVar
 import pytest
 
 from eggpipe import (
+    Entity,
+    FormatSchema,
     GenerationResult,
     GeneratorInput,
     GeneratorPlugin,
@@ -47,6 +49,9 @@ class CustomFormat(FormatPlugin):
     format_names: ClassVar[list[str]] = ["custom"]
     supported_versions: ClassVar[list[str]] = ["1.0"]
     primitive_types: ClassVar[set[str]] = {"string"}
+    schemas: ClassVar[dict[str, FormatSchema]] = {
+        "1.0": FormatSchema(layer_entity=Entity, full_entity=Entity)
+    }
 
     def parse(self, raw: dict[str, Any], base_path: Path) -> ModelDocument:
         return ModelDocument(

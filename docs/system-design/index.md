@@ -618,11 +618,13 @@ class FormatRegistryInfo:
 
 class FormatRegistry:
     """Встроенный 'entity-model' + форматы от формат-плагинов."""
-    def register(self, name: str, plugin: FormatPlugin) -> None:
+    def register(self, plugin: FormatPlugin) -> None:
         # duplicate name → FormatConflictError (MG007)
         # name == "entity-model" для внешнего плагина → MG007
+        # неверное наследование/схемы/примитивы → FormatInheritanceError (MG034)
     def get(self, name: str) -> FormatPlugin: ...   # UnknownFormatError
     def list(self) -> list[FormatRegistryInfo]: ...
+    def validate(self) -> None: ...                 # проверка цепочки extends
 ```
 
 ### 4.2 Imports (см. ADR-0001, полный алгоритм — там)
