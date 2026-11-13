@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from eggpipe import Entity, FieldDef
 
 
 @dataclass(frozen=True)
@@ -20,50 +23,64 @@ class Table:
     foreign_keys: tuple[ForeignKey, ...]
 
 
-def table_info(entity: Any) -> Table:
-    metadata = entity.metadata.get("postgres")
-    if not isinstance(metadata, dict):
-        raise ValueError(f"entity {entity.name}: отсутствует metadata.postgres")
-    table = metadata.get("table")
-    if not isinstance(table, str) or not table:
-        raise ValueError(f"entity {entity.name}: metadata.postgres.table обязателен")
-    primary_key = metadata.get("primary_key", [])
-    if not isinstance(primary_key, list) or not all(isinstance(item, str) for item in primary_key):
-        raise ValueError(f"entity {entity.name}: primary_key должен быть списком строк")
-    foreign_keys = []
-    raw_foreign_keys = metadata.get("foreign_keys", [])
-    if not isinstance(raw_foreign_keys, list):
-        raise ValueError(f"entity {entity.name}: foreign_keys должен быть списком")
-    for item in raw_foreign_keys:
-        if not isinstance(item, dict):
-            raise ValueError(f"entity {entity.name}: foreign_key должен быть словарём")
-        columns = item.get("columns")
-        references = item.get("references")
-        if not isinstance(columns, list) or not isinstance(references, dict):
-            raise ValueError(f"entity {entity.name}: некорректный foreign_key")
-        ref_table = references.get("table")
-        ref_columns = references.get("columns")
-        if not isinstance(ref_table, str) or not isinstance(ref_columns, list):
-            raise ValueError(f"entity {entity.name}: некорректный references")
-        foreign_keys.append(
-            ForeignKey(
-                columns=tuple(str(column) for column in columns),
-                table=ref_table,
-                references=tuple(str(column) for column in ref_columns),
-            )
-        )
+class _References(BaseModel):
+    table: str = Field(min_length=1)
+    columns: tuple[str, ...]
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+
+class _ForeignKey(BaseModel):
+    columns: tuple[str, ...]
+    references: _References
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+
+class _PostgresTable(BaseModel):
+    table: str = Field(min_length=1)
+    primary_key: tuple[str, ...] = ()
+    foreign_keys: tuple[_ForeignKey, ...] = ()
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+
+class _PostgresField(BaseModel):
+    type: str = Field(min_length=1)
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+
+def table_info(entity: Entity) -> Table:
+    metadata = _postgres_metadata(entity.metadata, f"entity {entity.name}")
+    try:
+        model = _PostgresTable.model_validate(metadata)
+    except ValidationError as exc:
+        raise ValueError(f"entity {entity.name}: {exc}") from exc
     return Table(
-        name=table,
-        primary_key=tuple(str(column) for column in primary_key),
-        foreign_keys=tuple(foreign_keys),
+        name=model.table,
+        primary_key=model.primary_key,
+        foreign_keys=tuple(
+            ForeignKey(
+                columns=item.columns,
+                table=item.references.table,
+                references=item.references.columns,
+            )
+            for item in model.foreign_keys
+        ),
     )
 
 
-def field_sql_type(field: Any) -> str:
-    metadata = field.metadata.get("postgres")
-    if not isinstance(metadata, dict):
-        raise ValueError(f"field {field.name}: отсутствует metadata.postgres")
-    sql_type = metadata.get("type")
-    if not isinstance(sql_type, str) or not sql_type:
-        raise ValueError(f"field {field.name}: metadata.postgres.type обязателен")
-    return sql_type
+def field_sql_type(field: FieldDef) -> str:
+    metadata = _postgres_metadata(field.metadata, f"field {field.name}")
+    try:
+        return _PostgresField.model_validate(metadata).type
+    except ValidationError as exc:
+        raise ValueError(f"field {field.name}: {exc}") from exc
+
+
+def _postgres_metadata(metadata: dict[str, object], label: str) -> object:
+    value = metadata.get("postgres")
+    if not isinstance(value, dict):
+        raise ValueError(f"{label}: отсутствует metadata.postgres")
+    return value

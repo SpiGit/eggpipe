@@ -237,16 +237,30 @@ retry, cleanup, диагностику.
 
 ## 7. Follow-up
 
-После ревью применены P1, P2, P7, P8:
+После ревью применены P1–P8 и P15:
 
 - `MergeChange[T]` — generic value object вместо `tuple[value, bool]`;
 - `_merge_value` с `match` вместо цепочки `isinstance/continue`;
 - generic `_merge_append` вместо копипасты `_merge_enums`/`_merge_types`;
 - `_render_ddl`/`_render_pydantic` удалены; остались только artifact-хелперы без
   перевыброса исключений;
+- `RunOptions`/`ReportOptions` заменили длинные списки параметров CLI;
+- `LocationKey` заменил `(generator, output_dir)` в ownership/manifest/engine;
+- `DiagnosticPolicy` централизовал ignore/strict;
+- `metadata.py` использует Pydantic-модели `_PostgresTable`/`_PostgresField`;
+- `_validate_entity` использует `from_attributes=True` вместо `model_dump()`;
 - добавлены тесты nested metadata merge и конфликта metadata.
 
-Остальные пункты (P3–P6, P9–P15) остаются в плане.
+Также применены P9–P14:
+
+- decorator `input_formats` — required keyword без sentinel;
+- `WatchRunner`/`_Debouncer` вместо вложенного состояния;
+- `_GeneratorRun`/`_Pending` — frozen dataclasses с tuple-полями;
+- `Diagnostic.error()`/`Diagnostic.warning()` вместо дублирующих фабрик;
+- `FormatRegistry` хранит нормализованный `_FormatContract`;
+- `@command_errors` убрал копипасту `try/except` из CLI-команд.
+
+Все пункты P1–P15 применены.
 
 ## 8. Обновление skills
 

@@ -9,7 +9,7 @@ import pytest
 from reference_generator import ReferenceGenerator
 from typer.testing import CliRunner
 
-from eggpipe.cli.main import _print_report, app
+from eggpipe.cli.main import ReportOptions, _print_report, app
 from eggpipe.engine import plugin_loader
 from eggpipe.engine.report import EngineReport
 from eggpipe.interfaces.generator import GeneratorPlugin
@@ -119,12 +119,14 @@ def test_json_lines_output(capsys: pytest.CaptureFixture[str]) -> None:
     assert (
         _print_report(
             report,
-            output_format="json",
-            quiet=False,
-            verbose=False,
-            strict=False,
-            ignore=None,
-            json_lines=True,
+            ReportOptions(
+                output_format="json",
+                quiet=False,
+                verbose=False,
+                strict=False,
+                ignore=None,
+                json_lines=True,
+            ),
         )
         == 0
     )

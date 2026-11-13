@@ -104,9 +104,8 @@ def test_decorator_requires_input_formats() -> None:
     def plain(model: ModelSlice) -> Artifact:
         return Artifact(path="a.txt", content="a")
 
-    with pytest.raises(PluginContractError) as caught:
-        generator()(plain)
-    assert caught.value.code == "MG301"
+    with pytest.raises(TypeError):
+        generator()(plain)  # type: ignore[missing-argument]
 
 
 def test_unknown_injection_parameter() -> None:

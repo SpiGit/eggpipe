@@ -230,7 +230,7 @@ def _validate_entity(
         )
     model: type[BaseModel] = getattr(schema, schema_name)
     try:
-        model.model_validate(entity.model_dump())
+        model.model_validate(entity, from_attributes=True)
     except ValidationError as exc:
         raise DocumentError(
             "MG029",

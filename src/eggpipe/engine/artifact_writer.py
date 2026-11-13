@@ -37,6 +37,12 @@ WIN_RESERVED = {
 }
 
 
+@dataclass(frozen=True, order=True)
+class LocationKey:
+    generator: str
+    output_dir: str
+
+
 class ManifestFormat(BaseModel):
     name: str
     version: str
@@ -62,6 +68,10 @@ class ManifestLocation(BaseModel):
     artifacts: list[ManifestArtifact] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @property
+    def key(self) -> LocationKey:
+        return LocationKey(self.generator, self.output_dir)
 
 
 class Manifest(BaseModel):
@@ -120,7 +130,7 @@ class ArtifactWriter:
         plan = ExecutionPlan(formats=formats)
         manifest = self.load_manifest()
         ownership = self._ownership(manifest)
-        current = (generator_id, self._output_rel(output_dir))
+        current = self.location_key(generator_id, output_dir)
         seen: dict[str, str] = {}
         output_resolved = output_dir.resolve()
 
@@ -152,7 +162,7 @@ class ArtifactWriter:
                 plan.diagnostics.append(
                     error(
                         "MG041",
-                        f"файл принадлежит другому location: {owner[0]}:{owner[1]}",
+                        f"файл принадлежит другому location: {owner.generator}:{owner.output_dir}",
                         path=normalized,
                     )
                 )
@@ -388,8 +398,8 @@ class ArtifactWriter:
     def save_manifest(self, manifest: Manifest) -> None:
         _write_json_atomic(self.manifest_path, manifest)
 
-    def location_key(self, generator_id: str, output_dir: Path) -> tuple[str, str]:
-        return (generator_id, self._output_rel(output_dir))
+    def location_key(self, generator_id: str, output_dir: Path) -> LocationKey:
+        return LocationKey(generator_id, self._output_rel(output_dir))
 
     @contextmanager
     def write_lock(self) -> Generator[None, None, None]:
@@ -457,9 +467,9 @@ class ArtifactWriter:
         generator_id: str,
         output_dir: Path,
     ) -> ManifestLocation | None:
-        key = (generator_id, self._output_rel(output_dir))
+        key = self.location_key(generator_id, output_dir)
         for location in manifest.locations:
-            if (location.generator, location.output_dir) == key:
+            if location.key == key:
                 return location
         return None
 
@@ -472,14 +482,14 @@ class ArtifactWriter:
             return location
         return location.model_copy(update={"artifacts": kept})
 
-    def _ownership(self, manifest: Manifest) -> dict[Path, tuple[str, str]]:
-        result: dict[Path, tuple[str, str]] = {}
+    def _ownership(self, manifest: Manifest) -> dict[Path, LocationKey]:
+        result: dict[Path, LocationKey] = {}
         for location in manifest.locations:
             output_dir = self._location_output(location)
             for artifact in location.artifacts:
                 target = (output_dir / artifact.path).resolve()
                 if target.exists():
-                    result[target] = (location.generator, location.output_dir)
+                    result[target] = location.key
         return result
 
     def _location_output(self, location: ManifestLocation) -> Path:
@@ -506,8 +516,8 @@ def _collision(seen: dict[str, str], normalized: str) -> str | None:
 
 def _owned_prefix(
     target: Path,
-    ownership: dict[Path, tuple[str, str]],
-    current: tuple[str, str],
+    ownership: dict[Path, LocationKey],
+    current: LocationKey,
 ) -> str | None:
     name = target.as_posix().casefold()
     for other, owner in ownership.items():
@@ -515,7 +525,7 @@ def _owned_prefix(
             continue
         other_name = other.as_posix().casefold()
         if name.startswith(f"{other_name}/") or other_name.startswith(f"{name}/"):
-            return f"{owner[0]}:{owner[1]}"
+            return f"{owner.generator}:{owner.output_dir}"
     return None
 
 
@@ -579,6 +589,7 @@ __all__ = [
     "ArtifactWriter",
     "CleanResult",
     "ExecutionPlan",
+    "LocationKey",
     "Manifest",
     "ManifestArtifact",
     "ManifestFormat",

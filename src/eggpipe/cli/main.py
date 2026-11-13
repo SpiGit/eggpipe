@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import functools
 import json
 import sys
 import warnings
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, ParamSpec, TypeVar
 
 import typer
 
@@ -27,6 +30,7 @@ from eggpipe.engine.plugin_loader import (
     load_generators_with_issues,
     load_local_generators_with_issues,
 )
+from eggpipe.engine.policy import DiagnosticPolicy
 from eggpipe.engine.report import EngineReport
 from eggpipe.interfaces.generator import GeneratorPlugin
 from eggpipe.utils.exceptions import (
@@ -55,6 +59,58 @@ GeneratorOption = Annotated[
     list[str] | None,
     typer.Option("--generator", "-g", help="Генераторы: через запятую или повторно"),
 ]
+
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def command_errors(func: Callable[P, R]) -> Callable[P, R]:
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        try:
+            return func(*args, **kwargs)
+        except DocumentError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+        except (ConfigValidationError, EggpipeError) as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=2) from exc
+        except KeyboardInterrupt as exc:
+            raise typer.Exit(code=130) from exc
+
+    return wrapper
+
+
+@dataclass(frozen=True)
+class ReportOptions:
+    output_format: str
+    quiet: bool
+    verbose: bool
+    strict: bool
+    ignore: str | None
+    json_lines: bool = False
+
+
+@dataclass(frozen=True)
+class RunOptions:
+    models: list[Path] | None
+    config: Path | None
+    generator: list[str] | None
+    plugins: list[Path] | None
+    output: Path | None
+    variables: list[str] | None
+    plan: bool
+    check: bool
+    force: bool
+    strict: bool
+    include_disabled: bool
+    allow_outside_imports: bool
+    clean: bool
+    output_format: str
+    ignore: str | None
+    quiet: bool
+    verbose: bool
 
 
 def _load_rules(config_path: Path | None) -> tuple[GeneratorRules, Path]:
@@ -118,53 +174,40 @@ def _load_format_registry() -> FormatRegistry:
     return registry
 
 
-def _print_report(
-    report: EngineReport,
-    *,
-    output_format: str,
-    quiet: bool,
-    verbose: bool,
-    strict: bool,
-    ignore: str | None,
-    json_lines: bool = False,
-) -> int:
-    ignored = {item.strip() for item in (ignore or "").split(",") if item.strip()}
-    diagnostics = [
-        item for item in report.diagnostics if item.level == "error" or item.code not in ignored
-    ]
-    if strict:
-        diagnostics = [
-            item.model_copy(update={"level": "error"}) if item.level == "warning" else item
-            for item in diagnostics
-        ]
+def _print_report(report: EngineReport, options: ReportOptions) -> int:
+    ignored = frozenset(item.strip() for item in (options.ignore or "").split(",") if item.strip())
+    diagnostics = DiagnosticPolicy(
+        ignore=ignored,
+        strict=options.strict,
+    ).apply(report.diagnostics)
     warnings = [item for item in diagnostics if item.level == "warning"]
     errors = [item for item in diagnostics if item.level == "error"]
     success = (
         not errors
         and all(generator.status != "error" for generator in report.generators)
-        and not (strict and warnings)
+        and not (options.strict and warnings)
     )
     exit_code = 0 if success else (2 if report.exit_code == 2 else 1)
     report = report.model_copy(
         update={"diagnostics": diagnostics, "success": success, "exit_code": exit_code}
     )
 
-    if output_format == "json":
+    if options.output_format == "json":
         payload = report.model_dump(mode="json")
-        if json_lines:
+        if options.json_lines:
             typer.echo(json.dumps(payload, ensure_ascii=False))
         else:
             typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
         return exit_code
 
     for item in diagnostics:
-        if item.level == "error" or verbose or not quiet:
+        if item.level == "error" or options.verbose or not options.quiet:
             location = _location(item.location)
             typer.echo(f"{item.level}: {item.code}: {item.message}{location}", err=True)
-    if not quiet:
+    if not options.quiet:
         for generator in report.generators:
             typer.echo(f"[{generator.status}] {generator.id} ({generator.duration_ms} ms)")
-        if verbose:
+        if options.verbose:
             for artifact in report.artifacts:
                 typer.echo(f"  {artifact.status}: {artifact.path}")
         typer.echo("OK" if success else "FAILED")
@@ -178,68 +221,52 @@ def _location(location: Any) -> str:
     return f" ({':'.join(parts)})" if parts else ""
 
 
-def _run_engine(
-    *,
-    models: list[Path] | None,
-    config: Path | None,
-    generator: list[str] | None,
-    plugins: list[Path] | None,
-    output: Path | None,
-    variables: list[str] | None,
-    plan: bool,
-    check: bool,
-    force: bool,
-    strict: bool,
-    include_disabled: bool,
-    allow_outside_imports: bool,
-    clean: bool,
-    output_format: str,
-    ignore: str | None,
-    quiet: bool,
-    verbose: bool,
-) -> None:
-    if output_format not in {"text", "json"}:
+def _run_engine(options: RunOptions) -> None:
+    if options.output_format not in {"text", "json"}:
         raise ConfigValidationError("--output-format должен быть text или json")
-    rules, config_dir = _load_rules(config)
-    rules = _filter_rules(rules, _selected_generators(generator))
+    rules, config_dir = _load_rules(options.config)
+    rules = _filter_rules(rules, _selected_generators(options.generator))
     app_config = AppConfig(
-        rules_file=config,
-        output_root=output,
-        force=force,
-        include_disabled=include_disabled,
-        allow_outside_imports=allow_outside_imports,
-        clean=clean,
-        quiet=quiet,
-        verbose=verbose,
+        rules_file=options.config,
+        output_root=options.output,
+        force=options.force,
+        include_disabled=options.include_disabled,
+        allow_outside_imports=options.allow_outside_imports,
+        clean=options.clean,
+        quiet=options.quiet,
+        verbose=options.verbose,
     )
     setup_logging(app_config)
     engine = Engine(
         app_config,
         rules,
         config_dir=config_dir,
-        source_paths=models,
-        variables=_parse_variables(variables),
-        generators=_load_generators(plugins),
+        source_paths=options.models,
+        variables=_parse_variables(options.variables),
+        generators=_load_generators(options.plugins),
         formats=_load_format_registry(),
     )
-    if check:
+    if options.check:
         report = engine.check()
-    elif plan:
+    elif options.plan:
         report = engine.build()
     else:
         report = engine.generate()
     code = _print_report(
         report,
-        output_format=output_format,
-        quiet=quiet,
-        verbose=verbose,
-        strict=strict,
-        ignore=ignore,
+        ReportOptions(
+            output_format=options.output_format,
+            quiet=options.quiet,
+            verbose=options.verbose,
+            strict=options.strict,
+            ignore=options.ignore,
+        ),
     )
     raise typer.Exit(code=code)
 
 
 @app.command()
+@command_errors
 def generate(
     models: Annotated[
         list[Path] | None, typer.Argument(help="Модели (по умолчанию sources)")
@@ -265,8 +292,8 @@ def generate(
 ) -> None:
     """Сгенерировать артефакты."""
     del no_color
-    try:
-        _run_engine(
+    _run_engine(
+        RunOptions(
             models=models,
             config=config,
             generator=generator,
@@ -285,14 +312,7 @@ def generate(
             quiet=quiet,
             verbose=verbose,
         )
-    except DocumentError as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=1) from exc
-    except (ConfigValidationError, EggpipeError) as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=2) from exc
-    except KeyboardInterrupt as exc:
-        raise typer.Exit(code=130) from exc
+    )
 
 
 @app.command()
@@ -360,6 +380,7 @@ def _default_config(layout: str) -> str:
 
 
 @app.command()
+@command_errors
 def watch(
     models: Annotated[
         list[Path] | None, typer.Argument(help="Модели (по умолчанию sources)")
@@ -382,88 +403,80 @@ def watch(
 ) -> None:
     """Watch-режим: перегенерация при изменении sources."""
     del no_color
-    try:
-        path = config or GeneratorRulesLoader.discover()
-        if path is None:
-            raise ConfigValidationError("не найден .eggpipe.yaml; укажите --config")
-        path = path.resolve()
-        rules, config_dir = _load_rules(path)
-        rules = _filter_rules(rules, _selected_generators(generator))
-        generators = _load_generators(plugin)
-        formats = _load_format_registry()
-        output_root = (output or config_dir).resolve()
-        source_paths = [
-            item if item.is_absolute() else (config_dir / item).resolve()
-            for item in (models or [source.path for source in rules.sources])
-        ]
-        discovered = discover_sources(
-            rules,
-            config_dir,
-            allow_outside=allow_outside_imports,
-        )
-        resource_paths = [item.path for item in discovered.resources.values()]
-        ignored_dirs = {(output_root / item.output_dir).resolve() for item in rules.generators}
+    path = config or GeneratorRulesLoader.discover()
+    if path is None:
+        raise ConfigValidationError("не найден .eggpipe.yaml; укажите --config")
+    path = path.resolve()
+    rules, config_dir = _load_rules(path)
+    rules = _filter_rules(rules, _selected_generators(generator))
+    generators = _load_generators(plugin)
+    formats = _load_format_registry()
+    output_root = (output or config_dir).resolve()
+    source_paths = [
+        item if item.is_absolute() else (config_dir / item).resolve()
+        for item in (models or [source.path for source in rules.sources])
+    ]
+    discovered = discover_sources(
+        rules,
+        config_dir,
+        allow_outside=allow_outside_imports,
+    )
+    resource_paths = [item.path for item in discovered.resources.values()]
+    ignored_dirs = {(output_root / item.output_dir).resolve() for item in rules.generators}
 
-        def run_once() -> int:
-            current_rules, current_dir = _load_rules(path)
-            current_rules = _filter_rules(current_rules, _selected_generators(generator))
-            app_config = AppConfig(
-                rules_file=path,
-                output_root=output,
-                force=force,
-                include_disabled=include_disabled,
-                allow_outside_imports=allow_outside_imports,
-                quiet=quiet,
-                verbose=verbose,
-            )
-            setup_logging(app_config)
-            engine = Engine(
-                app_config,
-                current_rules,
-                config_dir=current_dir,
-                source_paths=models,
-                variables=_parse_variables(variable),
-                generators=generators,
-                formats=formats,
-            )
-            report = engine.generate()
-            return _print_report(
-                report,
+    def run_once() -> int:
+        current_rules, current_dir = _load_rules(path)
+        current_rules = _filter_rules(current_rules, _selected_generators(generator))
+        app_config = AppConfig(
+            rules_file=path,
+            output_root=output,
+            force=force,
+            include_disabled=include_disabled,
+            allow_outside_imports=allow_outside_imports,
+            quiet=quiet,
+            verbose=verbose,
+        )
+        setup_logging(app_config)
+        engine = Engine(
+            app_config,
+            current_rules,
+            config_dir=current_dir,
+            source_paths=models,
+            variables=_parse_variables(variable),
+            generators=generators,
+            formats=formats,
+        )
+        report = engine.generate()
+        return _print_report(
+            report,
+            ReportOptions(
                 output_format=output_format,
                 quiet=quiet,
                 verbose=verbose,
                 strict=strict,
                 ignore=ignore,
                 json_lines=True,
-            )
-
-        run_watch(
-            config_path=path,
-            source_paths=[*source_paths, *resource_paths],
-            ignored_dirs=ignored_dirs,
-            debounce_ms=debounce,
-            run_once=run_once,
+            ),
         )
-    except DocumentError as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=1) from exc
-    except (ConfigValidationError, EggpipeError) as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=2) from exc
+
+    run_watch(
+        config_path=path,
+        source_paths=[*source_paths, *resource_paths],
+        ignored_dirs=ignored_dirs,
+        debounce_ms=debounce,
+        run_once=run_once,
+    )
 
 
 @config_app.command("show")
+@command_errors
 def config_show(
     config: ConfigOption = None,
     output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
     show_secrets: Annotated[bool, typer.Option("--show-secrets")] = False,
 ) -> None:
     """Показать merged config и resolved paths."""
-    try:
-        rules, config_dir = _load_rules(config)
-    except EggpipeError as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=2) from exc
+    rules, config_dir = _load_rules(config)
     data = rules.model_dump(mode="json", by_alias=True)
     if not show_secrets:
         data["variables"] = _redact(data.get("variables", {}))
@@ -486,13 +499,10 @@ def config_show(
 
 
 @config_app.command("validate")
+@command_errors
 def config_validate(config: ConfigOption = None) -> None:
     """Проверить .eggpipe.yaml и sources."""
-    try:
-        rules, config_dir = _load_rules(config)
-    except EggpipeError as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=2) from exc
+    rules, config_dir = _load_rules(config)
     discovered = discover_sources(rules, config_dir)
     for item in discovered.diagnostics:
         typer.echo(f"{item.level}: {item.code}: {item.message}", err=True)
@@ -659,6 +669,7 @@ def format_list() -> None:
 
 
 @app.command()
+@command_errors
 def clean(
     config: ConfigOption = None,
     root: Annotated[Path | None, typer.Option("--root")] = None,
@@ -682,15 +693,11 @@ def clean(
     if not writer.manifest_path.is_file():
         typer.echo("no manifest")
         return
-    try:
-        if dry_run:
-            result = writer.clean(dry_run=True)
-        else:
-            with writer.write_lock():
-                result = writer.clean(dry_run=False)
-    except EggpipeError as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=2) from exc
+    if dry_run:
+        result = writer.clean(dry_run=True)
+    else:
+        with writer.write_lock():
+            result = writer.clean(dry_run=False)
     for item in result.diagnostics:
         typer.echo(f"{item.level}: {item.code}: {item.message}", err=True)
     action = "planned" if dry_run else "cleaned"

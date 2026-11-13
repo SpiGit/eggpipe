@@ -18,9 +18,10 @@ from eggpipe.core.model import FormatInfo, ModelSlice
 from eggpipe.core.parser import Parser
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
-from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan
+from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan, LocationKey
 from eggpipe.engine.format_registry import FormatRegistry
 from eggpipe.engine.plugin_loader import build_format_registry, load_generators
+from eggpipe.engine.policy import DiagnosticPolicy
 from eggpipe.engine.report import (
     ArtifactReport,
     EngineReport,
@@ -49,7 +50,7 @@ from eggpipe.utils.exceptions import (
 from eggpipe.version import __version__
 
 
-@dataclass
+@dataclass(frozen=True)
 class _Pending:
     config: GeneratorConfig
     plugin: GeneratorPlugin
@@ -58,12 +59,12 @@ class _Pending:
     output_dir: Path
 
 
-@dataclass
+@dataclass(frozen=True)
 class _GeneratorRun:
-    generators: list[GeneratorReport]
-    artifacts: list[ArtifactReport]
-    pending: list[_Pending]
-    diagnostics: list[Diagnostic]
+    generators: tuple[GeneratorReport, ...]
+    artifacts: tuple[ArtifactReport, ...]
+    pending: tuple[_Pending, ...]
+    diagnostics: tuple[Diagnostic, ...]
 
 
 class Engine:
@@ -87,6 +88,7 @@ class Engine:
         self.source_paths = source_paths
         self.variables = {**rules.variables, **(variables or {})}
         self.writer = ArtifactWriter(eggpipe_version=__version__, config_dir=self.config_dir)
+        self.policy = DiagnosticPolicy(self.rules.diagnostics.ignore)
         self.run_id = uuid.uuid4().hex
         self._pending: list[_Pending] = []
         self._formats: list[FormatSummary] = []
@@ -114,7 +116,7 @@ class Engine:
 
         run = self._run_generators(composition)
         diagnostics.extend(run.diagnostics)
-        self._pending = run.pending
+        self._pending = list(run.pending)
         if not any(item.code == "MG052" for item in diagnostics):
             self._stale = self._stale_location_entries()
             diagnostics.extend(_stale_diagnostics(self._stale))
@@ -123,9 +125,9 @@ class Engine:
             success,
             _exit_code(success, diagnostics),
             self._filter_ignored(diagnostics),
-            run.generators,
+            list(run.generators),
             started,
-            run.artifacts,
+            list(run.artifacts),
         )
 
     def _load_composition(
@@ -173,8 +175,11 @@ class Engine:
             diagnostics.extend(plugin.validate(document))
 
     def _run_generators(self, composition: CompositionResult) -> _GeneratorRun:
-        run = _GeneratorRun(generators=[], artifacts=[], pending=[], diagnostics=[])
-        claimed: dict[str, tuple[str, str]] = {}
+        generators: list[GeneratorReport] = []
+        artifacts: list[ArtifactReport] = []
+        pending: list[_Pending] = []
+        diagnostics: list[Diagnostic] = []
+        claimed: dict[str, LocationKey] = {}
         for generator_config in self.rules.generators:
             if not generator_config.enabled and not self.config.include_disabled:
                 continue
@@ -186,7 +191,6 @@ class Engine:
             plan.diagnostics.extend(
                 _claim_paths(
                     plan,
-                    generator_config.id,
                     self.writer.location_key(
                         generator_config.id,
                         self._output_dir(generator_config),
@@ -194,9 +198,9 @@ class Engine:
                     claimed,
                 )
             )
-            run.diagnostics.extend(result.warnings)
-            run.diagnostics.extend(result.errors)
-            run.diagnostics.extend(plan.diagnostics)
+            diagnostics.extend(result.warnings)
+            diagnostics.extend(result.errors)
+            diagnostics.extend(plan.diagnostics)
             status = "ok" if result.success and not plan.has_errors else "error"
             artifact_reports = [
                 ArtifactReport(
@@ -207,8 +211,8 @@ class Engine:
                 )
                 for item in plan.artifacts
             ]
-            run.artifacts.extend(artifact_reports)
-            run.generators.append(
+            artifacts.extend(artifact_reports)
+            generators.append(
                 GeneratorReport(
                     id=generator_config.id,
                     name=plugin.name or generator_config.id,
@@ -219,7 +223,7 @@ class Engine:
                 )
             )
             if status == "ok":
-                run.pending.append(
+                pending.append(
                     _Pending(
                         config=generator_config,
                         plugin=plugin,
@@ -228,7 +232,12 @@ class Engine:
                         output_dir=self._output_dir(generator_config),
                     )
                 )
-        return run
+        return _GeneratorRun(
+            generators=tuple(generators),
+            artifacts=tuple(artifacts),
+            pending=tuple(pending),
+            diagnostics=tuple(diagnostics),
+        )
 
     def generate(self) -> EngineReport:
         try:
@@ -315,7 +324,7 @@ class Engine:
         return [
             StaleLocation(generator=location.generator, output_dir=location.output_dir)
             for location in manifest.locations
-            if (location.generator, location.output_dir) not in configured
+            if location.key not in configured
         ]
 
     def _source_paths(
@@ -430,8 +439,7 @@ class Engine:
         return (base / generator_config.output_dir).resolve()
 
     def _filter_ignored(self, diagnostics: list[Diagnostic]) -> list[Diagnostic]:
-        ignored = self.rules.diagnostics.ignore
-        return [item for item in diagnostics if item.level == "error" or item.code not in ignored]
+        return self.policy.apply(diagnostics)
 
     def _report(
         self,
@@ -548,9 +556,8 @@ def _stale_diagnostics(stale: list[StaleLocation]) -> list[Diagnostic]:
 
 def _claim_paths(
     plan: ExecutionPlan,
-    generator_id: str,
-    location: tuple[str, str],
-    claimed: dict[str, tuple[str, str]],
+    location: LocationKey,
+    claimed: dict[str, LocationKey],
 ) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     for item in plan.artifacts:
@@ -562,12 +569,12 @@ def _claim_paths(
                 diagnostics.append(
                     error(
                         "MG042",
-                        f"path {item.path} уже занят location {owner[0]}:{owner[1]}",
+                        f"path {item.path} уже занят location {owner.generator}:{owner.output_dir}",
                         path=str(item.path),
                     )
                 )
                 break
-        claimed[name] = (generator_id, location[1])
+        claimed[name] = location
     return diagnostics
 
 

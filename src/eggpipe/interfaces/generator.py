@@ -82,7 +82,6 @@ class GeneratorPlugin(ABC):
         return []
 
 
-_MISSING = object()
 _INJECTABLE = (ModelSlice, GenerationContext, GeneratorConfig)
 
 
@@ -90,12 +89,10 @@ def generator(
     *,
     id: str | None = None,
     name: str | None = None,
-    input_formats: set[str] | object | None = _MISSING,
+    input_formats: set[str] | None,
     api_version: Literal["1"] = "1",
 ) -> Callable[[Callable[..., Any]], type[GeneratorPlugin]]:
     """Объявить генератор функцией; создаёт класс-адаптер GeneratorPlugin."""
-    if input_formats is _MISSING:
-        raise PluginContractError("MG301", "input_formats обязателен")
     if input_formats is not None and (
         not isinstance(input_formats, set)
         or any(not isinstance(item, str) or not item for item in input_formats)

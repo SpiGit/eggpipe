@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from typing_extensions import override
 
 from eggpipe.utils.exceptions import ConfigValidationError
 
 IGNORED_PARTS = {".git", ".eggpipe", "__pycache__", ".venv", "node_modules"}
+LOGGER = logging.getLogger(__name__)
 
 
 def should_ignore(path: Path, ignored_dirs: set[Path], *, allow: set[Path]) -> bool:
@@ -25,6 +29,95 @@ def should_ignore(path: Path, ignored_dirs: set[Path], *, allow: set[Path]) -> b
     )
 
 
+class _Debouncer:
+    def __init__(self, callback: Callable[[], None], delay_ms: int) -> None:
+        self._callback = callback
+        self._delay = delay_ms / 1000
+        self._timer: threading.Timer | None = None
+
+    def trigger(self) -> None:
+        if self._timer is not None:
+            self._timer.cancel()
+        self._timer = threading.Timer(self._delay, self._fire)
+        self._timer.daemon = True
+        self._timer.start()
+
+    def _fire(self) -> None:
+        try:
+            self._callback()
+        except Exception:  # watch не должен падать от одной ошибки
+            LOGGER.exception("watch generation failed")
+
+
+@dataclass
+class WatchRunner:
+    config_path: Path
+    source_paths: list[Path]
+    ignored_dirs: set[Path]
+    debounce_ms: int
+    run_once: Callable[[], int]
+    stop_event: threading.Event | None = None
+    _debouncer: _Debouncer = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self._debouncer = _Debouncer(self._fire, self.debounce_ms)
+
+    def run(self) -> int:
+        try:
+            from watchdog.observers import Observer
+        except ImportError as exc:
+            raise ConfigValidationError(
+                "watchdog не установлен; используйте pip install 'eggpipe[watch]'"
+            ) from exc
+
+        handler = _make_handler(self)
+        observer = Observer()
+        scheduled: set[Path] = set()
+        for path in [*self.source_paths, self.config_path]:
+            directory = path if path.is_dir() else path.parent
+            directory = directory.resolve()
+            if directory in scheduled:
+                continue
+            scheduled.add(directory)
+            observer.schedule(handler, str(directory), recursive=path.is_dir())
+        self.run_once()
+        observer.start()
+        try:
+            while observer.is_alive():
+                if self.stop_event is not None and self.stop_event.is_set():
+                    break
+                time.sleep(0.05)
+        except KeyboardInterrupt:
+            pass
+        observer.stop()
+        observer.join()
+        return 0
+
+    def _fire(self) -> None:
+        self.run_once()
+
+    def _on_event(self, path: Path, is_directory: bool) -> None:
+        if is_directory:
+            return
+        if not _relevant(path, self.config_path, self.source_paths):
+            return
+        if should_ignore(path, self.ignored_dirs, allow={self.config_path.resolve()}):
+            return
+        self._debouncer.trigger()
+
+
+def _make_handler(runner: WatchRunner) -> Any:
+    from watchdog.events import FileSystemEventHandler
+
+    class Handler(FileSystemEventHandler):
+        @override
+        def on_any_event(self, event: object) -> None:
+            path = Path(str(getattr(event, "src_path", "")))
+            runner._on_event(path, bool(getattr(event, "is_directory", False)))
+
+    return Handler()
+
+
 def run_watch(
     *,
     config_path: Path,
@@ -34,62 +127,14 @@ def run_watch(
     run_once: Callable[[], int],
     stop_event: threading.Event | None = None,
 ) -> int:
-    try:
-        from watchdog.events import FileSystemEventHandler
-        from watchdog.observers import Observer
-    except ImportError as exc:
-        raise ConfigValidationError(
-            "watchdog не установлен; используйте pip install 'eggpipe[watch]'"
-        ) from exc
-
-    class Handler(FileSystemEventHandler):
-        def __init__(self) -> None:
-            self._timer: threading.Timer | None = None
-
-        @override
-        def on_any_event(self, event: object) -> None:
-            if getattr(event, "is_directory", False):
-                return
-            raw_path = getattr(event, "src_path", "")
-            path = Path(str(raw_path))
-            if not _relevant(path, config_path, source_paths):
-                return
-            if should_ignore(path, ignored_dirs, allow={config_path.resolve()}):
-                return
-            if self._timer is not None:
-                self._timer.cancel()
-            self._timer = threading.Timer(debounce_ms / 1000, self._fire)
-            self._timer.daemon = True
-            self._timer.start()
-
-        def _fire(self) -> None:
-            try:
-                run_once()
-            except Exception as exc:  # watch не должен падать от одной ошибки
-                print(f"watch error: {exc}", flush=True)
-
-    handler = Handler()
-    observer = Observer()
-    scheduled: set[Path] = set()
-    for path in [*source_paths, config_path]:
-        directory = path if path.is_dir() else path.parent
-        directory = directory.resolve()
-        if directory in scheduled:
-            continue
-        scheduled.add(directory)
-        observer.schedule(handler, str(directory), recursive=path.is_dir())
-    run_once()
-    observer.start()
-    try:
-        while observer.is_alive():
-            if stop_event is not None and stop_event.is_set():
-                break
-            time.sleep(0.05)
-    except KeyboardInterrupt:
-        pass
-    observer.stop()
-    observer.join()
-    return 0
+    return WatchRunner(
+        config_path=config_path,
+        source_paths=source_paths,
+        ignored_dirs=ignored_dirs,
+        debounce_ms=debounce_ms,
+        run_once=run_once,
+        stop_event=stop_event,
+    ).run()
 
 
 def _relevant(path: Path, config_path: Path, source_paths: list[Path]) -> bool:
@@ -105,4 +150,4 @@ def _relevant(path: Path, config_path: Path, source_paths: list[Path]) -> bool:
     return False
 
 
-__all__ = ["run_watch", "should_ignore"]
+__all__ = ["WatchRunner", "run_watch", "should_ignore"]
