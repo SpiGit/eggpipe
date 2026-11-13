@@ -74,6 +74,7 @@ REQUIRED_FILES = (
     "docs/reviews/2026-11-12-v2-review.md",
     "docs/reviews/2026-11-13-code-quality-review.md",
     "docs/reviews/2026-11-13-patterns-review.md",
+    "docs/reviews/2026-11-13-project-review.md",
     "docs/reference/diagnostics.md",
     "docs/plugin-guide.md",
     "docs/release.md",

@@ -10,6 +10,7 @@
 - [Ревью v2.0](reviews/2026-11-12-v2-review.md) — результаты проверки документации.
 - [Code quality review](reviews/2026-11-13-code-quality-review.md) — чистота кода и план рефакторинга.
 - [Patterns review](reviews/2026-11-13-patterns-review.md) — паттерны, антипаттерны и рефакторинг.
+- [Project review](reviews/2026-11-13-project-review.md) — независимое ревью ТЗ и кода, P0/P1/P2.
 - [System Design](system-design/index.md) — проектирование реализации.
 - [ADR](adr/index.md) — принятые архитектурные решения.
 - [Руководство по плагинам](plugin-guide.md) — генераторы и форматы.
