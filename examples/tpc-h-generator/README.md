@@ -1,6 +1,6 @@
 # TPC-H example generators
 
-Пример плагинов-генераторов для `eggpipe`:
+Пример плагинов-генераторов для `eggpipe`, объявленных через `@generator`:
 
 - `tpch` — один генератор, выпускает PostgreSQL DDL и Pydantic v2 модели;
 - `tpch-ddl` / `tpch-pydantic` — split-вариант двумя генераторами.

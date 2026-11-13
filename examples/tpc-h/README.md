@@ -1,7 +1,7 @@
 # TPC-H example
 
-Показательный пример для `eggpipe`: стандартная схема TPC-H из 8 таблиц и плагины,
-которые генерируют PostgreSQL DDL и Pydantic v2 модели.
+Показательный пример для `eggpipe`: стандартная схема TPC-H из 8 таблиц и плагины
+с decorator API, которые генерируют PostgreSQL DDL и Pydantic v2 модели.
 
 ## Структура
 

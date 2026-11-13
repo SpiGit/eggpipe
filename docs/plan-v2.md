@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** E0–E7 выполнены; следующий этап — E8
+- **Статус:** E0–E8 выполнены; следующий этап — E9
 
 ---
 
@@ -168,11 +168,11 @@
 
 Задачи:
 
-- [ ] Переименовать configs/package entry points.
-- [ ] Перевести на `layout`/`files`/`resources`.
-- [ ] Использовать decorator API.
-- [ ] Проверить single/split/postgres-model.
-- [ ] Обновить golden и README.
+- [x] Переименовать configs/package entry points.
+- [x] Перевести на `layout`/`files`/`resources`.
+- [x] Использовать decorator API.
+- [x] Проверить single/split/postgres-model.
+- [x] Обновить golden и README.
 
 **Критерий:** golden tests, реальный `eggpipe generate`.
 
