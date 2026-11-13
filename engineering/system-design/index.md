@@ -1488,6 +1488,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Typing :: Typed",
 ]
 dependencies = [
@@ -1560,7 +1563,7 @@ addopts = "-ra --strict-markers"
 - `watchdog` — **optional extra** `[watch]`, lazy-import в `watch/watcher.py`; без `eggpipe watch` пакет не требуется.
 - `ruamel.yaml` (YAML 1.2) вместо PyYAML: duplicate keys → ошибка, корректные `yes/no`, даты.
 - Пакет поставляет `py.typed` (PEP 561); публичный API — `__all__` в `__init__.py`.
-- Python 3.11+ — ради `StrEnum`, `Self`, `tomllib`, современных Pydantic v2; 3.11/3.12 в CI-матрице.
+- Python 3.11+ — ради `StrEnum`, `Self`, `tomllib`, современных Pydantic v2; CI проверяет 3.11–3.15.
 - Встроенных генераторов и `[project.entry-points]` в ядре нет: entry points регистрируют плагины.
 
 ---
