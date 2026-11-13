@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-14
+
+### Changed
+
+- Project URL `Documentation` на PyPI указывает на опубликованный сайт
+  https://spigit.github.io/eggpipe/.
+
 ## [0.3.1] - 2026-11-13
 
 ### Changed

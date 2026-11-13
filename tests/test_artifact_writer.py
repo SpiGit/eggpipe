@@ -14,7 +14,7 @@ from eggpipe.utils.exceptions import LockError, ManifestError
 
 
 def writer(tmp_path: Path) -> ArtifactWriter:
-    return ArtifactWriter(eggpipe_version="0.3.1", config_dir=tmp_path)
+    return ArtifactWriter(eggpipe_version="0.3.2", config_dir=tmp_path)
 
 
 def plan_for(

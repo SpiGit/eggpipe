@@ -1249,7 +1249,7 @@ class ExecutionPlan:
     {
       "generator": "oracle-ddl",
       "output_dir": "output/oracle",
-      "eggpipe_version": "0.3.1",
+      "eggpipe_version": "0.3.2",
       "plugin_version": "1.2.0",
       "formats": [{"name": "entity-model", "version": "1.0"}],
       "generated_at": "2026-11-11T12:34:56Z",
@@ -1478,7 +1478,7 @@ def test_invalid_models_produce_expected_code(data) -> None:
 ```toml
 [project]
 name = "eggpipe"
-version = "0.3.1"
+version = "0.3.2"
 description = "CLI tool and library for metadata-driven code generation"
 readme = "README.md"
 license = "MIT"

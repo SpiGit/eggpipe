@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "eggpipe"
-version = "0.3.1"
+version = "0.3.2"
 description = "CLI tool and library for metadata-driven code generation"
 readme = "README-pypi.md"
 license = "MIT"
@@ -51,7 +51,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/SpiGit/eggpipe"
-Documentation = "https://github.com/SpiGit/eggpipe/tree/main/docs"
+Documentation = "https://spigit.github.io/eggpipe/"
 Repository = "https://github.com/SpiGit/eggpipe"
 Changelog = "https://github.com/SpiGit/eggpipe/blob/main/CHANGELOG.md"
 Issues = "https://github.com/SpiGit/eggpipe/issues"
