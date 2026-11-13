@@ -67,5 +67,6 @@ Workflow `.github/workflows/release.yml`:
 ## После релиза
 
 - Проверить установку из PyPI: `pip install eggpipe`.
+- Проверить публикацию документации: https://spigit.github.io/eggpipe/.
 - Проверить `eggpipe --help`, `eggpipe model schema`, `eggpipe format list`.
 - Добавить `[Unreleased]` в CHANGELOG для следующей версии.
