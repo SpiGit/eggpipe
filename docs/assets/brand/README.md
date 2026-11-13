@@ -8,7 +8,7 @@
 docs/assets/brand/
 ├── svg/                         # векторные мастера
 ├── png/                         # экспорты для документации и приложений
-├── lockup/                      # wordmark и lockup light/dark
+├── lockup/                      # wordmark и lockup, SVG + PNG light/dark
 ├── social/                      # GitHub social preview
 ├── favicon.ico
 ├── preview.png
@@ -21,6 +21,10 @@ docs/assets/brand/
 ![Icon variants](preview.png)
 
 ![Small sizes](preview-small-sizes.png)
+
+<img src="lockup/eggpipe-wordmark-light.png" alt="Eggpipe wordmark" width="420">
+
+<img src="lockup/eggpipe-lockup-light.png" alt="Eggpipe lockup" width="420">
 
 ## Где используется
 
@@ -60,20 +64,24 @@ docs/assets/brand/
 
 ## Lockup
 
-- `lockup/eggpipe-lockup-light.png` — иконка + wordmark для светлого фона;
-- `lockup/eggpipe-lockup-dark.png` — для тёмного фона;
-- `lockup/eggpipe-wordmark-light.png` — только wordmark;
-- `lockup/eggpipe-wordmark-dark.png` — только wordmark для тёмного фона.
+Векторные мастера:
 
-Wordmark и lockup сейчас растровые: собраны из концепта 4. После векторного
-wordmark их нужно пересобрать.
+- `lockup/eggpipe-wordmark.svg` — wordmark;
+- `lockup/eggpipe-wordmark-dark.svg` — wordmark для тёмного фона;
+- `lockup/eggpipe-lockup.svg` — иконка + wordmark;
+- `lockup/eggpipe-lockup-dark.svg` — lockup для тёмного фона.
+
+PNG-экспорты:
+
+- `lockup/eggpipe-wordmark-light.png`, `lockup/eggpipe-wordmark-dark.png`;
+- `lockup/eggpipe-lockup-light.png`, `lockup/eggpipe-lockup-dark.png`.
 
 ## Ограничения
 
-- SVG получен автотрассировкой исходного PNG. Перед публичным релизом желательно
-  перерисовать кривые вручную в Figma/Inkscape.
-- `social/eggpipe-social-1280x640.png` использует растровый wordmark из концепта 4.
-  После появления векторного wordmark social preview нужно пересобрать.
+- SVG иконки и wordmark получены автотрассировкой исходных PNG. Перед публичным
+  релизом желательно перерисовать кривые вручную в Figma/Inkscape.
+- `social/eggpipe-social-1280x640.png` собран из векторного lockup; tagline в нём
+  пока растровый.
 - `apple-touch-icon.png` — единственный PNG с фоном, так требует iOS.
 
 ## Пересборка
