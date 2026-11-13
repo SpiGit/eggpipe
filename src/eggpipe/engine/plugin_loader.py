@@ -9,7 +9,7 @@ from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
 from typing import Any
 
-from eggpipe.engine.format_registry import FormatRegistry
+from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.interfaces.formats import FormatPlugin
 from eggpipe.interfaces.generator import GeneratorPlugin, validate_generator_contract
 from eggpipe.utils.exceptions import PluginContractError

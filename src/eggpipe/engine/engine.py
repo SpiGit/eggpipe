@@ -14,12 +14,12 @@ from eggpipe.config.generator_rules import GeneratorConfig, GeneratorRules
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
 from eggpipe.core.document import ModelDocument
+from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.core.model import FormatInfo, ModelSlice
 from eggpipe.core.parser import Parser
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
 from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan, LocationKey
-from eggpipe.engine.format_registry import FormatRegistry
 from eggpipe.engine.plugin_loader import build_format_registry, load_generators
 from eggpipe.engine.policy import DiagnosticPolicy
 from eggpipe.engine.report import (

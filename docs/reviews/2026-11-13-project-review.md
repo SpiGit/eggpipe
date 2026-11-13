@@ -182,7 +182,7 @@
 Из кода P2 исправлены K4 (stale lock), K8 (sweep staging), K9 (`delete/conflict` в плане),
 K12 (watch overlap), K13 (fsync + уникальный tmp), K14 (drive-relative), K15 (read-only
 context containers), K16 (git timeout), K17 (stat OSError), K18 (plugin version default).
-Остаётся K10 (слой core → engine / пакетный цикл с config) — архитектурный рефакторинг.
+K10 частично: `FormatRegistry` перенесён в `core`, импорт core → engine устранён; пакетный цикл `core.discovery ↔ config` остаётся архитектурным P2.
 
 ## Рекомендуемый план действий
 

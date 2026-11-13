@@ -18,11 +18,11 @@ from eggpipe.config.generator_rules import GeneratorRules, GeneratorRulesLoader
 from eggpipe.config.logging import setup_logging
 from eggpipe.core.discovery import discover_sources
 from eggpipe.core.document import ModelDocument
+from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.core.parser import Parser
 from eggpipe.core.validator import validate_document
 from eggpipe.engine.artifact_writer import ArtifactWriter
 from eggpipe.engine.engine import Engine
-from eggpipe.engine.format_registry import FormatRegistry
 from eggpipe.engine.plugin_loader import (
     GENERATOR_GROUP,
     PluginIssue,

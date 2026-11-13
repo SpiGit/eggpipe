@@ -11,6 +11,7 @@ from eggpipe.config.generator_rules import (
 )
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.document import ImportSpec, ModelDocument
+from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.core.model import (
     PRIMITIVE_TYPES,
     UNSET,
@@ -36,7 +37,6 @@ from eggpipe.core.provenance import Provenance, git_provenance
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_document, validate_entity_model
 from eggpipe.engine.engine import Engine
-from eggpipe.engine.format_registry import FormatRegistry
 from eggpipe.engine.report import ArtifactReport, EngineReport, GeneratorReport
 from eggpipe.interfaces.diagnostics import Diagnostic, DiagnosticLocation
 from eggpipe.interfaces.formats import EntityModelFormat, FormatPlugin

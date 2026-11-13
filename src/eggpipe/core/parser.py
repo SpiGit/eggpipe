@@ -7,8 +7,8 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from eggpipe.core.document import ModelDocument
+from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.core.model import SourceModel
-from eggpipe.engine.format_registry import FormatRegistry
 from eggpipe.utils.exceptions import (
     DocumentError,
     UnknownFormatError,

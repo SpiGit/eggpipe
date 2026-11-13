@@ -1373,12 +1373,12 @@ src/eggpipe/
 │   ├── slicing.py               # select_slice()
 │   ├── validator.py             # semantic validation
 │   ├── naming.py                # NamingStyle, transform()
-│   └── provenance.py            # git_provenance()
+│   ├── provenance.py            # git_provenance()
+│   └── format_registry.py       # FormatRegistry
 ├── engine/
 │   ├── engine.py                # Engine facade and orchestration
 │   ├── artifact_writer.py       # plan, atomic write, manifest, cleanup, lock
 │   ├── plugin_loader.py         # entry points (generators + formats)
-│   ├── format_registry.py       # FormatRegistry
 │   ├── policy.py                # DiagnosticPolicy
 │   └── report.py                # EngineReport and JSON DTOs
 ├── interfaces/
