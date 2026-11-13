@@ -6,7 +6,7 @@ import eggpipe
 
 
 def test_version() -> None:
-    assert eggpipe.__version__ == "0.3.0"
+    assert eggpipe.__version__ == "0.3.1"
 
 
 def test_public_api_exports_core_models() -> None:

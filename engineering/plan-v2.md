@@ -188,7 +188,7 @@
 - [x] `uv build`/`check_wheel`.
 - [x] CI: example install, config names.
 - [x] Release docs: PyPI name `eggpipe`, trusted publisher, repo name.
-- [x] Версия пакета: 0.3.0.
+- [x] Версия пакета: 0.3.1.
 
 **Критерий:** все проверки зелёные; release workflow готов.
 
