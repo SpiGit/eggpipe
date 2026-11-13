@@ -14,9 +14,9 @@ def test_dependency_name_normalizes_distribution_names() -> None:
 def test_relative_sdist_names_strips_root_prefix() -> None:
     names = relative_sdist_names(
         [
-            "eggpipe-0.3.1/pyproject.toml",
-            "eggpipe-0.3.1/src/eggpipe/__init__.py",
-            "eggpipe-0.3.1",
+            "eggpipe-0.3.2/pyproject.toml",
+            "eggpipe-0.3.2/src/eggpipe/__init__.py",
+            "eggpipe-0.3.2",
         ]
     )
     assert names == {
