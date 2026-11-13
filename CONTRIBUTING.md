@@ -5,9 +5,9 @@
 
 ## Перед началом
 
-1. Прочитай [README](./README.md), [ТЗ](./docs/requirements/index.md) и
-   [System Design](./docs/system-design/index.md).
-2. Проверь принятые решения в [ADR](./docs/adr/).
+1. Прочитай [README](./README.md), [ТЗ](./docs/engineering/requirements/index.md) и
+   [System Design](./docs/engineering/system-design/index.md).
+2. Проверь принятые решения в [ADR](./docs/engineering/adr/).
 3. Для агентов действуют дополнительные правила в [AGENTS.md](./AGENTS.md).
 
 ## Окружение
@@ -41,10 +41,10 @@ uv run python tools/check_wheel.py dist
 
 ## Документация
 
-- `docs/requirements/v1.0.md`–`v1.4.md` — история, не редактировать.
+- `docs/engineering/requirements/v1.0.md`–`v1.4.md` — история, не редактировать.
 - Новое поведение оформляется новой версией ТЗ `vX.Y`, а не правкой текущей.
-- Архитектурные решения — новый ADR в `docs/adr/`, существующие ADR не переписываются.
-- При изменении версии обнови `docs/requirements/index.md`, System Design, README,
+- Архитектурные решения — новый ADR в `docs/engineering/adr/`, существующие ADR не переписываются.
+- При изменении версии обнови `docs/engineering/requirements/index.md`, System Design, README,
   `.session-context.md` и harness-файлы, где указана актуальная версия.
 
 ## Pull request

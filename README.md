@@ -150,7 +150,7 @@ Dev/CI используют [uv](https://docs.astral.sh/uv/) и закоммич
 
 Типизация — [Pyrefly](https://pyrefly.org/) в strict-режиме (встроенная поддержка Pydantic v2).
 mypy не входит в блокирующий CI; решение зафиксировано в
-[ADR-0002](./docs/adr/0002-type-checker-pyrefly.md).
+[ADR-0002](./docs/engineering/adr/0002-type-checker-pyrefly.md).
 
 Для basedpyright/Pyright в корне лежит `pyrightconfig.json` (src-layout, `extraPaths`, `.venv`).
 Перед проверкой выполните `uv sync --extra dev`.
@@ -163,25 +163,27 @@ mypy не входит в блокирующий CI; решение зафикс
 uv run python tools/check_docs.py --strict
 ```
 
-- [Техническое задание](./docs/requirements/index.md) — актуальная версия v2.1
-- [System Design](./docs/system-design/index.md)
-- [ADR index](./docs/adr/index.md)
-- [ADR-0001: семантика композиции](./docs/adr/0001-composition-merge-semantics.md)
-- [ADR-0002: type checker — Pyrefly](./docs/adr/0002-type-checker-pyrefly.md)
-- [ADR-0003: null-семантика](./docs/adr/0003-null-semantics.md)
-- [ADR-0004: ownership и cleanup](./docs/adr/0004-ownership-manifest-cleanup.md)
-- [ADR-0005: library API](./docs/adr/0005-library-api.md)
-- [ADR-0006: расширение формата](./docs/adr/0006-format-extension.md)
-- [ADR-0007: наследование форматов](./docs/adr/0007-format-inheritance.md)
-- [ADR-0008: model units и раскладки источников](./docs/adr/0008-model-units-and-source-layouts.md)
-- [ADR-0009: глобальный manifest](./docs/adr/0009-global-manifest-ownership.md)
-- [ADR-0010: decorator API генераторов](./docs/adr/0010-decorator-generator-api.md)
-- [Ревью проекта (2026-11-10)](./docs/reviews/2026-11-10-project-review.md)
+- [Документация](./docs/index.md) — пользователям, AI и разработке
+- [Быстрый старт](./docs/user/quickstart.md)
+- [Плагины](./docs/user/plugins.md)
+- [Техническое задание](./docs/engineering/requirements/index.md) — актуальная версия v2.1
+- [System Design](./docs/engineering/system-design/index.md)
+- [ADR index](./docs/engineering/adr/index.md)
+- [ADR-0001: семантика композиции](./docs/engineering/adr/0001-composition-merge-semantics.md)
+- [ADR-0002: type checker — Pyrefly](./docs/engineering/adr/0002-type-checker-pyrefly.md)
+- [ADR-0003: null-семантика](./docs/engineering/adr/0003-null-semantics.md)
+- [ADR-0004: ownership и cleanup](./docs/engineering/adr/0004-ownership-manifest-cleanup.md)
+- [ADR-0005: library API](./docs/engineering/adr/0005-library-api.md)
+- [ADR-0006: расширение формата](./docs/engineering/adr/0006-format-extension.md)
+- [ADR-0007: наследование форматов](./docs/engineering/adr/0007-format-inheritance.md)
+- [ADR-0008: model units и раскладки источников](./docs/engineering/adr/0008-model-units-and-source-layouts.md)
+- [ADR-0009: глобальный manifest](./docs/engineering/adr/0009-global-manifest-ownership.md)
+- [ADR-0010: decorator API генераторов](./docs/engineering/adr/0010-decorator-generator-api.md)
+- [Ревью проекта (2026-11-10)](./docs/engineering/reviews/2026-11-10-project-review.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)
-- [Каталог диагностик](./docs/reference/diagnostics.md)
-- [Руководство по плагинам](./docs/plugin-guide.md)
-- [Релиз](./docs/release.md)
+- [Каталог диагностик](./docs/user/reference/diagnostics.md)
+- [Релиз](./docs/engineering/release.md)
 - [TPC-H example](./examples/tpc-h/README.md)
 - [Reference generator](./examples/reference-generator/README.md)
 

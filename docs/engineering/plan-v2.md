@@ -45,7 +45,7 @@
 - [x] Eggpipe docs, CLI/config target.
 - [x] Ревью v2.0.
 - [x] Закоммитить docs v2.0.
-- [x] Добавить `docs/reviews/2026-11-12-v2-review.md` в навигацию/индекс.
+- [x] Добавить `docs/engineering/reviews/2026-11-12-v2-review.md` в навигацию/индекс.
 
 **Критерий:** `check_docs --strict` и `mkdocs --strict` зелёные.
 

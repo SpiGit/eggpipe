@@ -2,30 +2,27 @@
 
 Документация проекта `eggpipe` — генерация артефактов из YAML-описания модели данных.
 
-## Навигация
+## Разделы
 
-- [Технические требования](requirements/index.md) — актуальное ТЗ v2.1 и история версий.
-- [Eggpipe](eggpipe.md) — выбранное имя, история подбора и идеи для лого.
-- [План v2.0](plan-v2.md) — эпики, зависимости и критерии готовности.
-- [Ревью v2.0](reviews/2026-11-12-v2-review.md) — результаты проверки документации.
-- [Code quality review](reviews/2026-11-13-code-quality-review.md) — чистота кода и план рефакторинга.
-- [Patterns review](reviews/2026-11-13-patterns-review.md) — паттерны, антипаттерны и рефакторинг.
-- [Project review](reviews/2026-11-13-project-review.md) — независимое ревью ТЗ и кода, P0/P1/P2.
-- [System Design](system-design/index.md) — проектирование реализации.
-- [ADR](adr/index.md) — принятые архитектурные решения.
-- [Руководство по плагинам](plugin-guide.md) — генераторы и форматы.
-- [Каталог диагностик](reference/diagnostics.md) — коды MGxxx.
-- [Релиз](release.md) — чек-лист и публикация.
-- [Ревью проекта](reviews/2026-11-10-project-review.md) — P0/P1/P2 backlog.
+### Для пользователей
 
-## Быстрый старт
+- [Быстрый старт](user/quickstart.md) — установка, модель, конфиг и первый запуск.
+- [Плагины](user/plugins.md) — как писать генераторы и форматы.
+- [Диагностики](user/reference/diagnostics.md) — коды MGxxx и что делать.
+- [Каталог пользовательской документации](user/index.md).
 
-```bash
-uv sync --extra dev
-eggpipe model validate ./models/blog.yaml
-eggpipe generate -c .eggpipe.yaml
-eggpipe generate -c .eggpipe.yaml --plan
-eggpipe generate -c .eggpipe.yaml --check
-```
+### Для AI-агентов
 
-Полный README и примеры — в корне репозитория.
+- [AI documentation](ai/index.md) — точка входа.
+- [AI context](ai/context.md) — компактный контекст проекта, API и команды.
+- [AI tasks](ai/tasks.md) — типовые задачи и последовательности действий.
+- [AI invariants](ai/invariants.md) — что нельзя делать.
+- [llms.txt](ai/llms.txt) — индекс для LLM.
+
+### Для разработки
+
+- [Engineering home](engineering/index.md) — ТЗ, ADR, System Design, ревью, план и релиз.
+- [Актуальное ТЗ v2.1](engineering/requirements/v2.1.md).
+- [System Design](engineering/system-design/index.md).
+- [ADR](engineering/adr/index.md).
+- [План v2.0](engineering/plan-v2.md).
