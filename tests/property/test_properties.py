@@ -1,4 +1,4 @@
-"""Property-based тесты парсера и round-trip."""
+"""Property-based tests for the parser and round-trip."""
 
 from __future__ import annotations
 

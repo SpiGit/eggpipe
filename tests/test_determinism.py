@@ -1,4 +1,4 @@
-"""Determinism-тесты повторной генерации."""
+"""Determinism tests for repeated generation."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from eggpipe import (
     GeneratorConfig,
     GeneratorInput,
     GeneratorPlugin,
-    GeneratorRules,
+    ProjectConfig,
     SourceConfig,
 )
 
@@ -44,7 +44,7 @@ model:
 """,
         encoding="utf-8",
     )
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id="stable", output_dir=Path("out")),),

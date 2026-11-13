@@ -1,4 +1,4 @@
-"""Тесты watch-фильтров."""
+"""Tests for watch filters."""
 
 from __future__ import annotations
 

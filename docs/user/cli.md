@@ -99,7 +99,7 @@ eggpipe clean --root ./project
 |-----|----------|
 | `0` | успех |
 | `1` | errors парсинга/валидации/генерации, drift, `--strict` warnings |
-| `2` | config/usage/plugin errors, MG033/MG034/MG301/MG302 |
+| `2` | config/usage/plugin errors, EG033/EG034/EG301/EG302 |
 | `130` | Ctrl+C в `generate`; watch завершается штатно с `0` |
 
 ## JSON

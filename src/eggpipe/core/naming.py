@@ -1,4 +1,4 @@
-"""Утилиты именования; переименование модели остаётся решением плагина."""
+"""Naming utilities; renaming the model remains a plugin decision."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ class NamingStyle(StrEnum):
 
 
 def transform(name: str, style: NamingStyle) -> str:
-    """Детерминированно преобразовать имя в выбранный стиль."""
+    """Deterministically convert a name to the requested style."""
     words = _split_words(name)
     if not words:
         return name

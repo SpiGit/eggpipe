@@ -1,4 +1,4 @@
-"""Парсер документов модели."""
+"""Model document parser."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from eggpipe.utils.yaml import YamlLoadError, load_yaml
 
 
 def normalize_version(value: object) -> str | None:
-    """Нормализовать version: строка как есть, число — в строку с одним знаком."""
+    """Normalize version: strings as-is, numbers to a string with one decimal place."""
     if isinstance(value, bool) or value is None:
         return None
     if isinstance(value, str):
@@ -41,12 +41,12 @@ class Parser:
 
         format_name = raw.get("format")
         if not isinstance(format_name, str) or not format_name:
-            raise DocumentError("MG007", path, "`format` обязателен")
+            raise DocumentError("EG007", path, "`format` is required")
 
         try:
             plugin = self.registry.get(format_name)
         except UnknownFormatError as exc:
-            raise DocumentError("MG007", path, str(exc)) from exc
+            raise DocumentError("EG007", path, str(exc)) from exc
 
         raw_version = raw.get("version")
         if raw_version is None:
@@ -54,12 +54,12 @@ class Parser:
         else:
             version = normalize_version(raw_version)
             if version is None:
-                raise DocumentError("MG008", path, "`version` должен быть строкой или числом")
+                raise DocumentError("EG008", path, "`version` must be a string or a number")
             if version not in plugin.supported_versions:
                 raise DocumentError(
-                    "MG008",
+                    "EG008",
                     path,
-                    f"{format_name} не поддерживает версию {version}",
+                    f"{format_name} does not support version {version}",
                 )
 
         raw["format"] = format_name
@@ -69,7 +69,7 @@ class Parser:
         except DocumentError:
             raise
         except ValidationError as exc:
-            raise DocumentError("MG028", path, str(exc)) from exc
+            raise DocumentError("EG028", path, str(exc)) from exc
         model = SourceModel(
             name=document.model.name,
             description=document.model.description,

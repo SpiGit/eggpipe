@@ -1,4 +1,4 @@
-"""Внутренние immutable-модели ядра."""
+"""Internal immutable core models."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ PRIMITIVE_TYPES: frozenset[str] = frozenset(
 
 
 class _Unset:
-    """Sentinel для «значение не задано»."""
+    """Sentinel for "value not set"."""
 
     def __repr__(self) -> str:
         return "UNSET"
@@ -50,14 +50,14 @@ DefaultValue = str | int | float | bool | date | datetime | None
 
 @dataclass(frozen=True)
 class FormatInfo:
-    """Конкретный формат и версия."""
+    """Concrete format and version."""
 
     name: str
     version: str
 
 
 class MergePolicy(StrEnum):
-    """Политика merge для коллекций слоёв."""
+    """Merge policy for layer collections."""
 
     KEYED = "keyed"
     APPEND = "append"
@@ -67,14 +67,14 @@ class MergePolicy(StrEnum):
 
 @dataclass(frozen=True)
 class FormatSchema:
-    """Pydantic-схемы одного слоя и итоговой сущности."""
+    """Pydantic schemas for one layer and the final entity."""
 
     layer_entity: type[BaseModel]
     full_entity: type[BaseModel]
 
 
 class EntityIdentity(BaseModel):
-    """Минимальная identity-модель сущности для дельта-слоя."""
+    """Minimal entity identity model for a delta layer."""
 
     name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -82,7 +82,7 @@ class EntityIdentity(BaseModel):
 
 
 class FieldIdentity(BaseModel):
-    """Минимальная identity-модель поля для дельта-слоя."""
+    """Minimal field identity model for a delta layer."""
 
     name: str = Field(..., pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
@@ -118,7 +118,7 @@ class FieldDef(BaseModel):
 
     @field_serializer("default")
     def _serialize_default(self, value: object, _info: object) -> object:
-        # UNSET не сериализуется в JSON как значение; ключ удаляется model_serializer.
+        # UNSET is not serialized to JSON as a value; model_serializer removes the key.
         return None if value is UNSET else value
 
     @model_validator(mode="after")
@@ -157,7 +157,7 @@ class ExtendsRef(BaseModel):
 
 
 class LayerEntity(EntityIdentity):
-    """Частичная схема сущности для файла-слоя."""
+    """Partial entity schema for a layer file."""
 
     description: str | None = None
     version: str | int | None = None
@@ -185,7 +185,7 @@ class Entity(BaseModel):
     @field_validator("updated_at", mode="before")
     @classmethod
     def _coerce_updated_at(cls, value: object) -> object:
-        # Pydantic smart union разбирает полночь ISO-datetime как date; сохраняем тип.
+        # Pydantic smart union parses midnight ISO-datetime as date; preserve the type.
         if isinstance(value, str) and ("T" in value or " " in value):
             try:
                 return datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -222,7 +222,7 @@ class CustomType(BaseModel):
 
 
 class _IndexedModel(BaseModel):
-    """Immutable модель с индексами по именам."""
+    """Immutable model with name indexes."""
 
     entities: tuple[Entity, ...] = ()
     enums: tuple[EnumDef, ...] = ()
@@ -277,7 +277,7 @@ class SourceModel(ModelSlice):
 
 
 class InputSelection(BaseModel):
-    """Выбор подмножества модели; None/пусто = все."""
+    """Model subset selection; None/empty means all."""
 
     entities: tuple[str, ...] | None = None
     enums: tuple[str, ...] | None = None

@@ -1,4 +1,4 @@
-"""Контракты форматов документов."""
+"""Document format contracts."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from eggpipe.utils.exceptions import DocumentError
 
 
 class FormatPlugin(ABC):
-    """Формат документа: парсер и валидатор."""
+    """Document format: parser and validator."""
 
     api_version: ClassVar[Literal["1"]] = "1"
     format_names: ClassVar[list[str]]
@@ -28,14 +28,14 @@ class FormatPlugin(ABC):
 
     @abstractmethod
     def parse(self, raw: dict[str, Any], base_path: Path) -> ModelDocument:
-        """Построить документ из YAML-словаря."""
+        """Build a document from a YAML mapping."""
 
     def validate(self, document: ModelDocument) -> list[Diagnostic]:
         return []
 
 
 class EntityModelFormat(FormatPlugin):
-    """Встроенный формат entity-model."""
+    """Built-in entity-model format."""
 
     format_names: ClassVar[list[str]] = ["entity-model"]
     supported_versions: ClassVar[list[str]] = ["1.0"]
@@ -47,14 +47,14 @@ class EntityModelFormat(FormatPlugin):
     def parse(self, raw: dict[str, Any], base_path: Path) -> ModelDocument:
         model_raw = raw.get("model", {})
         if not isinstance(model_raw, dict):
-            raise DocumentError("MG000", base_path, "`model` должен быть словарём")
+            raise DocumentError("EG000", base_path, "`model` must be a mapping")
 
         imports = self._parse_imports(model_raw.get("imports", []), base_path)
         model_data = {key: value for key, value in model_raw.items() if key != "imports"}
         try:
             model = SourceModel.model_validate(model_data)
         except ValidationError as exc:
-            raise DocumentError("MG028", base_path, _format_validation_error(exc)) from exc
+            raise DocumentError("EG028", base_path, _format_validation_error(exc)) from exc
 
         document = ModelDocument(
             format=str(raw["format"]),
@@ -68,7 +68,7 @@ class EntityModelFormat(FormatPlugin):
         return document
 
     def parse_extensions(self, document: ModelDocument, raw: dict[str, Any]) -> None:
-        """Hook для format-плагинов, расширяющих entity-model."""
+        """Hook for format plugins that extend entity-model."""
 
     @override
     def validate(self, document: ModelDocument) -> list[Diagnostic]:
@@ -88,15 +88,15 @@ class EntityModelFormat(FormatPlugin):
         if raw_imports is None:
             return ()
         if not isinstance(raw_imports, list):
-            raise DocumentError("MG000", base_path, "`model.imports` должен быть списком")
+            raise DocumentError("EG000", base_path, "`model.imports` must be a list")
 
         result: list[ImportSpec] = []
         for item in raw_imports:
             if not isinstance(item, dict):
-                raise DocumentError("MG000", base_path, "элемент imports должен быть словарём")
+                raise DocumentError("EG000", base_path, "imports entry must be a mapping")
             path_value = item.get("path")
             if not isinstance(path_value, str) or not path_value:
-                raise DocumentError("MG000", base_path, "у импорта обязателен path")
+                raise DocumentError("EG000", base_path, "an import requires path")
             suffix = Path(path_value).suffix.lower()
             kind: Literal["yaml", "resource"] = (
                 "yaml" if suffix in {".yaml", ".yml"} else "resource"
@@ -106,7 +106,7 @@ class EntityModelFormat(FormatPlugin):
             if kind == "yaml" and alias is None:
                 alias = Path(path_value).stem
             if kind == "resource" and not alias:
-                raise DocumentError("MG025", base_path, "у resource-импорта обязателен `as`")
+                raise DocumentError("EG025", base_path, "a resource import requires `as`")
             result.append(ImportSpec(path=path_value, alias=alias, kind=kind))
         return tuple(result)
 

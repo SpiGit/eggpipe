@@ -13,7 +13,7 @@ variables:
   env: dev
 diagnostics:
   stale_dates: false
-  ignore: [MG015]
+  ignore: [EG015]
 resources:
   - path: ./shared/templates
   - path: ./shared/seed.json
@@ -27,7 +27,7 @@ generators: []
 | `version` | да | версия схемы конфига, сейчас `"1.0"` |
 | `defaults.naming_convention` | нет | подсказка плагинам |
 | `variables` | нет | строковые переменные для `GenerationContext` |
-| `diagnostics.stale_dates` | нет | MG014 для `file-per-model` |
+| `diagnostics.stale_dates` | нет | EG014 для `file-per-model` |
 | `diagnostics.ignore` | нет | коды warnings, которые нужно скрыть |
 | `resources` | нет | общие ресурсы относительно каталога конфига |
 | `sources` | да для генерации | модели |
@@ -101,14 +101,14 @@ resources:
 - Путь или glob; каталог разворачивается рекурсивно.
 - `as` допустим только для одного файла.
 - Alias по умолчанию — путь без расширения; для модели — `<model_dir>/<path>`.
-- Коллизия alias → MG032.
+- Коллизия alias → EG032.
 - Ресурсы попадают в `GenerationContext.imports`.
 
 ## Input и closure
 
 `input` фильтрует модель после композиции. Пустое значение означает «все». После выбора
 ядро добавляет transitively все enum/type, на которые ссылаются поля. Неизвестное имя →
-MG018.
+EG018.
 
 ## Переменные
 

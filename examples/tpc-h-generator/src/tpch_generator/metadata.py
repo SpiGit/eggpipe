@@ -1,4 +1,4 @@
-"""Чтение Postgres-метаданных из TPC-H модели."""
+"""Read Postgres metadata from the TPC-H model."""
 
 from __future__ import annotations
 
@@ -82,5 +82,5 @@ def field_sql_type(field: FieldDef) -> str:
 def _postgres_metadata(metadata: dict[str, object], label: str) -> object:
     value = metadata.get("postgres")
     if not isinstance(value, dict):
-        raise ValueError(f"{label}: отсутствует metadata.postgres")
+        raise ValueError(f"{label}: metadata.postgres is missing")
     return value

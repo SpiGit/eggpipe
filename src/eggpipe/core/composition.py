@@ -1,4 +1,4 @@
-"""Композиция документов по ADR-0001."""
+"""Document composition per ADR-0001."""
 
 from __future__ import annotations
 
@@ -29,8 +29,6 @@ class CompositionResult:
     model: SourceModel
     imports: dict[str, ImportedFile]
     documents: tuple[ModelDocument, ...]
-    format: str
-    version: str
     diagnostics: list[Diagnostic] = field(default_factory=list)
 
 
@@ -68,7 +66,7 @@ class Composition:
     ) -> CompositionResult:
         unit_refs = _unit_refs(sources, groups)
         if not unit_refs:
-            raise DocumentError("MG000", None, "нет источников модели")
+            raise DocumentError("EG000", None, "no model sources")
         state = ResolveState(
             project_root=self.project_root,
             allow_outside=self.allow_outside,
@@ -87,7 +85,7 @@ class Composition:
                 _, group_keys = grouped.setdefault(id(group), (group, []))
                 group_keys.extend(keys)
         if not visited_keys:
-            raise DocumentError("MG000", None, "нет источников модели")
+            raise DocumentError("EG000", None, "no model sources")
 
         resolved = self._resolve_extends(state)
         selections = self._selections(state, list(grouped.values()), diagnostics)
@@ -105,9 +103,9 @@ class Composition:
                     continue
                 if entity.name in seen_entities:
                     raise DocumentError(
-                        "MG002",
+                        "EG002",
                         path,
-                        f"дубликат имени entity после композиции: {entity.name}",
+                        f"duplicate entity name after composition: {entity.name}",
                     )
                 seen_entities.add(entity.name)
                 entities.append(resolved[path][entity.name])
@@ -116,9 +114,9 @@ class Composition:
                     continue
                 if enum.name in seen_enums:
                     raise DocumentError(
-                        "MG002",
+                        "EG002",
                         path,
-                        f"дубликат имени enum после композиции: {enum.name}",
+                        f"duplicate enum name after composition: {enum.name}",
                     )
                 seen_enums.add(enum.name)
                 enums.append(enum)
@@ -127,9 +125,9 @@ class Composition:
                     continue
                 if custom_type.name in seen_types:
                     raise DocumentError(
-                        "MG002",
+                        "EG002",
                         path,
-                        f"дубликат имени type после композиции: {custom_type.name}",
+                        f"duplicate type name after composition: {custom_type.name}",
                     )
                 seen_types.add(custom_type.name)
                 types.append(custom_type)
@@ -146,8 +144,6 @@ class Composition:
             model=model,
             imports=dict(state.resources),
             documents=tuple(state.cache[path] for path in state.order),
-            format=first.format,
-            version=first.version,
             diagnostics=diagnostics,
         )
 
@@ -190,9 +186,9 @@ class Composition:
                 document = self._visit(canonical, state, (), root_format, root_version)
                 if unit.single_entity and len(document.model.entities) != 1:
                     raise DocumentError(
-                        "MG031",
+                        "EG031",
                         canonical,
-                        "файл file-per-model должен содержать одну сущность",
+                        "a file-per-model file must contain exactly one entity",
                     )
                 if root_format is None:
                     root_format = document.format
@@ -224,9 +220,9 @@ class Composition:
         canonical = path.resolve()
         if canonical in stack:
             cycle = " → ".join(item.name for item in (*stack, canonical))
-            raise DocumentError("MG006", canonical, f"циклический импорт: {cycle}")
+            raise DocumentError("EG006", canonical, f"cyclic import: {cycle}")
         if len(stack) > MAX_IMPORT_DEPTH:
-            raise DocumentError("MG006", canonical, "глубина импорта больше 10")
+            raise DocumentError("EG006", canonical, "import depth exceeds 10")
         cached = state.cache.get(canonical)
         if cached is not None:
             self._ensure_compatible(cached, root_format, root_version, canonical)
@@ -246,9 +242,9 @@ class Composition:
                 continue
             alias = spec.alias or resolved.stem
             if alias in state.resource_aliases:
-                raise DocumentError("MG032", canonical, f"alias ресурса уже занят: {alias}")
+                raise DocumentError("EG032", canonical, f"resource alias is already taken: {alias}")
             if alias in aliases_seen:
-                raise DocumentError("MG025", canonical, f"дубликат alias импорта: {alias}")
+                raise DocumentError("EG025", canonical, f"duplicate import alias: {alias}")
             aliases_seen.add(alias)
             aliases[alias] = resolved
             imported = self._visit(
@@ -275,9 +271,9 @@ class Composition:
         path: Path,
     ) -> None:
         if root_format is not None and document.format != root_format:
-            raise DocumentError("MG007", path, "импортированный документ имеет другой format")
+            raise DocumentError("EG007", path, "imported document has a different format")
         if root_version is not None and document.version != root_version:
-            raise DocumentError("MG008", path, "импортированный документ имеет другую version")
+            raise DocumentError("EG008", path, "imported document has a different version")
 
     def _resolve_import_path(
         self,
@@ -287,12 +283,16 @@ class Composition:
     ) -> Path:
         raw = Path(spec.path)
         if raw.is_absolute():
-            raise DocumentError("MG022", document.path, f"абсолютный импорт запрещён: {spec.path}")
+            raise DocumentError(
+                "EG022", document.path, f"absolute import is not allowed: {spec.path}"
+            )
         resolved = (document.path.parent / raw).resolve()
         if not state.allow_outside and not resolved.is_relative_to(state.project_root):
-            raise DocumentError("MG022", document.path, f"импорт вне project root: {spec.path}")
+            raise DocumentError(
+                "EG022", document.path, f"import outside the project root: {spec.path}"
+            )
         if not resolved.is_file():
-            raise DocumentError("MG000", document.path, f"импорт не найден: {spec.path}")
+            raise DocumentError("EG000", document.path, f"import not found: {spec.path}")
         return resolved
 
     def _register_resource(
@@ -304,16 +304,16 @@ class Composition:
     ) -> None:
         alias = spec.alias
         if not alias:
-            raise DocumentError("MG025", resolved, "у resource-импорта обязателен alias")
+            raise DocumentError("EG025", resolved, "a resource import requires an alias")
         if alias in state.resource_aliases:
-            raise DocumentError("MG032", resolved, f"alias ресурса уже занят: {alias}")
+            raise DocumentError("EG032", resolved, f"resource alias is already taken: {alias}")
         if alias in aliases_seen or alias in state.resources:
-            raise DocumentError("MG025", resolved, f"дубликат alias импорта: {alias}")
+            raise DocumentError("EG025", resolved, f"duplicate import alias: {alias}")
         aliases_seen.add(alias)
         try:
             content = resolved.read_bytes()
         except OSError as exc:
-            raise DocumentError("MG000", resolved, f"не удалось прочитать ресурс: {exc}") from exc
+            raise DocumentError("EG000", resolved, f"failed to read resource: {exc}") from exc
         state.resources[alias] = ImportedFile(name=alias, path=resolved, content=content)
 
     def _resolve_extends(self, state: ResolveState) -> dict[Path, dict[str, Entity]]:
@@ -336,9 +336,9 @@ class Composition:
         if key in memo:
             return memo[key]
         if key in stack:
-            raise DocumentError("MG009", doc_path, f"цикл extends: {entity.name}")
+            raise DocumentError("EG009", doc_path, f"extends cycle: {entity.name}")
         if len(stack) > MAX_EXTENDS_DEPTH:
-            raise DocumentError("MG009", doc_path, "глубина extends больше 10")
+            raise DocumentError("EG009", doc_path, "extends depth exceeds 10")
         if entity.extends is None:
             memo[key] = entity
             return entity
@@ -352,7 +352,7 @@ class Composition:
             (*stack, key),
         )
         if len({field.name for field in entity.fields}) != len(entity.fields):
-            raise DocumentError("MG003", doc_path, f"дубликат поля в {entity.name}")
+            raise DocumentError("EG003", doc_path, f"duplicate field in {entity.name}")
         overrides = {field.name: field for field in entity.fields}
         fields = tuple(overrides.pop(field.name, field) for field in resolved_parent.fields)
         fields += tuple(field for field in entity.fields if field.name in overrides)
@@ -369,16 +369,14 @@ class Composition:
         if isinstance(extends, ExtendsRef):
             target = state.aliases.get(doc_path, {}).get(extends.import_)
             if target is None:
-                raise DocumentError(
-                    "MG009", doc_path, f"неизвестный import alias: {extends.import_}"
-                )
+                raise DocumentError("EG009", doc_path, f"unknown import alias: {extends.import_}")
             for entity in state.cache[target].model.entities:
                 if entity.name == extends.entity:
                     return target, entity
             raise DocumentError(
-                "MG009",
+                "EG009",
                 doc_path,
-                f"entity {extends.entity} не найдена в import {extends.import_}",
+                f"entity {extends.entity} not found in import {extends.import_}",
             )
 
         candidates: list[tuple[Path, Entity]] = []
@@ -387,9 +385,9 @@ class Composition:
                 if entity.name == extends:
                     candidates.append((path, entity))
         if not candidates:
-            raise DocumentError("MG009", doc_path, f"родитель extends не найден: {extends}")
+            raise DocumentError("EG009", doc_path, f"extends parent not found: {extends}")
         if len(candidates) > 1:
-            raise DocumentError("MG009", doc_path, f"неоднозначный extends: {extends}")
+            raise DocumentError("EG009", doc_path, f"ambiguous extends: {extends}")
         return candidates[0]
 
 
@@ -425,8 +423,8 @@ def _selected(
         if name not in available_set:
             diagnostics.append(
                 error(
-                    "MG018",
-                    f"неизвестное имя в sources[].input.{label}: {name}",
+                    "EG018",
+                    f"unknown name in sources[].input.{label}: {name}",
                     file=path,
                 )
             )

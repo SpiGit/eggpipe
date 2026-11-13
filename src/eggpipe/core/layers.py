@@ -1,4 +1,4 @@
-"""Сборка model unit из слоёв форматов (ADR-0008)."""
+"""Build a model unit from format layers (ADR-0008)."""
 
 from __future__ import annotations
 
@@ -42,9 +42,9 @@ def merge_model_layers(
     documents: list[ModelDocument],
     registry: FormatLookup,
 ) -> LayerMergeResult:
-    """Проверить и аддитивно смержить слои одной модели."""
+    """Validate and additively merge the layers of one model."""
     if not documents:
-        raise DocumentError("MG027", None, "пустая модель")
+        raise DocumentError("EG027", None, "empty model")
     layers = _ordered_layers(documents, registry)
     diagnostics: list[Diagnostic] = []
 
@@ -72,9 +72,9 @@ def merge_model_layers(
         delta = _entity(delta_doc)
         if delta.name != merged.name:
             raise DocumentError(
-                "MG029",
+                "EG029",
                 delta_doc.path,
-                f"слой {delta_doc.format} описывает {delta.name}, ожидался {merged.name}",
+                f"layer {delta_doc.format} describes {delta.name}, expected {merged.name}",
             )
         merged_change = _merge_entity(merged, delta, delta_doc.path)
         enums_change = _merge_enums(enums, delta_doc.model.enums, delta_doc.path)
@@ -109,8 +109,8 @@ def merge_model_layers(
         if not added:
             diagnostics.append(
                 warning(
-                    "MG035",
-                    f"дельта {delta_doc.format} не добавляет ничего",
+                    "EG035",
+                    f"delta {delta_doc.format} adds nothing",
                     path=str(delta_doc.path),
                 )
             )
@@ -152,17 +152,19 @@ def _ordered_layers(
     plugins: dict[str, FormatPlugin] = {}
     for document in documents:
         if len(document.model.entities) != 1:
-            raise DocumentError("MG031", document.path, "файл-слой должен содержать одну сущность")
+            raise DocumentError(
+                "EG031", document.path, "a layer file must contain exactly one entity"
+            )
         if document.imports:
-            raise DocumentError("MG029", document.path, "imports в файле-слое запрещены")
+            raise DocumentError("EG029", document.path, "imports are not allowed in a layer file")
         entity = document.model.entities[0]
         if entity.extends is not None:
-            raise DocumentError("MG029", document.path, "extends в файле-слое запрещён")
+            raise DocumentError("EG029", document.path, "extends is not allowed in a layer file")
         if document.format in by_format:
             raise DocumentError(
-                "MG029",
+                "EG029",
                 document.path,
-                f"несколько файлов одного формата: {document.format}",
+                f"multiple files of the same format: {document.format}",
             )
         by_format[document.format] = document
         plugins[document.format] = registry.get(document.format)
@@ -173,7 +175,7 @@ def _ordered_layers(
         if plugin.extends is None or plugin.extends not in plugins
     ]
     if len(roots) != 1:
-        raise DocumentError("MG029", documents[0].path, "форматы слоёв не образуют одну цепочку")
+        raise DocumentError("EG029", documents[0].path, "layer formats do not form a single chain")
 
     ordered = [roots[0]]
     current = roots[0]
@@ -181,16 +183,18 @@ def _ordered_layers(
         children = [name for name, plugin in plugins.items() if plugin.extends == current]
         if len(children) > 1:
             raise DocumentError(
-                "MG029",
+                "EG029",
                 documents[0].path,
-                "форматы слоёв образуют ветвление",
+                "layer formats form a branch",
             )
         if not children:
             break
         ordered.append(children[0])
         current = children[0]
     if set(ordered) != set(by_format):
-        raise DocumentError("MG029", documents[0].path, "форматы слоёв не связаны наследованием")
+        raise DocumentError(
+            "EG029", documents[0].path, "layer formats are not connected by inheritance"
+        )
     return [by_format[name] for name in ordered]
 
 
@@ -202,16 +206,16 @@ def _validate_layer_chain(
     expected = child_plugin.base_versions.get(child.version)
     if expected is None:
         raise DocumentError(
-            "MG034",
+            "EG034",
             child.path,
-            f"{child.format} {child.version}: нет base_versions",
+            f"{child.format} {child.version}: base_versions is missing",
         )
     if expected != parent.version:
         raise DocumentError(
-            "MG034",
+            "EG034",
             child.path,
-            f"{child.format} {child.version} требует {parent.format} {expected}, "
-            f"а слой имеет {parent.version}",
+            f"{child.format} {child.version} requires {parent.format} {expected}, "
+            f"but the layer has {parent.version}",
         )
 
 
@@ -224,16 +228,16 @@ def _validate_entity(
     schema = plugin.schemas.get(document.version)
     if schema is None:
         raise DocumentError(
-            "MG034",
+            "EG034",
             document.path,
-            f"{document.format} {document.version}: нет схемы",
+            f"{document.format} {document.version}: schema is missing",
         )
     model: type[BaseModel] = getattr(schema, schema_name)
     try:
         model.model_validate(entity, from_attributes=True)
     except ValidationError as exc:
         raise DocumentError(
-            "MG029",
+            "EG029",
             document.path,
             f"{document.format} {document.version}: {schema_name}: {exc}",
         ) from exc
@@ -260,9 +264,9 @@ def _merge_entity(
             added = True
         elif left != right:
             raise DocumentError(
-                "MG029",
+                "EG029",
                 source,
-                f"конфликт scalar {name}: {left!r} и {right!r}",
+                f"scalar conflict for {name}: {left!r} and {right!r}",
             )
     metadata_change = _merge_metadata(base.metadata, delta.metadata, source)
     if metadata_change.changed:
@@ -291,9 +295,9 @@ def _merge_field(base: FieldDef, delta: FieldDef, source: Path) -> MergeChange[F
     right = delta.model_dump(exclude={"metadata"})
     if left != right:
         raise DocumentError(
-            "MG029",
+            "EG029",
             source,
-            f"переопределение поля {base.name} запрещено",
+            f"overriding field {base.name} is not allowed",
         )
     metadata_change = _merge_metadata(base.metadata, delta.metadata, source)
     if not metadata_change.changed:
@@ -339,7 +343,7 @@ def _merge_append(
             by_name[name] = item
             added = True
         elif existing != item:
-            raise DocumentError("MG029", source, f"переопределение {label} {name} запрещено")
+            raise DocumentError("EG029", source, f"overriding {label} {name} is not allowed")
     return MergeChange(result, added)
 
 
@@ -372,9 +376,9 @@ def _merge_value(current: Any, incoming: Any, source: Path, path: str) -> MergeC
             return MergeChange(current)
         case _:
             raise DocumentError(
-                "MG029",
+                "EG029",
                 source,
-                f"конфликт {path}: {current!r} и {incoming!r}",
+                f"conflict at {path}: {current!r} and {incoming!r}",
             )
 
 

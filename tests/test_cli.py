@@ -1,4 +1,4 @@
-"""Smoke-тесты CLI."""
+"""CLI smoke tests."""
 
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ def test_config_schema() -> None:
     result = CliRunner().invoke(app, ["config", "schema"])
     assert result.exit_code == 0
     schema = json.loads(result.stdout)
-    assert schema["title"] == "GeneratorRules"
+    assert schema["title"] == "ProjectConfig"
 
 
 def test_config_show_has_resolved_paths(tmp_path: Path) -> None:
@@ -249,7 +249,7 @@ class NoFormats(GeneratorPlugin):
         ["generate", "-c", str(rules), "--plugin", str(plugin)],
     )
     assert result.exit_code == 2
-    assert "MG033" in result.stderr
+    assert "EG033" in result.stderr
     assert not (tmp_path / "out").exists()
 
 
@@ -276,7 +276,7 @@ def test_clean_removes_all_global_locations(
     )
     second = CliRunner().invoke(app, ["generate", "-c", str(rules)])
     assert second.exit_code == 0
-    assert "MG051" in second.stderr
+    assert "EG051" in second.stderr
     cleaned = CliRunner().invoke(app, ["clean", "--yes", "-c", str(rules)])
     assert cleaned.exit_code == 0
     assert not (tmp_path / "out" / "model.json").exists()
@@ -296,12 +296,12 @@ def test_strict_and_ignore_only_warnings(tmp_path: Path) -> None:
     assert strict.exit_code == 1
     ignored = CliRunner().invoke(
         app,
-        ["generate", "-c", str(rules), "--strict", "--ignore", "MG015"],
+        ["generate", "-c", str(rules), "--strict", "--ignore", "EG015"],
     )
     assert ignored.exit_code == 0
     error_ignored = CliRunner().invoke(
         app,
-        ["generate", "-c", str(rules), "--ignore", "MG004"],
+        ["generate", "-c", str(rules), "--ignore", "EG004"],
     )
     assert error_ignored.exit_code == 0
 

@@ -1,4 +1,4 @@
-"""Тесты Engine: build/generate/check."""
+"""Engine tests: build/generate/check."""
 
 from __future__ import annotations
 
@@ -16,10 +16,10 @@ from eggpipe import (
     GeneratorConfig,
     GeneratorInput,
     GeneratorPlugin,
-    GeneratorRules,
+    ProjectConfig,
     SourceConfig,
 )
-from eggpipe.config.generator_rules import DiagnosticsConfig
+from eggpipe.config.project_config import DiagnosticsConfig
 from eggpipe.utils.exceptions import ConfigValidationError
 
 MODEL = """\
@@ -67,8 +67,8 @@ class ContextGenerator(GeneratorPlugin):
         return GenerationResult()
 
 
-def make_rules(generator_id: str = "demo") -> GeneratorRules:
-    return GeneratorRules(
+def make_rules(generator_id: str = "demo") -> ProjectConfig:
+    return ProjectConfig(
         version="1.0",
         sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id=generator_id, output_dir=Path("out")),),
@@ -153,9 +153,9 @@ def test_ignored_error_is_not_hidden(tmp_path: Path) -> None:
         MODEL.replace("type: integer", "type: Missing"),
         encoding="utf-8",
     )
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
-        diagnostics=DiagnosticsConfig(ignore=frozenset({"MG004"})),
+        diagnostics=DiagnosticsConfig(ignore=frozenset({"EG004"})),
         sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id="demo", output_dir=Path("out")),),
     )
@@ -167,4 +167,4 @@ def test_ignored_error_is_not_hidden(tmp_path: Path) -> None:
     )
     report = engine.build()
     assert report.success is False
-    assert "MG004" in {item.code for item in report.diagnostics}
+    assert "EG004" in {item.code for item in report.diagnostics}

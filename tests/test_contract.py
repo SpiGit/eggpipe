@@ -1,4 +1,4 @@
-"""Contract-тесты публичных интерфейсов плагинов."""
+"""Contract tests for public plugin interfaces."""
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ def test_generation_result_success() -> None:
     assert GenerationResult().success is True
     failed = GenerationResult(
         artifacts=[Artifact(path="a.txt", content="a")],
-        errors=[Diagnostic(level="error", code="MG300", message="failed")],
+        errors=[Diagnostic(level="error", code="EG300", message="failed")],
     )
     assert failed.success is False
 

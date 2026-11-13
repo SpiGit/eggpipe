@@ -49,8 +49,8 @@ class PostgresFormat(EntityModelFormat):
 - Версии форматов независимы.
 - `base_versions[B_version] = A_version`.
 - Нет `version` в YAML — берётся последняя из `supported_versions`.
-- Цикл/глубина > 10, неверная база, конфликт схем/примитивов — MG034.
-- Неизвестная версия — MG008.
+- Цикл/глубина > 10, неверная база, конфликт схем/примитивов — EG034.
+- Неизвестная версия — EG008.
 - `entity-model` зарезервирован.
 
 ## Entry point

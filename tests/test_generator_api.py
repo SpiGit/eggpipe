@@ -1,4 +1,4 @@
-"""Тесты decorator API и проверки input_formats."""
+"""Tests for the decorator API and input_formats validation."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ from eggpipe import (
     GeneratorConfig,
     GeneratorInput,
     GeneratorPlugin,
-    GeneratorRules,
     ModelSlice,
+    ProjectConfig,
     SourceConfig,
     generator,
 )
@@ -114,7 +114,7 @@ def test_unknown_injection_parameter() -> None:
 
     with pytest.raises(PluginContractError) as caught:
         validate_generator_function(bad)
-    assert caught.value.code == "MG302"
+    assert caught.value.code == "EG302"
 
 
 def test_missing_annotation_and_return_type() -> None:
@@ -123,14 +123,14 @@ def test_missing_annotation_and_return_type() -> None:
 
     with pytest.raises(PluginContractError) as caught:
         validate_generator_function(missing)
-    assert caught.value.code == "MG301"
+    assert caught.value.code == "EG301"
 
     def bad_return(model: ModelSlice) -> str:
         return "a"
 
     with pytest.raises(PluginContractError) as caught:
         validate_generator_function(bad_return)
-    assert caught.value.code == "MG301"
+    assert caught.value.code == "EG301"
 
 
 def test_class_contract_requires_input_formats() -> None:
@@ -142,7 +142,7 @@ def test_class_contract_requires_input_formats() -> None:
 
     with pytest.raises(PluginContractError) as caught:
         validate_generator_contract(Missing())
-    assert caught.value.code == "MG301"
+    assert caught.value.code == "EG301"
 
 
 class NoFormats(GeneratorPlugin):
@@ -163,7 +163,7 @@ class InheritsBase(GeneratorPlugin):
 
 def engine_with(tmp_path: Path, plugin: GeneratorPlugin) -> Engine:
     (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id=plugin.id, output_dir=Path("out")),),
@@ -180,7 +180,7 @@ def test_incompatible_input_formats_is_preflight_mg033(tmp_path: Path) -> None:
     report = engine_with(tmp_path, NoFormats()).generate()
     assert report.success is False
     assert report.exit_code == 2
-    assert [item.code for item in report.diagnostics] == ["MG033"]
+    assert [item.code for item in report.diagnostics] == ["EG033"]
     assert not (tmp_path / "out").exists()
 
 
@@ -191,5 +191,5 @@ def test_base_format_accepts_descendant(tmp_path: Path) -> None:
 
 
 def test_plugin_issue_has_code() -> None:
-    issue = PluginIssue("entry", "message", "MG301")
-    assert issue.code == "MG301"
+    issue = PluginIssue("entry", "message", "EG301")
+    assert issue.code == "EG301"

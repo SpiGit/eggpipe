@@ -1,4 +1,4 @@
-"""Discovery файлов моделей, model units и ресурсов."""
+"""Discovery of model files, model units and resources."""
 
 from __future__ import annotations
 
@@ -6,8 +6,9 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from eggpipe.config.generator_rules import GeneratorRules, ResourceConfig, SourceConfig
+from eggpipe.config.project_config import ProjectConfig, ResourceConfig, SourceConfig
 from eggpipe.core.model import InputSelection
+from eggpipe.core.paths import is_ignored_part
 from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
 from eggpipe.interfaces.generator import ImportedFile
 from eggpipe.utils.yaml import YamlLoadError, load_yaml
@@ -41,7 +42,7 @@ class DiscoveredSources:
 
 
 def discover_sources(
-    rules: GeneratorRules,
+    rules: ProjectConfig,
     config_dir: Path,
     *,
     allow_outside: bool = False,
@@ -63,11 +64,13 @@ def discover_sources(
         root = (config_root / source.path).resolve()
         if not root.exists():
             result.diagnostics.append(
-                error("MG000", f"source не найден: {source.path}", path=str(root))
+                error("EG000", f"source not found: {source.path}", path=str(root))
             )
             continue
         if not root.is_relative_to(config_root):
-            result.diagnostics.append(error("MG022", "source вне project root", path=str(root)))
+            result.diagnostics.append(
+                error("EG022", "source is outside the project root", path=str(root))
+            )
             continue
         if source.layout == "monolith":
             _discover_monolith(root, source, seen, result)
@@ -94,13 +97,13 @@ def _discover_monolith(
 ) -> None:
     if not root.is_file():
         result.diagnostics.append(
-            error("MG000", f"monolith source должен быть файлом: {source.path}", path=str(root))
+            error("EG000", f"monolith source must be a file: {source.path}", path=str(root))
         )
         return
     canonical = root.resolve()
     if canonical in seen:
         result.diagnostics.append(
-            warning("MG024", "дубликат resolved-пути source", path=str(canonical))
+            warning("EG024", "duplicate resolved source path", path=str(canonical))
         )
         return
     seen.add(canonical)
@@ -121,8 +124,8 @@ def _discover_file_per_model(
     if not root.is_dir():
         result.diagnostics.append(
             error(
-                "MG000",
-                f"file-per-model source должен быть каталогом: {source.path}",
+                "EG000",
+                f"file-per-model source must be a directory: {source.path}",
                 path=str(root),
             )
         )
@@ -133,7 +136,7 @@ def _discover_file_per_model(
         canonical = path.resolve()
         if canonical in seen:
             result.diagnostics.append(
-                warning("MG024", "дубликат resolved-пути source", path=str(canonical))
+                warning("EG024", "duplicate resolved source path", path=str(canonical))
             )
             continue
         seen.add(canonical)
@@ -162,8 +165,8 @@ def _discover_directory_per_model(
     if not root.is_dir():
         result.diagnostics.append(
             error(
-                "MG000",
-                f"directory-per-model source должен быть каталогом: {source.path}",
+                "EG000",
+                f"directory-per-model source must be a directory: {source.path}",
                 path=str(root),
             )
         )
@@ -173,7 +176,7 @@ def _discover_directory_per_model(
     unknown = sorted(set(source.models) - known)
     for name in unknown:
         result.diagnostics.append(
-            error("MG037", f"models.{name} указывает на неизвестный каталог", path=str(root))
+            error("EG037", f"models.{name} refers to an unknown directory", path=str(root))
         )
 
     units: list[ModelUnit] = []
@@ -190,7 +193,7 @@ def _discover_directory_per_model(
         )
         if not files:
             result.diagnostics.append(
-                warning("MG027", f"пустой каталог модели: {model_dir.name}", path=str(model_dir))
+                warning("EG027", f"empty model directory: {model_dir.name}", path=str(model_dir))
             )
             continue
         resources: list[Path] = []
@@ -214,7 +217,7 @@ def _discover_directory_per_model(
             canonical = path.resolve()
             if canonical in seen:
                 result.diagnostics.append(
-                    warning("MG024", "дубликат resolved-пути source", path=str(canonical))
+                    warning("EG024", "duplicate resolved source path", path=str(canonical))
                 )
                 continue
             seen.add(canonical)
@@ -246,12 +249,12 @@ def _match_files(
             resolved = path.resolve()
             if not resolved.is_relative_to(boundary):
                 result.diagnostics.append(
-                    error("MG022", "файл модели вне project root", path=str(resolved))
+                    error("EG022", "model file is outside the project root", path=str(resolved))
                 )
                 continue
             if resolved.suffix.lower() in {".yaml", ".yml"} and not _is_model_document(resolved):
                 result.diagnostics.append(
-                    error("MG023", "YAML не является документом модели", path=str(resolved))
+                    error("EG023", "YAML is not a model document", path=str(resolved))
                 )
                 continue
             found[resolved] = None
@@ -274,7 +277,9 @@ def _match_dirs(
             resolved = path.resolve()
             if not resolved.is_relative_to(boundary):
                 result.diagnostics.append(
-                    error("MG022", "каталог модели вне project root", path=str(resolved))
+                    error(
+                        "EG022", "model directory is outside the project root", path=str(resolved)
+                    )
                 )
                 continue
             found[resolved] = None
@@ -291,7 +296,7 @@ def _expand(
     raw = Path(pattern)
     if raw.is_absolute():
         result.diagnostics.append(
-            error("MG000", f"абсолютный путь в sources запрещён: {pattern}", path=str(root))
+            error("EG000", f"absolute path in sources is not allowed: {pattern}", path=str(root))
         )
         return []
     if GLOB_CHARS.search(pattern):
@@ -303,16 +308,16 @@ def _expand(
         matches = [path for path in matches if not _is_hidden(root, path)]
         if not matches:
             result.diagnostics.append(
-                warning("MG036", f"glob не нашёл совпадений: {pattern}", path=str(root))
+                warning("EG036", f"glob matched nothing: {pattern}", path=str(root))
             )
         return sorted(matches, key=lambda item: item.as_posix())
     candidate = (root / raw).resolve()
     if expect == "file" and not candidate.is_file():
-        result.diagnostics.append(error("MG000", f"файл не найден: {pattern}", path=str(candidate)))
+        result.diagnostics.append(error("EG000", f"file not found: {pattern}", path=str(candidate)))
         return []
     if expect == "dir" and not candidate.is_dir():
         result.diagnostics.append(
-            error("MG000", f"каталог не найден: {pattern}", path=str(candidate))
+            error("EG000", f"directory not found: {pattern}", path=str(candidate))
         )
         return []
     if _is_hidden(root, candidate):
@@ -337,7 +342,7 @@ class _ResourceCollector:
         raw = resource.path
         if raw.is_absolute():
             self.result.diagnostics.append(
-                error("MG000", f"абсолютный путь ресурса запрещён: {raw}", path=str(self.base))
+                error("EG000", f"absolute resource path is not allowed: {raw}", path=str(self.base))
             )
             return
         pattern = raw.as_posix()
@@ -350,7 +355,7 @@ class _ResourceCollector:
             return
         if not candidate.is_file():
             self.result.diagnostics.append(
-                error("MG000", f"ресурс не найден: {pattern}", path=str(candidate))
+                error("EG000", f"resource not found: {pattern}", path=str(candidate))
             )
             return
         self._add(candidate, alias=resource.alias)
@@ -358,7 +363,7 @@ class _ResourceCollector:
     def _collect_glob(self, resource: ResourceConfig, pattern: str) -> None:
         if resource.alias is not None:
             self.result.diagnostics.append(
-                error("MG032", "as допустим только для одного файла", path=pattern)
+                error("EG032", "as is only allowed for a single file", path=pattern)
             )
             return
         matches = [
@@ -369,8 +374,8 @@ class _ResourceCollector:
         if not matches:
             self.result.diagnostics.append(
                 warning(
-                    "MG036",
-                    f"glob ресурсов не нашёл совпадений: {pattern}",
+                    "EG036",
+                    f"resource glob matched nothing: {pattern}",
                     path=str(self.base),
                 )
             )
@@ -385,7 +390,7 @@ class _ResourceCollector:
     ) -> None:
         if resource.alias is not None:
             self.result.diagnostics.append(
-                error("MG032", "as допустим только для одного файла", path=pattern)
+                error("EG032", "as is only allowed for a single file", path=pattern)
             )
             return
         files = sorted(
@@ -403,7 +408,7 @@ class _ResourceCollector:
         resolved = path.resolve()
         if not self.allow_outside and not resolved.is_relative_to(self.boundary.resolve()):
             self.result.diagnostics.append(
-                error("MG022", "ресурс вне разрешённой границы", path=str(resolved))
+                error("EG022", "resource is outside the allowed boundary", path=str(resolved))
             )
             return
         if self.collected is not None:
@@ -411,14 +416,14 @@ class _ResourceCollector:
         name = alias or _default_alias(self.base, resolved, self.prefix)
         if name in self.result.resources:
             self.result.diagnostics.append(
-                error("MG032", f"дубликат alias ресурса: {name}", path=str(resolved))
+                error("EG032", f"duplicate resource alias: {name}", path=str(resolved))
             )
             return
         try:
             content = resolved.read_bytes()
         except OSError as exc:
             self.result.diagnostics.append(
-                error("MG000", f"не удалось прочитать ресурс: {exc}", path=str(resolved))
+                error("EG000", f"failed to read resource: {exc}", path=str(resolved))
             )
             return
         self.result.resources[name] = ImportedFile(name=name, path=resolved, content=content)
@@ -457,8 +462,8 @@ def _check_resource_overlap(
     for path in sorted(overlap, key=lambda item: item.as_posix()):
         result.diagnostics.append(
             error(
-                "MG038",
-                "путь одновременно указан в files и resources",
+                "EG038",
+                "path is listed in both files and resources",
                 path=str(path),
             )
         )
@@ -468,7 +473,7 @@ def _is_model_document(path: Path) -> bool:
     try:
         data = load_yaml(path)
     except YamlLoadError:
-        # Синтаксис и duplicate keys диагностирует Parser с MG000.
+        # Syntax and duplicate keys are reported by Parser with EG000.
         return True
     return bool(data.get("format"))
 
@@ -486,7 +491,7 @@ def _is_hidden(root: Path, path: Path) -> bool:
         relative = path.resolve().relative_to(root.resolve())
     except ValueError:
         relative = path
-    return any(part.startswith(".") or part in SKIP_PARTS for part in relative.parts)
+    return any(is_ignored_part(part) for part in relative.parts)
 
 
 def _is_in_output(path: Path, output_dirs: set[Path]) -> bool:

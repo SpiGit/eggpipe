@@ -87,14 +87,14 @@
     },
     {
       "exists": true,
-      "path": "docs/engineering/requirements/v2.1.md"
+      "path": "docs/engineering/requirements/v2.2.md"
     },
     {
       "exists": true,
       "path": "docs/engineering/system-design/index.md"
     }
   ],
-  "package_version": "0.1.0",
+  "package_version": "0.3.0",
   "project": "eggpipe",
   "public_api": [
     "AppConfig",
@@ -132,8 +132,6 @@
     "GeneratorInput",
     "GeneratorPlugin",
     "GeneratorReport",
-    "GeneratorRules",
-    "GeneratorRulesLoader",
     "ImportSpec",
     "ImportedFile",
     "InputSelection",
@@ -146,6 +144,8 @@
     "PRIMITIVE_TYPES",
     "Parser",
     "PluginContractError",
+    "ProjectConfig",
+    "ProjectConfigLoader",
     "Provenance",
     "SourceConfig",
     "SourceModel",
@@ -160,5 +160,5 @@
     "validate_document",
     "validate_entity_model"
   ],
-  "spec_version": "2.1"
+  "spec_version": "2.2"
 }

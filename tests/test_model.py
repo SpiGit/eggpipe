@@ -1,4 +1,4 @@
-"""Тесты моделей, UNSET и индексов."""
+"""Tests for models, UNSET and indexes."""
 
 from __future__ import annotations
 

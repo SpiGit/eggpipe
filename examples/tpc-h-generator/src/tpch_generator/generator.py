@@ -1,4 +1,4 @@
-"""TPC-H генераторы: DDL и Pydantic модели (decorator API)."""
+"""TPC-H generators: DDL and Pydantic models (decorator API)."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def _templates_dir(config: GeneratorConfig, context: GenerationContext) -> Path 
     if value is None:
         return None
     if not isinstance(value, str) or not value:
-        raise ValueError("options.templates_dir должен быть непустой строкой")
+        raise ValueError("options.templates_dir must be a non-empty string")
     path = Path(value)
     if not path.is_absolute():
         path = context.config_dir / path

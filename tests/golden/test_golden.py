@@ -1,4 +1,4 @@
-"""Golden-тест reference-генератора."""
+"""Golden test for the reference generator."""
 
 from __future__ import annotations
 

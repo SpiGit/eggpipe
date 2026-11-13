@@ -7,7 +7,7 @@
 `eggpipe` — инструмент, который генерирует артефакты (SQL, Python, TypeScript и т.д.)
 из YAML-описания модели данных. Архитектура: нейтральное ядро + плагины генераторов и форматов.
 
-Репозиторий содержит реализацию ТЗ v2.1: composition, форматы и слои, decorator API,
+Репозиторий содержит реализацию ТЗ v2.2: composition, форматы и слои, decorator API,
 watch, JSON-отчёт v2, provenance, глобальный manifest/lock, cleanup, `Engine`, CLI,
 reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, версия пакета и release.
 
@@ -15,9 +15,9 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 
 Приоритет при расхождении — сверху вниз:
 
-1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/engineering/requirements/index.md` (сейчас `v2.1.md`):
+1. Актуальное ТЗ — файл со статусом **Актуальная** в `docs/engineering/requirements/index.md` (сейчас `v2.2.md`):
    поведение, контракты, CLI, запись артефактов.
-2. `docs/engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность).
+2. `docs/engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды).
 3. `docs/engineering/system-design/index.md` — проектирование реализации (классы, потоки, структура).
 4. `docs/engineering/requirements/index.md` — реестр версий и changelog.
 5. `README.md` и `.session-context.md` — краткое состояние проекта.
@@ -48,7 +48,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 - При выпуске версии обнови: ТЗ, `docs/engineering/requirements/index.md` (статус + changelog),
   System Design, README и `.session-context.md`.
 - ADR не переписываются задним числом. Новое архитектурное решение — новый ADR.
-- Диагностические коды `MGxxx` стабильны; не переиспользуй код для другого смысла.
+- Диагностические коды `EGxxx` стабильны; не переиспользуй код для другого смысла.
 
 ## Защищённые области
 
@@ -76,7 +76,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 - [ ] При изменении версии/статуса обновлены `index.md`, System Design, README и `.session-context.md`.
 - [ ] Хардкоды актуальной версии в harness (`AGENTS.md`, `.opencode/`, `opencode.json`) синхронизированы;
       прежняя актуальная версия добавлена в `deny`-список.
-- [ ] Термины, коды `MGxxx`, флаги CLI и exit codes совпадают во всех документах.
+- [ ] Термины, коды `EGxxx`, флаги CLI и exit codes совпадают во всех документах.
 - [ ] `uv run python tools/check_docs.py --strict` проходит без ошибок.
 - [ ] При изменении публичного API/CLI пересобран `docs/ai` (`tools/build_ai_docs.py`).
 - [ ] `uv run ruff check .`, `uv run ruff format --check src tests tools examples`, `uv run pyrefly check`

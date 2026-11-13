@@ -61,7 +61,7 @@
 - [x] Entry points: `eggpipe.generators`, `eggpipe.formats`.
 - [x] Config loader: `.mg.yaml` → `.eggpipe.yaml`; config discovery.
 - [x] State: `.mg/` → `.eggpipe/`; manifest/lock paths.
-- [x] Env prefix `MG_*` → `EGGPIPE_*`.
+- [x] Env prefix `EG_*` → `EGGPIPE_*`.
 - [x] Example package: dependency `eggpipe`, entry points `eggpipe.*`.
 - [x] `uv.lock`, editable installs, `.venv`.
 - [x] CLI help/usage strings.
@@ -94,7 +94,7 @@
 - [x] Registry: цепочка `extends`, цикл/глубина, проверка `base_versions`.
 - [x] `version` опционален: latest.
 - [x] Проверка `full_entity` — подкласс базовой; `primitive_types` — надмножество.
-- [x] Ошибки MG008/MG034.
+- [x] Ошибки EG008/EG034.
 
 **Критерий:** тесты наследования, версий, схем, latest, циклов.
 
@@ -110,7 +110,7 @@
 - [x] Discovery: `.eggpipe`, output dirs, hidden, symlink.
 - [x] Model unit: одна сущность; layer chain; full/delta validation.
 - [x] Layer merge: KEYED/APPEND/UNION/ERROR; provenance.
-- [x] Empty dirs/empty delta/glob warnings; MG027/MG035–MG038.
+- [x] Empty dirs/empty delta/glob warnings; EG027/EG035–EG038.
 
 **Критерий:** тесты layout/discovery/resources/merge; TPC-H в directory-per-model.
 
@@ -123,8 +123,8 @@
 - [x] `@generator` decorator: metadata, validation, registration.
 - [x] Инъекция `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
 - [x] Нормализация return types.
-- [x] `input_formats` обязателен; MG301/MG302.
-- [x] Pre-flight проверка форматов; MG033 exit 2.
+- [x] `input_formats` обязателен; EG301/EG302.
+- [x] Pre-flight проверка форматов; EG033 exit 2.
 - [x] Plugin loader: decorator objects, entry points.
 - [x] `gen list/info` с `input_formats`.
 
@@ -139,9 +139,9 @@
 - [x] `.eggpipe/manifest.json`; `manifest_version: 2`; `eggpipe_version`.
 - [x] Locations `(generator, output_dir)`; `formats`.
 - [x] Ownership/--force: только unowned; no steal.
-- [x] Cross-generator exact/casefold/prefix conflicts MG042.
+- [x] Cross-generator exact/casefold/prefix conflicts EG042.
 - [x] `eggpipe clean`: global manifest, no config/plugins; `--root`.
-- [x] Stale locations MG051; corrupted/unsupported MG052.
+- [x] Stale locations EG051; corrupted/unsupported EG052.
 - [x] Global lock `.eggpipe/lock`.
 
 **Критерий:** tests ownership/cleanup/concurrency/mixed formats.
@@ -182,13 +182,13 @@
 
 Задачи:
 
-- [ ] Полный pytest/coverage.
-- [ ] ruff/pyrefly/basedpyright.
-- [ ] docs-check/mkdocs.
-- [ ] `uv build`/`check_wheel`.
-- [ ] CI: example install, config names.
-- [ ] Release docs: PyPI name `eggpipe`, trusted publisher, repo name.
-- [ ] Версия пакета: 0.2.0 или 0.3.0 (решить).
+- [x] Полный pytest/coverage.
+- [x] ruff/pyrefly/basedpyright.
+- [x] docs-check/mkdocs.
+- [x] `uv build`/`check_wheel`.
+- [x] CI: example install, config names.
+- [x] Release docs: PyPI name `eggpipe`, trusted publisher, repo name.
+- [x] Версия пакета: 0.3.0.
 
 **Критерий:** все проверки зелёные; release workflow готов.
 
@@ -200,7 +200,7 @@
 - [ ] System Design pyproject fragment.
 - [ ] `--plugin` статус.
 - [ ] `gen list --all`, `--show-secrets` в таблице флагов.
-- [ ] Alias collision MG025/MG032.
+- [ ] Alias collision EG025/EG032.
 - [ ] Harness old names.
 - [ ] README stage.
 - [ ] Session context tree/ADR-0010.
@@ -228,7 +228,7 @@
 | Большой diff переименования | отдельный эпик E1, автоматические замены, тесты после |
 | Docs target ≠ code до E1 | явная пометка в session context, E1 первым |
 | Сложность layer merge | property/contract-тесты, ADR-0008 |
-| Mixed formats | pre-flight MG033, тесты |
+| Mixed formats | pre-flight EG033, тесты |
 | Manifest без совместимости | удалить `.mg`, тесты v2 |
 | TPC-H golden | обновлять только после стабилизации шаблонов |
 | PyPI/CI renaming | release docs, trusted publisher |

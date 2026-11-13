@@ -1,4 +1,4 @@
-"""Загрузка генераторов и форматов из entry points и локальных файлов."""
+"""Load generators and formats from entry points and local files."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def load_generators_with_issues() -> tuple[dict[str, GeneratorPlugin], list[Plug
             continue
         assert plugin is not None
         if plugin.id in result:
-            issues.append(PluginIssue(entry_point.name, f"дубликат id генератора: {plugin.id}"))
+            issues.append(PluginIssue(entry_point.name, f"duplicate generator id: {plugin.id}"))
             continue
         result[plugin.id] = plugin
     return result, issues
@@ -99,7 +99,7 @@ def load_local_generators_with_issues(
                 issues.append(
                     PluginIssue(
                         f"{entry_name}:{value.__name__}",
-                        f"дубликат id генератора: {plugin.id}",
+                        f"duplicate generator id: {plugin.id}",
                     )
                 )
                 continue
@@ -118,7 +118,7 @@ def _generator_from_entry(
     if issue is not None:
         return None, issue
     if not isinstance(loaded, GeneratorPlugin):
-        return None, PluginIssue(entry_point.name, "не является GeneratorPlugin")
+        return None, PluginIssue(entry_point.name, "is not a GeneratorPlugin")
     return _validated_generator(loaded, entry_point.name)
 
 
@@ -127,11 +127,11 @@ def _format_from_entry(entry_point: EntryPoint) -> tuple[FormatPlugin | None, Pl
     if issue is not None:
         return None, issue
     if not isinstance(loaded, FormatPlugin):
-        return None, PluginIssue(entry_point.name, "не является FormatPlugin")
+        return None, PluginIssue(entry_point.name, "is not a FormatPlugin")
     if loaded.api_version != "1":
         return None, PluginIssue(
             entry_point.name,
-            f"несовместимый api_version: {loaded.api_version}",
+            f"incompatible api_version: {loaded.api_version}",
         )
     return loaded, None
 
@@ -141,7 +141,7 @@ def _instantiate_entry(entry_point: EntryPoint) -> tuple[Any | None, PluginIssue
         loaded = entry_point.load()
         return loaded() if isinstance(loaded, type) else loaded, None
     except Exception as exc:
-        return None, PluginIssue(entry_point.name, f"не удалось загрузить: {exc}")
+        return None, PluginIssue(entry_point.name, f"failed to load: {exc}")
 
 
 def _validated_generator(
@@ -155,11 +155,11 @@ def _validated_generator(
     except PluginContractError as exc:
         return None, PluginIssue(entry_name, str(exc), exc.code)
     if plugin.api_version != "1":
-        return None, PluginIssue(entry_name, f"несовместимый api_version: {plugin.api_version}")
+        return None, PluginIssue(entry_name, f"incompatible api_version: {plugin.api_version}")
     if check_entry_name and entry_name != plugin.id:
         return None, PluginIssue(
             entry_name,
-            f"id плагина {plugin.id!r} не совпадает с entry point",
+            f"plugin id {plugin.id!r} does not match the entry point",
         )
     return plugin, None
 
@@ -171,12 +171,12 @@ def _load_local_module(
 ) -> tuple[Any | None, PluginIssue | None]:
     spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
-        return None, PluginIssue(entry_name, "не удалось создать import spec")
+        return None, PluginIssue(entry_name, "failed to create an import spec")
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
     except Exception as exc:
-        return None, PluginIssue(entry_name, f"не удалось импортировать: {exc}")
+        return None, PluginIssue(entry_name, f"failed to import: {exc}")
     return module, None
 
 
@@ -196,7 +196,7 @@ def _local_generator(
     try:
         plugin = value()
     except Exception as exc:
-        return None, PluginIssue(label, f"не удалось создать плагин: {exc}")
+        return None, PluginIssue(label, f"failed to create plugin: {exc}")
     return _validated_generator(plugin, label, check_entry_name=False)
 
 

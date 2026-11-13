@@ -1,4 +1,4 @@
-"""Единая точка настройки логирования CLI."""
+"""Single setup point for CLI logging."""
 
 from __future__ import annotations
 

@@ -26,8 +26,8 @@
 Релиз запускается тегом:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
 Workflow `.github/workflows/release.yml`:
@@ -53,7 +53,7 @@ Workflow `.github/workflows/release.yml`:
 5. Запушить тег:
 
    ```bash
-   git push origin v0.1.0
+   git push origin v0.3.0
    ```
 
 Без `PYPI_PUBLISH=true` артефакты публикуются только в GitHub Release.

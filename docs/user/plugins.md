@@ -58,7 +58,7 @@ class MyGenerator(GeneratorPlugin):
 
 - `id` совпадает с entry point id; `name` по умолчанию равен id.
 - `input_formats` обязателен: `None` — любой формат, `set()` — ни один; иначе перечисленные
-  форматы и их наследники. Несовместимость — MG033, exit 2, весь запуск без артефактов.
+  форматы и их наследники. Несовместимость — EG033, exit 2, весь запуск без артефактов.
 - Вход immutable: `model` — замкнутый `ModelSlice`, `context` — `GenerationContext`, `config` — блок генератора из `.eggpipe.yaml`.
 - Формат каждой сущности — `entity.format` / `entity.format_version`; `context.formats` — форматы среза.
 - Плагин **не пишет файлы**; он возвращает `Artifact`.
@@ -124,7 +124,7 @@ sql-model = "my_package.formats:SqlModelFormat"
 
 - `format` в YAML должен совпадать с `format_names`; в `.eggpipe.yaml` формат не задаётся.
 - `entity-model` зарезервирован ядром.
-- `extends` — одиночное наследование; цикл/глубина > 10 — MG034.
+- `extends` — одиночное наследование; цикл/глубина > 10 — EG034.
 - `B extends A` — B надмножество A; переименование/удаление полей A запрещено.
 - `supported_versions` — упорядоченный список; нет `version` в YAML — берётся последняя.
 - `base_versions[B_version] = A_version`; версии форматов независимы.
@@ -133,7 +133,7 @@ sql-model = "my_package.formats:SqlModelFormat"
 - `layer_entity` валидирует слой, `full_entity` — итоговую сущность после merge.
 - Дельта-модели наследуют `EntityIdentity`/`FieldIdentity`; полные — `Entity`/`FieldDef`.
 - Обязательность новых полей определяет формат: partial в слое, complete в итоге.
-- Документ остаётся общим конвертом; first-class document-level поля — future, в v2.1 через `metadata`.
+- Документ остаётся общим конвертом; first-class document-level поля — future, в v2.2 через `metadata`.
 - Для списков формат объявляет `MergePolicy` через `json_schema_extra`:
   - `KEYED` — патч существующих + новые (`fields`);
   - `APPEND` — только новые (`types`, `enums`, `enum.values`);
@@ -179,7 +179,7 @@ content = render_template(environment, "schema.sql.j2", entities=entities)
 - `templates_dir` имеет приоритет над `package`; относительный путь разрешается от
   `config_dir`;
 - отсутствие Jinja2, каталога или шаблона — `TemplateError`; генератор может отобразить
-  её в `MG300`;
+  её в `EG300`;
 - `jinja2` не входит в основные зависимости и не импортируется ядром при старте.
 
 TPC-H example использует этот helper и `options.templates_dir` для override.

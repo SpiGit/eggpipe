@@ -29,7 +29,7 @@ permissions:
 1. **Источник истины.** Сначала прочитай `AGENTS.md` и `docs/engineering/requirements/index.md`, затем актуальное
    ТЗ (файл со статусом «Актуальная»), `docs/engineering/system-design/index.md`,
    `docs/engineering/adr/0001-composition-merge-semantics.md` и `README.md`.
-2. **Согласованность.** Термины, публичный API, контракты плагинов, коды `MGxxx`, CLI-флаги,
+2. **Согласованность.** Термины, публичный API, контракты плагинов, коды `EGxxx`, CLI-флаги,
    exit codes, правила ownership/manifest/cleanup, версии и статусы.
 3. **Полнота.** Не потеряны ли при правках разделы, ссылки, примеры и ограничения.
 4. **Историчность.** Версии ТЗ со статусом «Замещена» не должны меняться.

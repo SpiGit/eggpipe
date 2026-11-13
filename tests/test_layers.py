@@ -1,4 +1,4 @@
-"""Тесты model units, слоёв и ресурсов."""
+"""Tests for model units, layers and resources."""
 
 from __future__ import annotations
 
@@ -20,11 +20,12 @@ from eggpipe import (
     GeneratorConfig,
     GeneratorInput,
     GeneratorPlugin,
-    GeneratorRules,
+    InputSelection,
     Parser,
+    ProjectConfig,
     SourceConfig,
 )
-from eggpipe.config.generator_rules import InputSlice, ModelOverride, ResourceConfig
+from eggpipe.config.project_config import ModelOverride, ResourceConfig
 from eggpipe.core.discovery import discover_sources
 from eggpipe.core.layers import merge_model_layers
 from eggpipe.core.model import LayerEntity
@@ -125,7 +126,7 @@ def test_empty_delta_warns(tmp_path: Path) -> None:
         ),
     )
     result = merge_model_layers([parse(base_path), parse(delta_path)], registry())
-    assert [item.code for item in result.diagnostics] == ["MG035"]
+    assert [item.code for item in result.diagnostics] == ["EG035"]
 
 
 def test_layer_must_have_one_entity(tmp_path: Path) -> None:
@@ -135,7 +136,7 @@ def test_layer_must_have_one_entity(tmp_path: Path) -> None:
     )
     with pytest.raises(DocumentError) as caught:
         merge_model_layers([parse(path)], registry())
-    assert caught.value.code == "MG031"
+    assert caught.value.code == "EG031"
 
 
 def test_duplicate_and_unrelated_formats(tmp_path: Path) -> None:
@@ -143,7 +144,7 @@ def test_duplicate_and_unrelated_formats(tmp_path: Path) -> None:
     second = write_model(tmp_path / "user" / "b.yaml", BASE)
     with pytest.raises(DocumentError) as duplicate:
         merge_model_layers([parse(first), parse(second)], registry())
-    assert duplicate.value.code == "MG029"
+    assert duplicate.value.code == "EG029"
 
     class OtherFormat(EntityModelFormat):
         format_names: ClassVar[list[str]] = ["other-model"]
@@ -169,13 +170,13 @@ def test_duplicate_and_unrelated_formats(tmp_path: Path) -> None:
             ],
             formats,
         )
-    assert unrelated.value.code == "MG029"
+    assert unrelated.value.code == "EG029"
 
 
 def test_directory_layout_through_engine(tmp_path: Path) -> None:
     write_model(tmp_path / "models" / "user" / "base.yaml", BASE)
     write_model(tmp_path / "models" / "user" / "postgres.yaml", DELTA)
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(
             SourceConfig(
@@ -206,7 +207,7 @@ def test_discovery_resources_and_overrides(tmp_path: Path) -> None:
     write_model(tmp_path / "models" / "user" / "postgres.yaml", DELTA)
     write_model(tmp_path / "models" / "user" / "resources" / "avatar.svg", "<svg/>")
     write_model(tmp_path / "shared" / "seed.json", "{}")
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         resources=(ResourceConfig(path=Path("shared")),),
         sources=(
@@ -227,7 +228,7 @@ def test_discovery_resources_and_overrides(tmp_path: Path) -> None:
 def test_discovery_empty_dir_and_unknown_override(tmp_path: Path) -> None:
     (tmp_path / "models" / "empty").mkdir(parents=True)
     write_model(tmp_path / "models" / "user" / "base.yaml", BASE)
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(
             SourceConfig(
@@ -241,14 +242,14 @@ def test_discovery_empty_dir_and_unknown_override(tmp_path: Path) -> None:
     )
     discovered = discover_sources(rules, tmp_path)
     codes = {item.code for item in discovered.diagnostics}
-    assert "MG027" in codes
-    assert "MG037" in codes
+    assert "EG027" in codes
+    assert "EG037" in codes
 
 
 def test_resource_collision_and_overlap(tmp_path: Path) -> None:
     write_model(tmp_path / "models" / "user" / "base.yaml", BASE)
     write_model(tmp_path / "models" / "user" / "asset.txt", "x")
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         resources=(
             ResourceConfig.model_validate({"path": "models/user/asset.txt", "as": "user/asset"}),
@@ -265,8 +266,8 @@ def test_resource_collision_and_overlap(tmp_path: Path) -> None:
     )
     discovered = discover_sources(rules, tmp_path)
     codes = {item.code for item in discovered.diagnostics}
-    assert "MG032" in codes
-    assert "MG038" in codes
+    assert "EG032" in codes
+    assert "EG038" in codes
 
 
 def test_source_input_applies_to_whole_source(tmp_path: Path) -> None:
@@ -275,14 +276,14 @@ def test_source_input_applies_to_whole_source(tmp_path: Path) -> None:
         tmp_path / "models" / "b.yaml",
         BASE.replace("name: User", "name: Other"),
     )
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(
             SourceConfig(
                 path=Path("models"),
                 layout="file-per-model",
                 files=("*.yaml",),
-                input=InputSlice(entities=("Other",)),
+                input=InputSelection(entities=("Other",)),
             ),
         ),
     )
@@ -324,7 +325,7 @@ def test_layer_version_must_match_base_version(tmp_path: Path) -> None:
     )
     with pytest.raises(DocumentError) as caught:
         merge_model_layers([parse(base_path, formats), parse(child_path, formats)], formats)
-    assert caught.value.code == "MG034"
+    assert caught.value.code == "EG034"
 
 
 def test_file_per_model_requires_one_entity(tmp_path: Path) -> None:
@@ -332,7 +333,7 @@ def test_file_per_model_requires_one_entity(tmp_path: Path) -> None:
         tmp_path / "models" / "users.yaml",
         BASE.replace("    - name: User\n", "    - name: Other\n    - name: User\n"),
     )
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(
             SourceConfig(
@@ -351,12 +352,12 @@ def test_file_per_model_requires_one_entity(tmp_path: Path) -> None:
     )
     report = engine.build()
     assert report.success is False
-    assert "MG031" in {item.code for item in report.diagnostics}
+    assert "EG031" in {item.code for item in report.diagnostics}
 
 
 def test_glob_without_matches_warns(tmp_path: Path) -> None:
     (tmp_path / "models").mkdir()
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(
             SourceConfig(
@@ -367,13 +368,13 @@ def test_glob_without_matches_warns(tmp_path: Path) -> None:
         ),
     )
     discovered = discover_sources(rules, tmp_path)
-    assert "MG036" in {item.code for item in discovered.diagnostics}
+    assert "EG036" in {item.code for item in discovered.diagnostics}
 
 
 def test_resource_boundary_and_glob_alias(tmp_path: Path) -> None:
     (tmp_path / "models").mkdir()
     outside = write_model(tmp_path.parent / "shared" / "seed.json", "{}")
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         resources=(ResourceConfig(path=Path(f"../shared/{outside.name}")),),
         sources=(
@@ -385,24 +386,24 @@ def test_resource_boundary_and_glob_alias(tmp_path: Path) -> None:
         ),
     )
     blocked = discover_sources(rules, tmp_path)
-    assert "MG022" in {item.code for item in blocked.diagnostics}
+    assert "EG022" in {item.code for item in blocked.diagnostics}
     allowed = discover_sources(rules, tmp_path, allow_outside=True)
-    assert "MG022" not in {item.code for item in allowed.diagnostics}
+    assert "EG022" not in {item.code for item in allowed.diagnostics}
 
     write_model(tmp_path / "docs" / "a.txt", "a")
     write_model(tmp_path / "docs" / "b.txt", "b")
-    alias_rules = GeneratorRules(
+    alias_rules = ProjectConfig(
         version="1.0",
         resources=(ResourceConfig.model_validate({"path": "docs/*.txt", "as": "doc"}),),
     )
     alias = discover_sources(alias_rules, tmp_path)
-    assert "MG032" in {item.code for item in alias.diagnostics}
+    assert "EG032" in {item.code for item in alias.diagnostics}
 
 
 def test_engine_passes_resources_to_context(tmp_path: Path) -> None:
     write_model(tmp_path / "models" / "user" / "base.yaml", BASE)
     write_model(tmp_path / "shared" / "seed.json", "{}")
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         resources=(ResourceConfig(path=Path("shared")),),
         sources=(
@@ -432,7 +433,7 @@ def test_engine_passes_resources_to_context(tmp_path: Path) -> None:
 def test_non_model_yaml_reports_mg023(tmp_path: Path) -> None:
     write_model(tmp_path / "models" / "user.yaml", BASE)
     write_model(tmp_path / "models" / "notes.yaml", "title: notes\n")
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(
             SourceConfig(
@@ -443,7 +444,7 @@ def test_non_model_yaml_reports_mg023(tmp_path: Path) -> None:
         ),
     )
     discovered = discover_sources(rules, tmp_path)
-    assert "MG023" in {item.code for item in discovered.diagnostics}
+    assert "EG023" in {item.code for item in discovered.diagnostics}
     assert [path.name for path in discovered.paths] == ["user.yaml"]
 
 
@@ -499,4 +500,4 @@ def test_metadata_conflict_is_error(tmp_path: Path) -> None:
     )
     with pytest.raises(DocumentError) as caught:
         merge_model_layers([parse(base_path), parse(delta_path)], registry())
-    assert caught.value.code == "MG029"
+    assert caught.value.code == "EG029"

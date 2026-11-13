@@ -33,9 +33,9 @@ eggpipe watch model.yaml
 ### Как библиотека
 
 ```python
-from eggpipe import Engine, AppConfig, GeneratorRulesLoader
+from eggpipe import Engine, AppConfig, ProjectConfigLoader
 
-rules = GeneratorRulesLoader().load(".eggpipe.yaml")
+rules = ProjectConfigLoader().load(".eggpipe.yaml")
 engine = Engine(AppConfig(), rules)
 
 report = engine.build()        # парсинг/валидация/генерация без записи
@@ -95,7 +95,6 @@ if not report.success:
 ## Быстрый старт
 
 ```bash
-# Установка (после реализации)
 pip install eggpipe
 
 # Для watch-режима
@@ -127,7 +126,7 @@ eggpipe config schema
 eggpipe clean --dry-run
 eggpipe clean --yes
 
-# Локальный плагин без установки (v0.3)
+# Локальный плагин без установки
 eggpipe generate --plugin ./my_plugin.py
 ```
 
@@ -166,7 +165,7 @@ uv run python tools/check_docs.py --strict
 - [Документация](./docs/index.md) — пользователям, AI и разработке
 - [Быстрый старт](./docs/user/quickstart.md)
 - [Плагины](./docs/user/plugins.md)
-- [Техническое задание](./docs/engineering/requirements/index.md) — актуальная версия v2.1
+- [Техническое задание](./docs/engineering/requirements/index.md) — актуальная версия v2.2
 - [System Design](./docs/engineering/system-design/index.md)
 - [ADR index](./docs/engineering/adr/index.md)
 - [ADR-0001: семантика композиции](./docs/engineering/adr/0001-composition-merge-semantics.md)
@@ -193,6 +192,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** Eggpipe v2.1 реализован (E0–E8): пакет/CLI/config/state переименованы,
-форматы и слои, decorator API, глобальный manifest, CLI/JSON v2. Дальше — E9: CI, версия
-пакета и release workflow.
+**Стадия:** Eggpipe 0.3.0, ТЗ v2.2. Реализованы E0–E8 и E9: пакет/CLI/config/state,
+форматы и слои, decorator API, глобальный manifest, CLI/JSON v2, CI и release workflow.

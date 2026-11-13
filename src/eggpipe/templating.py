@@ -1,8 +1,8 @@
-"""Опциональный helper для Jinja2-шаблонов плагинов.
+"""Optional helper for Jinja2 templates in plugins.
 
-Ядро не использует шаблонизатор и не импортирует Jinja2 при старте. Модуль доступен
-только при установленном extra ``[jinja]``; плагин вызывает его явно, чтобы не
-дублировать загрузку ``PackageLoader``/``FileSystemLoader``.
+The core does not use a template engine and does not import Jinja2 at startup. This
+module is available only when the ``[jinja]`` extra is installed; a plugin calls it
+explicitly to avoid duplicating ``PackageLoader``/``FileSystemLoader`` setup.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class TemplateError(EggpipeError):
-    """Ошибка загрузки или рендеринга шаблона."""
+    """Template loading or rendering error."""
 
 
 def jinja_environment(
@@ -27,37 +27,37 @@ def jinja_environment(
     config_dir: Path | None = None,
     **environment_options: Any,
 ) -> Environment:
-    """Создать Jinja2-окружение для шаблонов плагина.
+    """Create a Jinja2 environment for plugin templates.
 
     Args:
-        package: Пакет с каталогом ``templates`` внутри (``PackageLoader``).
-        templates_dir: Каталог шаблонов пользователя; имеет приоритет над ``package``.
-        config_dir: База для относительного ``templates_dir``.
-        **environment_options: Дополнительные аргументы ``jinja2.Environment``.
+        package: Package that contains a ``templates`` directory (``PackageLoader``).
+        templates_dir: User template directory; takes precedence over ``package``.
+        config_dir: Base directory for a relative ``templates_dir``.
+        **environment_options: Extra ``jinja2.Environment`` arguments.
 
     Raises:
-        TemplateError: Jinja2 не установлен, каталог не найден или шаблоны пакета
-            недоступны.
+        TemplateError: Jinja2 is not installed, the directory is missing, or package
+            templates are unavailable.
     """
     try:
         from jinja2 import Environment, FileSystemLoader, PackageLoader, StrictUndefined
     except ImportError as exc:
-        raise TemplateError("jinja2 не установлен; установите eggpipe[jinja]") from exc
+        raise TemplateError("jinja2 is not installed; install eggpipe[jinja]") from exc
 
     if templates_dir is not None:
         path = Path(templates_dir)
         if not path.is_absolute() and config_dir is not None:
             path = config_dir / path
         if not path.is_dir():
-            raise TemplateError(f"каталог шаблонов не найден: {path}")
+            raise TemplateError(f"template directory not found: {path}")
         loader = FileSystemLoader(str(path))
     elif package is not None:
         try:
             loader = PackageLoader(package, "templates")
         except (ImportError, ValueError) as exc:
-            raise TemplateError(f"не удалось загрузить шаблоны пакета {package}: {exc}") from exc
+            raise TemplateError(f"failed to load templates from package {package}: {exc}") from exc
     else:
-        raise TemplateError("укажите package или templates_dir")
+        raise TemplateError("provide package or templates_dir")
 
     options: dict[str, Any] = {
         "autoescape": False,
@@ -71,14 +71,14 @@ def jinja_environment(
 
 
 def render_template(environment: Environment, template_name: str, /, **context: Any) -> str:
-    """Загрузить и отрендерить шаблон, преобразуя ошибки Jinja2 в TemplateError."""
+    """Load and render a template, converting Jinja2 errors to TemplateError."""
     from jinja2 import TemplateError as JinjaTemplateError
 
     try:
         template = environment.get_template(template_name)
         return template.render(**context)
     except JinjaTemplateError as exc:
-        raise TemplateError(f"ошибка шаблона {template_name}: {exc}") from exc
+        raise TemplateError(f"template error in {template_name}: {exc}") from exc
 
 
 __all__ = ["TemplateError", "jinja_environment", "render_template"]

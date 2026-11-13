@@ -1,4 +1,4 @@
-"""Планирование и запись артефактов с глобальным manifest."""
+"""Artifact planning and writing with a global manifest."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from eggpipe.utils.exceptions import (
 )
 
 MANIFEST_VERSION = 2
-WIN_RESERVED = {
+WINDOWS_RESERVED_NAMES = {
     *(f"COM{i}" for i in range(1, 10)),
     *(f"LPT{i}" for i in range(1, 10)),
     "CON",
@@ -164,15 +164,15 @@ class ArtifactWriter:
         try:
             target = validate_artifact_path(state.output_resolved, artifact)
         except ArtifactPathError as exc:
-            state.plan.diagnostics.append(error("MG040", str(exc), path=artifact.path))
+            state.plan.diagnostics.append(error("EG040", str(exc), path=artifact.path))
             return None
         normalized = target.relative_to(state.output_resolved).as_posix()
         collision = _collision(state.seen, normalized)
         if collision is not None:
             state.plan.diagnostics.append(
                 error(
-                    "MG042",
-                    f"дубликат artifact path: {collision} и {normalized}",
+                    "EG042",
+                    f"duplicate artifact path: {collision} and {normalized}",
                     path=normalized,
                 )
             )
@@ -180,15 +180,15 @@ class ArtifactWriter:
         state.seen[normalized.casefold()] = normalized
         if target.is_dir():
             state.plan.diagnostics.append(
-                error("MG041", "artifact path указывает на каталог", path=normalized)
+                error("EG041", "artifact path points to a directory", path=normalized)
             )
             return None
         owner = state.ownership.get(target)
         if owner is not None and owner != state.current:
             state.plan.diagnostics.append(
                 error(
-                    "MG041",
-                    f"файл принадлежит другому location: {owner.generator}:{owner.output_dir}",
+                    "EG041",
+                    f"file belongs to another location: {owner.generator}:{owner.output_dir}",
                     path=normalized,
                 )
             )
@@ -196,7 +196,7 @@ class ArtifactWriter:
         prefix = _owned_prefix(target, state.ownership, state.current)
         if prefix is not None:
             state.plan.diagnostics.append(
-                error("MG042", f"конфликт пути с другим location: {prefix}", path=normalized)
+                error("EG042", f"path conflict with another location: {prefix}", path=normalized)
             )
             return None
         digest = hashlib.sha256(artifact.content.encode("utf-8")).hexdigest()
@@ -222,7 +222,7 @@ class ArtifactWriter:
     ) -> PlannedArtifact | None:
         if state.on_conflict == "error":
             state.plan.diagnostics.append(
-                error("MG041", "on_conflict: error — файл уже существует", path=normalized)
+                error("EG041", "on_conflict: error — the file already exists", path=normalized)
             )
             return None
         if owner == state.current:
@@ -239,8 +239,8 @@ class ArtifactWriter:
         if state.on_conflict == "skip":
             state.plan.diagnostics.append(
                 warning(
-                    "MG043",
-                    "не-owned файл не перезаписан и не добавлен в manifest",
+                    "EG043",
+                    "non-owned file was not overwritten and not added to the manifest",
                     path=normalized,
                 )
             )
@@ -248,8 +248,8 @@ class ArtifactWriter:
         if not state.force:
             state.plan.diagnostics.append(
                 error(
-                    "MG041",
-                    "файл не принадлежит генератору; перезапись только с --force",
+                    "EG041",
+                    "the file is not owned by the generator; overwrite only with --force",
                     path=normalized,
                 )
             )
@@ -294,7 +294,7 @@ class ArtifactWriter:
         cleanup: Literal["off", "prompt", "enabled"] = "off",
     ) -> list[Diagnostic]:
         if plan.has_errors:
-            raise ManifestError("нельзя записывать план с ошибками")
+            raise ManifestError("cannot write a plan that has errors")
         diagnostics: list[Diagnostic] = []
         if plan.artifacts:
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -363,11 +363,11 @@ class ArtifactWriter:
                 continue
             if not item.target.exists():
                 diagnostics.append(
-                    error("MG300", "ожидаемый артефакт отсутствует", path=str(item.path))
+                    error("EG300", "expected artifact is missing", path=str(item.path))
                 )
                 continue
             if _sha256_file(item.target) != item.sha256:
-                diagnostics.append(error("MG300", "артефакт устарел (drift)", path=str(item.path)))
+                diagnostics.append(error("EG300", "artifact is stale (drift)", path=str(item.path)))
         return diagnostics
 
     def clean(self, *, dry_run: bool = False) -> CleanResult:
@@ -416,11 +416,9 @@ class ArtifactWriter:
             data = json.loads(self.manifest_path.read_text(encoding="utf-8"))
             manifest = Manifest.model_validate(data)
         except (OSError, json.JSONDecodeError, ValidationError) as exc:
-            raise ManifestError(
-                f"не удалось прочитать manifest {self.manifest_path}: {exc}"
-            ) from exc
+            raise ManifestError(f"failed to read manifest {self.manifest_path}: {exc}") from exc
         if manifest.manifest_version != MANIFEST_VERSION:
-            raise ManifestError(f"manifest_version {manifest.manifest_version} не поддерживается")
+            raise ManifestError(f"manifest_version {manifest.manifest_version} is not supported")
         return manifest
 
     def save_manifest(self, manifest: Manifest) -> None:
@@ -475,7 +473,11 @@ class ArtifactWriter:
                 continue
             if _sha256_file(target) != item.sha256:
                 diagnostics.append(
-                    warning("MG050", "изменённый owned-файл не удалён при cleanup", path=item.path)
+                    warning(
+                        "EG050",
+                        "modified owned file was not removed during cleanup",
+                        path=item.path,
+                    )
                 )
                 kept.append(item)
                 continue
@@ -543,14 +545,14 @@ def _acquire_lock(lock: Path) -> int:
             pid = _lock_pid(lock)
             hint = f" (PID {pid})" if pid is not None else ""
             raise LockError(
-                f"manifest уже используется: {lock}{hint}; "
-                "если процесс не запущен, удалите lock вручную"
+                f"manifest is already in use: {lock}{hint}; "
+                "if no process is running, remove the lock manually"
             ) from exc
         lock.unlink(missing_ok=True)
         try:
             return os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError as retry:
-            raise LockError(f"manifest уже используется: {lock}") from retry
+            raise LockError(f"manifest is already in use: {lock}") from retry
 
 
 def _stale_lock(lock: Path) -> bool:
@@ -629,37 +631,37 @@ def _manifest_formats(formats: frozenset[FormatInfo]) -> list[ManifestFormat]:
 
 def validate_artifact_path(output_dir: Path, artifact: Artifact) -> Path:
     if not isinstance(artifact.content, str):
-        raise ArtifactPathError("content должен быть строкой")
+        raise ArtifactPathError("content must be a string")
     if artifact.content.startswith("\ufeff"):
-        raise ArtifactPathError("content не должен содержать BOM")
+        raise ArtifactPathError("content must not contain a BOM")
     if "\r" in artifact.content:
-        raise ArtifactPathError("content должен использовать LF")
+        raise ArtifactPathError("content must use LF line endings")
 
     raw = unicodedata.normalize("NFC", artifact.path)
     path = PurePosixPath(raw)
     if path.is_absolute() or not path.parts:
-        raise ArtifactPathError("path должен быть относительным")
+        raise ArtifactPathError("path must be relative")
     if len(raw) > 4096:
-        raise ArtifactPathError("path слишком длинный")
+        raise ArtifactPathError("path is too long")
     for part in path.parts:
         stem = part.split(".", 1)[0].upper()
         if (
             part in {"", ".", ".."}
             or re.match(r"^[A-Za-z]:", part)
             or part.startswith(".eggpipe")
-            or stem in WIN_RESERVED
+            or stem in WINDOWS_RESERVED_NAMES
             or part.endswith((" ", "."))
             or "\x00" in part
             or "\\" in part
         ):
-            raise ArtifactPathError(f"недопустимый сегмент пути: {part!r}")
+            raise ArtifactPathError(f"invalid path segment: {part!r}")
         if len(part) > 255:
-            raise ArtifactPathError("сегмент пути слишком длинный")
+            raise ArtifactPathError("path segment is too long")
 
     output_resolved = output_dir.resolve()
     target = (output_resolved / path).resolve()
     if not target.is_relative_to(output_resolved):
-        raise ArtifactPathError("path выходит за пределы output_dir")
+        raise ArtifactPathError("path escapes output_dir")
     return target
 
 

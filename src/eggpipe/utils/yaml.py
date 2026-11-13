@@ -1,4 +1,4 @@
-"""Загрузка YAML в безопасном режиме (YAML 1.2)."""
+"""Safe YAML loading (YAML 1.2)."""
 
 from __future__ import annotations
 
@@ -18,27 +18,27 @@ class YamlLoadError(Exception):
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
-    """Прочитать один YAML-документ-словарь; duplicate keys — ошибка."""
+    """Read a single YAML mapping document; duplicate keys are an error."""
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise YamlLoadError("MG000", f"не удалось прочитать файл: {exc}") from exc
+        raise YamlLoadError("EG000", f"failed to read file: {exc}") from exc
 
     yaml = YAML(typ="safe")
     yaml.allow_duplicate_keys = False
     try:
         documents = list(yaml.load_all(text))
     except DuplicateKeyError as exc:
-        raise YamlLoadError("MG000", f"дубликат ключа: {exc}") from exc
+        raise YamlLoadError("EG000", f"duplicate key: {exc}") from exc
     except YAMLError as exc:
-        raise YamlLoadError("MG000", f"синтаксис YAML: {exc}") from exc
+        raise YamlLoadError("EG000", f"YAML syntax error: {exc}") from exc
 
     if len(documents) != 1:
         raise YamlLoadError(
-            "MG000",
-            f"ожидался один YAML-документ, найдено: {len(documents)}",
+            "EG000",
+            f"expected one YAML document, found {len(documents)}",
         )
     data = documents[0]
     if not isinstance(data, dict):
-        raise YamlLoadError("MG000", "корень документа должен быть словарём")
+        raise YamlLoadError("EG000", "document root must be a mapping")
     return data

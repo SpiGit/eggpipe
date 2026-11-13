@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Проверка wheel/sdist и smoke-install собранного пакета.
+"""Check wheel/sdist artifacts and smoke-install the built package.
 
-Запуск:
+Usage:
     uv run python tools/check_wheel.py dist
 """
 
@@ -44,7 +44,7 @@ REQUIRED_DEPENDENCIES = {
 
 
 class CheckError(RuntimeError):
-    """Ошибка проверки артефактов."""
+    """Artifact check error."""
 
 
 @dataclass(frozen=True)
@@ -59,17 +59,17 @@ def load_project(root: Path) -> Project:
     try:
         raw = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as exc:
-        raise CheckError(f"не удалось прочитать {path}: {exc}") from exc
+        raise CheckError(f"failed to read {path}: {exc}") from exc
 
     project = raw.get("project")
     if not isinstance(project, dict):
-        raise CheckError("в pyproject.toml нет секции [project]")
+        raise CheckError("pyproject.toml has no [project] section")
 
     name = project.get("name")
     version = project.get("version")
     requires_python = project.get("requires-python")
     if not all(isinstance(value, str) for value in (name, version, requires_python)):
-        raise CheckError("project.name, project.version и project.requires-python обязательны")
+        raise CheckError("project.name, project.version and project.requires-python are required")
     assert isinstance(name, str)
     assert isinstance(version, str)
     assert isinstance(requires_python, str)
@@ -81,8 +81,8 @@ def find_artifacts(dist: Path) -> tuple[Path, Path]:
     sdists = sorted(dist.glob("*.tar.gz"))
     if len(wheels) != 1 or len(sdists) != 1:
         raise CheckError(
-            f"в {dist} ожидались один wheel и один sdist, "
-            f"найдено: {len(wheels)} wheel, {len(sdists)} sdist"
+            f"expected exactly one wheel and one sdist in {dist}, "
+            f"found: {len(wheels)} wheel(s), {len(sdists)} sdist(s)"
         )
     return wheels[0], sdists[0]
 
@@ -107,14 +107,16 @@ def metadata_from_wheel(archive: zipfile.ZipFile, version: str) -> Message:
         None,
     )
     if metadata_name is None:
-        raise CheckError("в wheel нет METADATA")
+        raise CheckError("wheel has no METADATA")
     try:
         text = archive.read(metadata_name).decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise CheckError(f"METADATA не является UTF-8: {exc}") from exc
+        raise CheckError(f"METADATA is not UTF-8: {exc}") from exc
     message = Parser().parsestr(text, headersonly=True)
     if message.get("Version") != version:
-        raise CheckError(f"версия в METADATA не совпадает: {message.get('Version')} != {version}")
+        raise CheckError(
+            f"version in METADATA does not match: {message.get('Version')} != {version}"
+        )
     return message
 
 
@@ -127,7 +129,7 @@ def check_metadata(message: Message, project: Project) -> None:
     }
     for field, value in expected.items():
         if message.get(field) != value:
-            raise CheckError(f"{field} в METADATA: {message.get(field)!r} != {value!r}")
+            raise CheckError(f"{field} in METADATA: {message.get(field)!r} != {value!r}")
 
     requires = message.get_all("Requires-Dist") or []
     required_names = {
@@ -135,12 +137,12 @@ def check_metadata(message: Message, project: Project) -> None:
     }
     missing = REQUIRED_DEPENDENCIES - required_names
     if missing:
-        raise CheckError(f"в METADATA нет обязательных зависимостей: {sorted(missing)}")
+        raise CheckError(f"METADATA is missing required dependencies: {sorted(missing)}")
 
     extras = set(message.get_all("Provides-Extra") or [])
     for extra in ("dev", "watch"):
         if extra not in extras:
-            raise CheckError(f"в METADATA нет extra {extra!r}")
+            raise CheckError(f"METADATA is missing extra {extra!r}")
 
 
 def check_wheel(path: Path, project: Project) -> None:
@@ -148,23 +150,23 @@ def check_wheel(path: Path, project: Project) -> None:
         names = set(archive.namelist())
         missing = REQUIRED_WHEEL_FILES - names
         if missing:
-            raise CheckError(f"в wheel нет файлов: {sorted(missing)}")
+            raise CheckError(f"wheel is missing files: {sorted(missing)}")
         forbidden = sorted(name for name in names if name.startswith(("tests/", "docs/")))
         if forbidden:
-            raise CheckError(f"в wheel попали dev-файлы: {forbidden}")
+            raise CheckError(f"wheel contains dev files: {forbidden}")
         message = metadata_from_wheel(archive, project.version)
         check_metadata(message, project)
         if not any(name.endswith("/licenses/LICENSE") for name in names):
-            raise CheckError("в wheel нет LICENSE")
+            raise CheckError("wheel has no LICENSE")
         entry_points = next(
             (name for name in names if name.endswith(".dist-info/entry_points.txt")),
             None,
         )
         if entry_points is None:
-            raise CheckError("в wheel нет entry_points.txt")
+            raise CheckError("wheel has no entry_points.txt")
         text = archive.read(entry_points).decode("utf-8")
         if "eggpipe = eggpipe.cli.main:app" not in text:
-            raise CheckError("в wheel нет console script eggpipe")
+            raise CheckError("wheel has no eggpipe console script")
 
 
 def check_sdist(path: Path) -> None:
@@ -172,14 +174,14 @@ def check_sdist(path: Path) -> None:
         with tarfile.open(path, "r:gz") as archive:
             names = relative_sdist_names(archive.getnames())
     except (OSError, tarfile.TarError) as exc:
-        raise CheckError(f"не удалось прочитать sdist {path}: {exc}") from exc
+        raise CheckError(f"failed to read sdist {path}: {exc}") from exc
 
     missing = REQUIRED_SDIST_FILES - names
     if missing:
-        raise CheckError(f"в sdist нет файлов: {sorted(missing)}")
+        raise CheckError(f"sdist is missing files: {sorted(missing)}")
     forbidden = sorted(name for name in names if name.startswith((".github/", ".opencode/")))
     if forbidden:
-        raise CheckError(f"в sdist попали dev-файлы: {forbidden}")
+        raise CheckError(f"sdist contains dev files: {forbidden}")
 
 
 def run_checked(command: list[str], what: str) -> None:
@@ -203,7 +205,7 @@ def smoke_install(wheel: Path, version: str) -> None:
                 "--quiet",
                 str(wheel.resolve()),
             ],
-            "не удалось установить wheel",
+            "failed to install the wheel",
         )
         run_checked(
             [
@@ -211,14 +213,14 @@ def smoke_install(wheel: Path, version: str) -> None:
                 "-c",
                 f"import eggpipe; assert eggpipe.__version__ == {version!r}",
             ],
-            "wheel не импортируется или версия не совпадает",
+            "the wheel does not import or the version does not match",
         )
         script = environment / ("Scripts/eggpipe.exe" if sys.platform == "win32" else "bin/eggpipe")
-        run_checked([str(script), "--help"], "console script eggpipe не работает")
+        run_checked([str(script), "--help"], "the eggpipe console script does not work")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Проверка артефактов сборки")
+    parser = argparse.ArgumentParser(description="Check build artifacts")
     parser.add_argument("dist", nargs="?", type=Path, default=Path("dist"))
     args = parser.parse_args(argv)
 
@@ -232,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    print(f"OK: {wheel.name} и {sdist.name} проверены")
+    print(f"OK: {wheel.name} and {sdist.name} verified")
     return 0
 
 

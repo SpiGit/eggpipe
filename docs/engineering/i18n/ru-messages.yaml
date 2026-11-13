@@ -1,0 +1,1433 @@
+baseline: 9924fa5
+strings:
+  - file: src/eggpipe/__init__.py
+    line: 1
+    original_ru: Eggpipe — публичный API ядра v0.1.
+  - file: src/eggpipe/cli/main.py
+    line: 293
+    original_ru: Сгенерировать артефакты.
+  - file: src/eggpipe/cli/main.py
+    line: 324
+    original_ru: Создать минимальный .eggpipe.yaml и пример модели.
+  - file: src/eggpipe/cli/main.py
+    line: 404
+    original_ru: 'Watch-режим: перегенерация при изменении sources.'
+  - file: src/eggpipe/cli/main.py
+    line: 478
+    original_ru: Показать merged config и resolved paths.
+  - file: src/eggpipe/cli/main.py
+    line: 504
+    original_ru: Проверить .eggpipe.yaml и sources.
+  - file: src/eggpipe/cli/main.py
+    line: 518
+    original_ru: Вывести JSON Schema .eggpipe.yaml.
+  - file: src/eggpipe/cli/main.py
+    line: 551
+    original_ru: Проверить модели.
+  - file: src/eggpipe/cli/main.py
+    line: 581
+    original_ru: Вывести JSON Schema документа модели или формата.
+  - file: src/eggpipe/cli/main.py
+    line: 611
+    original_ru: Список генераторов из entry points.
+  - file: src/eggpipe/cli/main.py
+    line: 628
+    original_ru: Информация о генераторе.
+  - file: src/eggpipe/cli/main.py
+    line: 648
+    original_ru: Информация о формате.
+  - file: src/eggpipe/cli/main.py
+    line: 664
+    original_ru: Список форматов.
+  - file: src/eggpipe/cli/main.py
+    line: 679
+    original_ru: Удалить unchanged owned-артефакты по глобальному manifest.
+  - file: src/eggpipe/cli/main.py
+    line: 45
+    original_ru: Конфигурация
+  - file: src/eggpipe/cli/main.py
+    line: 46
+    original_ru: Модели
+  - file: src/eggpipe/cli/main.py
+    line: 47
+    original_ru: Генераторы
+  - file: src/eggpipe/cli/main.py
+    line: 48
+    original_ru: Форматы
+  - file: src/eggpipe/cli/main.py
+    line: 119
+    original_ru: не найден .eggpipe.yaml; укажите --config
+  - file: src/eggpipe/cli/main.py
+    line: 226
+    original_ru: --output-format должен быть text или json
+  - file: src/eggpipe/cli/main.py
+    line: 408
+    original_ru: не найден .eggpipe.yaml; укажите --config
+  - file: src/eggpipe/cli/main.py
+    line: 56
+    original_ru: Путь к .eggpipe.yaml
+  - file: src/eggpipe/cli/main.py
+    line: 60
+    original_ru: 'Генераторы: через запятую или повторно'
+  - file: src/eggpipe/cli/main.py
+    line: 139
+    original_ru: 'неизвестные генераторы: '
+  - file: src/eggpipe/cli/main.py
+    line: 327
+    original_ru: 'error: в non-tty нужен --layout'
+  - file: src/eggpipe/cli/main.py
+    line: 335
+    original_ru: 'error: неизвестный layout: '
+  - file: src/eggpipe/cli/main.py
+    line: 338
+    original_ru: ' уже существует; используйте --force'
+  - file: src/eggpipe/cli/main.py
+    line: 594
+    original_ru: ' не поддерживает версию '
+  - file: src/eggpipe/cli/main.py
+    line: 631
+    original_ru: 'error: неизвестный генератор: '
+  - file: src/eggpipe/cli/main.py
+    line: 688
+    original_ru: 'error: в non-tty нужен --yes'
+  - file: src/eggpipe/cli/main.py
+    line: 690
+    original_ru: Удалить unchanged owned-артефакты?
+  - file: src/eggpipe/cli/main.py
+    line: 150
+    original_ru: 'некорректный --var: '
+  - file: src/eggpipe/cli/main.py
+    line: 272
+    original_ru: Модели (по умолчанию sources)
+  - file: src/eggpipe/cli/main.py
+    line: 386
+    original_ru: Модели (по умолчанию sources)
+  - file: src/eggpipe/config/app_config.py
+    line: 1
+    original_ru: Техническая конфигурация приложения.
+  - file: src/eggpipe/config/generator_rules.py
+    line: 1
+    original_ru: Бизнес-конфигурация .eggpipe.yaml.
+  - file: src/eggpipe/config/generator_rules.py
+    line: 51
+    original_ru: Совместимое имя выбора input из System Design.
+  - file: src/eggpipe/config/generator_rules.py
+    line: 133
+    original_ru: Загрузка и поиск .eggpipe.yaml.
+  - file: src/eggpipe/config/generator_rules.py
+    line: 76
+    original_ru: output_dir должен быть относительным
+  - file: src/eggpipe/config/generator_rules.py
+    line: 109
+    original_ru: directory-per-model требует непустой model_dirs
+  - file: src/eggpipe/config/generator_rules.py
+    line: 100
+    original_ru: monolith не поддерживает files/model_dirs/models
+  - file: src/eggpipe/config/generator_rules.py
+    line: 103
+    original_ru: ' требует непустой files'
+  - file: src/eggpipe/config/generator_rules.py
+    line: 106
+    original_ru: file-per-model не поддерживает model_dirs/models
+  - file: src/eggpipe/config/logging.py
+    line: 1
+    original_ru: Единая точка настройки логирования CLI.
+  - file: src/eggpipe/core/composition.py
+    line: 1
+    original_ru: Композиция документов по ADR-0001.
+  - file: src/eggpipe/core/composition.py
+    line: 71
+    original_ru: нет источников модели
+  - file: src/eggpipe/core/composition.py
+    line: 90
+    original_ru: нет источников модели
+  - file: src/eggpipe/core/composition.py
+    line: 229
+    original_ru: глубина импорта больше 10
+  - file: src/eggpipe/core/composition.py
+    line: 278
+    original_ru: импортированный документ имеет другой format
+  - file: src/eggpipe/core/composition.py
+    line: 280
+    original_ru: импортированный документ имеет другую version
+  - file: src/eggpipe/core/composition.py
+    line: 307
+    original_ru: у resource-импорта обязателен alias
+  - file: src/eggpipe/core/composition.py
+    line: 341
+    original_ru: глубина extends больше 10
+  - file: src/eggpipe/core/composition.py
+    line: 227
+    original_ru: 'циклический импорт: '
+  - file: src/eggpipe/core/composition.py
+    line: 290
+    original_ru: 'абсолютный импорт запрещён: '
+  - file: src/eggpipe/core/composition.py
+    line: 293
+    original_ru: 'импорт вне project root: '
+  - file: src/eggpipe/core/composition.py
+    line: 295
+    original_ru: 'импорт не найден: '
+  - file: src/eggpipe/core/composition.py
+    line: 309
+    original_ru: 'alias ресурса уже занят: '
+  - file: src/eggpipe/core/composition.py
+    line: 311
+    original_ru: 'дубликат alias импорта: '
+  - file: src/eggpipe/core/composition.py
+    line: 339
+    original_ru: 'цикл extends: '
+  - file: src/eggpipe/core/composition.py
+    line: 355
+    original_ru: 'дубликат поля в '
+  - file: src/eggpipe/core/composition.py
+    line: 381
+    original_ru: ' не найдена в import '
+  - file: src/eggpipe/core/composition.py
+    line: 390
+    original_ru: 'родитель extends не найден: '
+  - file: src/eggpipe/core/composition.py
+    line: 392
+    original_ru: 'неоднозначный extends: '
+  - file: src/eggpipe/core/composition.py
+    line: 195
+    original_ru: файл file-per-model должен содержать одну сущность
+  - file: src/eggpipe/core/composition.py
+    line: 249
+    original_ru: 'alias ресурса уже занят: '
+  - file: src/eggpipe/core/composition.py
+    line: 251
+    original_ru: 'дубликат alias импорта: '
+  - file: src/eggpipe/core/composition.py
+    line: 316
+    original_ru: 'не удалось прочитать ресурс: '
+  - file: src/eggpipe/core/composition.py
+    line: 373
+    original_ru: 'неизвестный import alias: '
+  - file: src/eggpipe/core/composition.py
+    line: 429
+    original_ru: неизвестное имя в sources[].input.
+  - file: src/eggpipe/core/composition.py
+    line: 110
+    original_ru: 'дубликат имени entity после композиции: '
+  - file: src/eggpipe/core/composition.py
+    line: 121
+    original_ru: 'дубликат имени enum после композиции: '
+  - file: src/eggpipe/core/composition.py
+    line: 132
+    original_ru: 'дубликат имени type после композиции: '
+  - file: src/eggpipe/core/discovery.py
+    line: 1
+    original_ru: Discovery файлов моделей, model units и ресурсов.
+  - file: src/eggpipe/core/discovery.py
+    line: 103
+    original_ru: дубликат resolved-пути source
+  - file: src/eggpipe/core/discovery.py
+    line: 461
+    original_ru: путь одновременно указан в files и resources
+  - file: src/eggpipe/core/discovery.py
+    line: 70
+    original_ru: source вне project root
+  - file: src/eggpipe/core/discovery.py
+    line: 97
+    original_ru: 'monolith source должен быть файлом: '
+  - file: src/eggpipe/core/discovery.py
+    line: 125
+    original_ru: 'file-per-model source должен быть каталогом: '
+  - file: src/eggpipe/core/discovery.py
+    line: 136
+    original_ru: дубликат resolved-пути source
+  - file: src/eggpipe/core/discovery.py
+    line: 166
+    original_ru: 'directory-per-model source должен быть каталогом: '
+  - file: src/eggpipe/core/discovery.py
+    line: 176
+    original_ru: ' указывает на неизвестный каталог'
+  - file: src/eggpipe/core/discovery.py
+    line: 294
+    original_ru: 'абсолютный путь в sources запрещён: '
+  - file: src/eggpipe/core/discovery.py
+    line: 311
+    original_ru: 'файл не найден: '
+  - file: src/eggpipe/core/discovery.py
+    line: 315
+    original_ru: 'каталог не найден: '
+  - file: src/eggpipe/core/discovery.py
+    line: 361
+    original_ru: as допустим только для одного файла
+  - file: src/eggpipe/core/discovery.py
+    line: 388
+    original_ru: as допустим только для одного файла
+  - file: src/eggpipe/core/discovery.py
+    line: 406
+    original_ru: ресурс вне разрешённой границы
+  - file: src/eggpipe/core/discovery.py
+    line: 66
+    original_ru: 'source не найден: '
+  - file: src/eggpipe/core/discovery.py
+    line: 193
+    original_ru: 'пустой каталог модели: '
+  - file: src/eggpipe/core/discovery.py
+    line: 217
+    original_ru: дубликат resolved-пути source
+  - file: src/eggpipe/core/discovery.py
+    line: 249
+    original_ru: файл модели вне project root
+  - file: src/eggpipe/core/discovery.py
+    line: 254
+    original_ru: YAML не является документом модели
+  - file: src/eggpipe/core/discovery.py
+    line: 277
+    original_ru: каталог модели вне project root
+  - file: src/eggpipe/core/discovery.py
+    line: 306
+    original_ru: 'glob не нашёл совпадений: '
+  - file: src/eggpipe/core/discovery.py
+    line: 340
+    original_ru: 'абсолютный путь ресурса запрещён: '
+  - file: src/eggpipe/core/discovery.py
+    line: 353
+    original_ru: 'ресурс не найден: '
+  - file: src/eggpipe/core/discovery.py
+    line: 373
+    original_ru: 'glob ресурсов не нашёл совпадений: '
+  - file: src/eggpipe/core/discovery.py
+    line: 414
+    original_ru: 'дубликат alias ресурса: '
+  - file: src/eggpipe/core/discovery.py
+    line: 421
+    original_ru: 'не удалось прочитать ресурс: '
+  - file: src/eggpipe/core/document.py
+    line: 1
+    original_ru: Документ модели и импорты.
+  - file: src/eggpipe/core/format_registry.py
+    line: 1
+    original_ru: Реестр форматов документов.
+  - file: src/eggpipe/core/format_registry.py
+    line: 43
+    original_ru: Встроенный entity-model и форматы от плагинов.
+  - file: src/eggpipe/core/format_registry.py
+    line: 72
+    original_ru: Проверить формат с учётом цепочки extends.
+  - file: src/eggpipe/core/format_registry.py
+    line: 158
+    original_ru: format_names должен быть непустым списком
+  - file: src/eggpipe/core/format_registry.py
+    line: 160
+    original_ru: format_names содержит дубликаты
+  - file: src/eggpipe/core/format_registry.py
+    line: 162
+    original_ru: format_names должен содержать строки
+  - file: src/eggpipe/core/format_registry.py
+    line: 166
+    original_ru: ': supported_versions должен быть непустым списком'
+  - file: src/eggpipe/core/format_registry.py
+    line: 168
+    original_ru: ': supported_versions должен содержать строки'
+  - file: src/eggpipe/core/format_registry.py
+    line: 170
+    original_ru: ': supported_versions содержит дубликаты'
+  - file: src/eggpipe/core/format_registry.py
+    line: 174
+    original_ru: ': schemas должен быть словарём'
+  - file: src/eggpipe/core/format_registry.py
+    line: 177
+    original_ru: ': ключи schemas должны совпадать с supported_versions'
+  - file: src/eggpipe/core/format_registry.py
+    line: 198
+    original_ru: ': primitive_types должен быть множеством строк'
+  - file: src/eggpipe/core/format_registry.py
+    line: 202
+    original_ru: ': extends должен быть непустой строкой'
+  - file: src/eggpipe/core/format_registry.py
+    line: 205
+    original_ru: ': base_versions должен быть словарём'
+  - file: src/eggpipe/core/format_registry.py
+    line: 56
+    original_ru: entity-model зарезервирован ядром и не может быть переопределён
+  - file: src/eggpipe/core/format_registry.py
+    line: 112
+    original_ru: ': неизвестный базовый формат '
+  - file: src/eggpipe/core/format_registry.py
+    line: 150
+    original_ru: ': primitive_types должен включать примитивы '
+  - file: src/eggpipe/core/format_registry.py
+    line: 183
+    original_ru: '] должен быть FormatSchema'
+  - file: src/eggpipe/core/format_registry.py
+    line: 187
+    original_ru: '].layer_entity должен быть BaseModel'
+  - file: src/eggpipe/core/format_registry.py
+    line: 191
+    original_ru: '].full_entity должен быть BaseModel'
+  - file: src/eggpipe/core/format_registry.py
+    line: 208
+    original_ru: ': base_versions допустим только при extends'
+  - file: src/eggpipe/core/format_registry.py
+    line: 211
+    original_ru: ': формат не может наследовать сам себя'
+  - file: src/eggpipe/core/format_registry.py
+    line: 214
+    original_ru: ': base_versions должен содержать запись для каждой версии'
+  - file: src/eggpipe/core/format_registry.py
+    line: 217
+    original_ru: ': версии в base_versions должны быть строками'
+  - file: src/eggpipe/core/format_registry.py
+    line: 59
+    original_ru: 'формат уже зарегистрирован: '
+  - file: src/eggpipe/core/format_registry.py
+    line: 69
+    original_ru: 'неизвестный формат: '
+  - file: src/eggpipe/core/format_registry.py
+    line: 120
+    original_ru: ': цикл наследования форматов'
+  - file: src/eggpipe/core/format_registry.py
+    line: 125
+    original_ru: ': неизвестный базовый формат '
+  - file: src/eggpipe/core/format_registry.py
+    line: 130
+    original_ru: ': глубина наследования больше '
+  - file: src/eggpipe/core/format_registry.py
+    line: 137
+    original_ru: ': базовая версия '
+  - file: src/eggpipe/core/format_registry.py
+    line: 137
+    original_ru: ' не поддерживается '
+  - file: src/eggpipe/core/format_registry.py
+    line: 144
+    original_ru: ': full_entity должен наследовать full_entity '
+  - file: src/eggpipe/core/layers.py
+    line: 1
+    original_ru: Сборка model unit из слоёв форматов (ADR-0008).
+  - file: src/eggpipe/core/layers.py
+    line: 45
+    original_ru: Проверить и аддитивно смержить слои одной модели.
+  - file: src/eggpipe/core/layers.py
+    line: 47
+    original_ru: пустая модель
+  - file: src/eggpipe/core/layers.py
+    line: 176
+    original_ru: форматы слоёв не образуют одну цепочку
+  - file: src/eggpipe/core/layers.py
+    line: 193
+    original_ru: форматы слоёв не связаны наследованием
+  - file: src/eggpipe/core/layers.py
+    line: 155
+    original_ru: файл-слой должен содержать одну сущность
+  - file: src/eggpipe/core/layers.py
+    line: 157
+    original_ru: imports в файле-слое запрещены
+  - file: src/eggpipe/core/layers.py
+    line: 160
+    original_ru: extends в файле-слое запрещён
+  - file: src/eggpipe/core/layers.py
+    line: 186
+    original_ru: форматы слоёв образуют ветвление
+  - file: src/eggpipe/core/layers.py
+    line: 207
+    original_ru: ': нет base_versions'
+  - file: src/eggpipe/core/layers.py
+    line: 213
+    original_ru: ' требует '
+  - file: src/eggpipe/core/layers.py
+    line: 213
+    original_ru: ', а слой имеет '
+  - file: src/eggpipe/core/layers.py
+    line: 229
+    original_ru: ': нет схемы'
+  - file: src/eggpipe/core/layers.py
+    line: 296
+    original_ru: 'переопределение поля '
+  - file: src/eggpipe/core/layers.py
+    line: 296
+    original_ru: ' запрещено'
+  - file: src/eggpipe/core/layers.py
+    line: 77
+    original_ru: 'слой '
+  - file: src/eggpipe/core/layers.py
+    line: 77
+    original_ru: ' описывает '
+  - file: src/eggpipe/core/layers.py
+    line: 77
+    original_ru: ', ожидался '
+  - file: src/eggpipe/core/layers.py
+    line: 165
+    original_ru: 'несколько файлов одного формата: '
+  - file: src/eggpipe/core/layers.py
+    line: 377
+    original_ru: 'конфликт '
+  - file: src/eggpipe/core/layers.py
+    line: 377
+    original_ru: ' и '
+  - file: src/eggpipe/core/layers.py
+    line: 113
+    original_ru: 'дельта '
+  - file: src/eggpipe/core/layers.py
+    line: 113
+    original_ru: ' не добавляет ничего'
+  - file: src/eggpipe/core/layers.py
+    line: 265
+    original_ru: 'конфликт scalar '
+  - file: src/eggpipe/core/layers.py
+    line: 265
+    original_ru: ' и '
+  - file: src/eggpipe/core/layers.py
+    line: 342
+    original_ru: 'переопределение '
+  - file: src/eggpipe/core/layers.py
+    line: 342
+    original_ru: ' запрещено'
+  - file: src/eggpipe/core/model.py
+    line: 1
+    original_ru: Внутренние immutable-модели ядра.
+  - file: src/eggpipe/core/model.py
+    line: 40
+    original_ru: Sentinel для «значение не задано».
+  - file: src/eggpipe/core/model.py
+    line: 53
+    original_ru: Конкретный формат и версия.
+  - file: src/eggpipe/core/model.py
+    line: 60
+    original_ru: Политика merge для коллекций слоёв.
+  - file: src/eggpipe/core/model.py
+    line: 70
+    original_ru: Pydantic-схемы одного слоя и итоговой сущности.
+  - file: src/eggpipe/core/model.py
+    line: 77
+    original_ru: Минимальная identity-модель сущности для дельта-слоя.
+  - file: src/eggpipe/core/model.py
+    line: 85
+    original_ru: Минимальная identity-модель поля для дельта-слоя.
+  - file: src/eggpipe/core/model.py
+    line: 160
+    original_ru: Частичная схема сущности для файла-слоя.
+  - file: src/eggpipe/core/model.py
+    line: 225
+    original_ru: Immutable модель с индексами по именам.
+  - file: src/eggpipe/core/model.py
+    line: 280
+    original_ru: Выбор подмножества модели; None/пусто = все.
+  - file: src/eggpipe/core/naming.py
+    line: 1
+    original_ru: Утилиты именования; переименование модели остаётся решением плагина.
+  - file: src/eggpipe/core/naming.py
+    line: 17
+    original_ru: Детерминированно преобразовать имя в выбранный стиль.
+  - file: src/eggpipe/core/parser.py
+    line: 1
+    original_ru: Парсер документов модели.
+  - file: src/eggpipe/core/parser.py
+    line: 20
+    original_ru: 'Нормализовать version: строка как есть, число — в строку с одним знаком.'
+  - file: src/eggpipe/core/parser.py
+    line: 44
+    original_ru: '`format` обязателен'
+  - file: src/eggpipe/core/parser.py
+    line: 57
+    original_ru: '`version` должен быть строкой или числом'
+  - file: src/eggpipe/core/parser.py
+    line: 62
+    original_ru: ' не поддерживает версию '
+  - file: src/eggpipe/core/provenance.py
+    line: 1
+    original_ru: 'Provenance источника: последний git-коммит файла.'
+  - file: src/eggpipe/core/provenance.py
+    line: 19
+    original_ru: Вернуть commit/date для файла или None, если git/история недоступны.
+  - file: src/eggpipe/core/slicing.py
+    line: 1
+    original_ru: Формирование замкнутого среза модели.
+  - file: src/eggpipe/core/slicing.py
+    line: 20
+    original_ru: Выбрать подмножество и добавить транзитивное замыкание по enums/types.
+  - file: src/eggpipe/core/slicing.py
+    line: 88
+    original_ru: неизвестное имя в input.
+  - file: src/eggpipe/core/validator.py
+    line: 1
+    original_ru: Семантическая валидация модели поверх Pydantic.
+  - file: src/eggpipe/core/validator.py
+    line: 368
+    original_ru: pattern применим только к строковым типам
+  - file: src/eggpipe/core/validator.py
+    line: 375
+    original_ru: min_length/max_length применимы только к строковым типам
+  - file: src/eggpipe/core/validator.py
+    line: 380
+    original_ru: min/max применимы только к числам и датам
+  - file: src/eggpipe/core/validator.py
+    line: 386
+    original_ru: min больше max
+  - file: src/eggpipe/core/validator.py
+    line: 392
+    original_ru: min_length больше max_length
+  - file: src/eggpipe/core/validator.py
+    line: 211
+    original_ru: ' пуст'
+  - file: src/eggpipe/core/validator.py
+    line: 257
+    original_ru: ' не в PascalCase'
+  - file: src/eggpipe/core/validator.py
+    line: 298
+    original_ru: 'default: null недопустим при nullable: false'
+  - file: src/eggpipe/core/validator.py
+    line: 306
+    original_ru: 'required: true и nullable: true — валидно только для PATCH'
+  - file: src/eggpipe/core/validator.py
+    line: 427
+    original_ru: ' не соответствует типу '
+  - file: src/eggpipe/core/validator.py
+    line: 57
+    original_ru: ' не используется'
+  - file: src/eggpipe/core/validator.py
+    line: 67
+    original_ru: ' не используется'
+  - file: src/eggpipe/core/validator.py
+    line: 134
+    original_ru: 'case-insensitive коллизия имён: '
+  - file: src/eggpipe/core/validator.py
+    line: 134
+    original_ru: ' и '
+  - file: src/eggpipe/core/validator.py
+    line: 159
+    original_ru: 'цикл CustomType.base: '
+  - file: src/eggpipe/core/validator.py
+    line: 169
+    original_ru: 'глубина CustomType.base больше '
+  - file: src/eggpipe/core/validator.py
+    line: 182
+    original_ru: 'CustomType.base не может ссылаться на enum: '
+  - file: src/eggpipe/core/validator.py
+    line: 193
+    original_ru: 'неизвестный базовый тип '
+  - file: src/eggpipe/core/validator.py
+    line: 193
+    original_ru: ' у '
+  - file: src/eggpipe/core/validator.py
+    line: 219
+    original_ru: 'дубликат имени значения enum '
+  - file: src/eggpipe/core/validator.py
+    line: 233
+    original_ru: 'дубликат значения enum '
+  - file: src/eggpipe/core/validator.py
+    line: 314
+    original_ru: 'у обязательного поля '
+  - file: src/eggpipe/core/validator.py
+    line: 314
+    original_ru: ' нет description'
+  - file: src/eggpipe/core/validator.py
+    line: 416
+    original_ru: ' отсутствует в enum '
+  - file: src/eggpipe/core/validator.py
+    line: 464
+    original_ru: ' меньше min '
+  - file: src/eggpipe/core/validator.py
+    line: 468
+    original_ru: ' больше max '
+  - file: src/eggpipe/core/validator.py
+    line: 471
+    original_ru: ' не сравним с min/max'
+  - file: src/eggpipe/core/validator.py
+    line: 475
+    original_ru: 'default короче min_length '
+  - file: src/eggpipe/core/validator.py
+    line: 479
+    original_ru: 'default длиннее max_length '
+  - file: src/eggpipe/core/validator.py
+    line: 485
+    original_ru: 'default не соответствует pattern '
+  - file: src/eggpipe/core/validator.py
+    line: 97
+    original_ru: 'дубликат имени '
+  - file: src/eggpipe/core/validator.py
+    line: 109
+    original_ru: 'имя '
+  - file: src/eggpipe/core/validator.py
+    line: 109
+    original_ru: ' используется и как '
+  - file: src/eggpipe/core/validator.py
+    line: 109
+    original_ru: ', и как '
+  - file: src/eggpipe/core/validator.py
+    line: 269
+    original_ru: 'дубликат поля '
+  - file: src/eggpipe/core/validator.py
+    line: 269
+    original_ru: ' в '
+  - file: src/eggpipe/core/validator.py
+    line: 292
+    original_ru: 'неизвестный тип '
+  - file: src/eggpipe/core/validator.py
+    line: 397
+    original_ru: 'некорректный regex: '
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 1
+    original_ru: Планирование и запись артефактов с глобальным manifest.
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 632
+    original_ru: content должен быть строкой
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 634
+    original_ru: content не должен содержать BOM
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 636
+    original_ru: content должен использовать LF
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 641
+    original_ru: path должен быть относительным
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 643
+    original_ru: path слишком длинный
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 662
+    original_ru: path выходит за пределы output_dir
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 297
+    original_ru: нельзя записывать план с ошибками
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 657
+    original_ru: сегмент пути слишком длинный
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 183
+    original_ru: artifact path указывает на каталог
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 225
+    original_ru: 'on_conflict: error — файл уже существует'
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 243
+    original_ru: не-owned файл не перезаписан и не добавлен в manifest
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 252
+    original_ru: файл не принадлежит генератору; перезапись только с --force
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 423
+    original_ru: ' не поддерживается'
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 655
+    original_ru: 'недопустимый сегмент пути: '
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 175
+    original_ru: 'дубликат artifact path: '
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 175
+    original_ru: ' и '
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 191
+    original_ru: 'файл принадлежит другому location: '
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 199
+    original_ru: 'конфликт пути с другим location: '
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 366
+    original_ru: ожидаемый артефакт отсутствует
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 370
+    original_ru: артефакт устарел (drift)
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 420
+    original_ru: 'не удалось прочитать manifest '
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 478
+    original_ru: изменённый owned-файл не удалён при cleanup
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 546
+    original_ru: 'manifest уже используется: '
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 546
+    original_ru: ; если процесс не запущен, удалите lock вручную
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 553
+    original_ru: 'manifest уже используется: '
+  - file: src/eggpipe/engine/engine.py
+    line: 1
+    original_ru: Engine — библиотечный фасад.
+  - file: src/eggpipe/engine/engine.py
+    line: 598
+    original_ru: stale generated location в manifest
+  - file: src/eggpipe/engine/engine.py
+    line: 360
+    original_ru: в .eggpipe.yaml нет sources
+  - file: src/eggpipe/engine/engine.py
+    line: 640
+    original_ru: 'генератор '
+  - file: src/eggpipe/engine/engine.py
+    line: 640
+    original_ru: ': input_formats обязателен'
+  - file: src/eggpipe/engine/engine.py
+    line: 642
+    original_ru: 'генератор '
+  - file: src/eggpipe/engine/engine.py
+    line: 642
+    original_ru: ': input_formats должен быть set[str]'
+  - file: src/eggpipe/engine/engine.py
+    line: 202
+    original_ru: 'неизвестный генератор: '
+  - file: src/eggpipe/engine/engine.py
+    line: 651
+    original_ru: 'генератор '
+  - file: src/eggpipe/engine/engine.py
+    line: 651
+    original_ru: ' не поддерживает формат '
+  - file: src/eggpipe/engine/engine.py
+    line: 283
+    original_ru: 'cleanup: prompt без tty; используется off'
+  - file: src/eggpipe/engine/engine.py
+    line: 298
+    original_ru: 'не удалось записать артефакты: '
+  - file: src/eggpipe/engine/engine.py
+    line: 554
+    original_ru: ' старше mtime '
+  - file: src/eggpipe/engine/engine.py
+    line: 620
+    original_ru: ' уже занят location '
+  - file: src/eggpipe/engine/engine.py
+    line: 267
+    original_ru: 'не удалось взять lock: '
+  - file: src/eggpipe/engine/engine.py
+    line: 406
+    original_ru: ' упал: '
+  - file: src/eggpipe/engine/engine.py
+    line: 429
+    original_ru: 'генератор '
+  - file: src/eggpipe/engine/engine.py
+    line: 429
+    original_ru: ' упал: '
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 1
+    original_ru: Загрузка генераторов и форматов из entry points и локальных файлов.
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 121
+    original_ru: не является GeneratorPlugin
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 130
+    original_ru: не является FormatPlugin
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 174
+    original_ru: не удалось создать import spec
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 134
+    original_ru: 'несовместимый api_version: '
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 158
+    original_ru: 'несовместимый api_version: '
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 162
+    original_ru: 'id плагина '
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 162
+    original_ru: ' не совпадает с entry point'
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 39
+    original_ru: 'дубликат id генератора: '
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 144
+    original_ru: 'не удалось загрузить: '
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 179
+    original_ru: 'не удалось импортировать: '
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 199
+    original_ru: 'не удалось создать плагин: '
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 102
+    original_ru: 'дубликат id генератора: '
+  - file: src/eggpipe/engine/policy.py
+    line: 1
+    original_ru: Политика фильтрации диагностик.
+  - file: src/eggpipe/engine/report.py
+    line: 1
+    original_ru: Модель отчёта Engine.
+  - file: src/eggpipe/interfaces/diagnostics.py
+    line: 1
+    original_ru: Структурированные диагностики ядра.
+  - file: src/eggpipe/interfaces/diagnostics.py
+    line: 12
+    original_ru: Где именно возникла диагностика.
+  - file: src/eggpipe/interfaces/diagnostics.py
+    line: 23
+    original_ru: Диагностика валидации; код стабилен и документируется.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 1
+    original_ru: Контракты форматов документов.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 19
+    original_ru: 'Формат документа: парсер и валидатор.'
+  - file: src/eggpipe/interfaces/formats.py
+    line: 38
+    original_ru: Встроенный формат entity-model.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 31
+    original_ru: Построить документ из YAML-словаря.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 71
+    original_ru: Hook для format-плагинов, расширяющих entity-model.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 50
+    original_ru: '`model` должен быть словарём'
+  - file: src/eggpipe/interfaces/formats.py
+    line: 91
+    original_ru: '`model.imports` должен быть списком'
+  - file: src/eggpipe/interfaces/formats.py
+    line: 96
+    original_ru: элемент imports должен быть словарём
+  - file: src/eggpipe/interfaces/formats.py
+    line: 99
+    original_ru: у импорта обязателен path
+  - file: src/eggpipe/interfaces/formats.py
+    line: 109
+    original_ru: у resource-импорта обязателен `as`
+  - file: src/eggpipe/interfaces/generator.py
+    line: 1
+    original_ru: Контракты генераторов.
+  - file: src/eggpipe/interfaces/generator.py
+    line: 101
+    original_ru: Объявить генератор функцией; создаёт класс-адаптер GeneratorPlugin.
+  - file: src/eggpipe/interfaces/generator.py
+    line: 85
+    original_ru: Сгенерировать артефакты, не записывая файлы.
+  - file: src/eggpipe/interfaces/generator.py
+    line: 106
+    original_ru: input_formats должен быть set[str] или None
+  - file: src/eggpipe/interfaces/generator.py
+    line: 141
+    original_ru: input_formats обязателен
+  - file: src/eggpipe/interfaces/generator.py
+    line: 147
+    original_ru: input_formats должен быть set[str] или None
+  - file: src/eggpipe/interfaces/generator.py
+    line: 212
+    original_ru: 'недопустимый return type: '
+  - file: src/eggpipe/interfaces/generator.py
+    line: 139
+    original_ru: 'некорректный id генератора: '
+  - file: src/eggpipe/interfaces/generator.py
+    line: 163
+    original_ru: '*args/**kwargs не поддерживаются'
+  - file: src/eggpipe/interfaces/generator.py
+    line: 181
+    original_ru: 'недопустимый return type: '
+  - file: src/eggpipe/interfaces/generator.py
+    line: 112
+    original_ru: 'некорректный id генератора: '
+  - file: src/eggpipe/interfaces/generator.py
+    line: 158
+    original_ru: 'не удалось прочитать сигнатуру: '
+  - file: src/eggpipe/interfaces/generator.py
+    line: 168
+    original_ru: 'у параметра '
+  - file: src/eggpipe/interfaces/generator.py
+    line: 168
+    original_ru: ' нет аннотации'
+  - file: src/eggpipe/interfaces/generator.py
+    line: 173
+    original_ru: 'неизвестный инжектируемый параметр '
+  - file: src/eggpipe/interfaces/generator.py
+    line: 176
+    original_ru: 'повторная инъекция '
+  - file: src/eggpipe/templating.py
+    line: 1
+    original_ru: "Опциональный helper для Jinja2-шаблонов плагинов.\n\nЯдро не использует шаблонизатор и не импортирует Jinja2 при старте. Модуль доступен\nтолько при установленном extra ``[jinja]``; плагин вызывает его явно, чтобы не\nдублировать загрузку ``PackageLoader``/``FileSystemLoader``.\n"
+  - file: src/eggpipe/templating.py
+    line: 20
+    original_ru: Ошибка загрузки или рендеринга шаблона.
+  - file: src/eggpipe/templating.py
+    line: 30
+    original_ru: "Создать Jinja2-окружение для шаблонов плагина.\n\n    Args:\n        package: Пакет с каталогом ``templates`` внутри (``PackageLoader``).\n        templates_dir: Каталог шаблонов пользователя; имеет приоритет над ``package``.\n        config_dir: База для относительного ``templates_dir``.\n        **environment_options: Дополнительные аргументы ``jinja2.Environment``.\n\n    Raises:\n        TemplateError: Jinja2 не установлен, каталог не найден или шаблоны пакета\n            недоступны.\n    "
+  - file: src/eggpipe/templating.py
+    line: 74
+    original_ru: Загрузить и отрендерить шаблон, преобразуя ошибки Jinja2 в TemplateError.
+  - file: src/eggpipe/templating.py
+    line: 45
+    original_ru: jinja2 не установлен; установите eggpipe[jinja]
+  - file: src/eggpipe/templating.py
+    line: 60
+    original_ru: укажите package или templates_dir
+  - file: src/eggpipe/templating.py
+    line: 52
+    original_ru: 'каталог шаблонов не найден: '
+  - file: src/eggpipe/templating.py
+    line: 81
+    original_ru: 'ошибка шаблона '
+  - file: src/eggpipe/templating.py
+    line: 58
+    original_ru: 'не удалось загрузить шаблоны пакета '
+  - file: src/eggpipe/utils/exceptions.py
+    line: 1
+    original_ru: Исключения ядра.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 11
+    original_ru: Базовая ошибка библиотеки.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 15
+    original_ru: Ошибка чтения или разбора документа модели.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 30
+    original_ru: Ошибка конфигурации.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 34
+    original_ru: Конфликт регистрации формата.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 38
+    original_ru: Нарушен контракт наследования формата (MG034).
+  - file: src/eggpipe/utils/exceptions.py
+    line: 44
+    original_ru: Нарушен контракт плагина.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 53
+    original_ru: Формат не найден в реестре.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 57
+    original_ru: Некорректный путь или содержимое артефакта.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 61
+    original_ru: Ошибка manifest.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 65
+    original_ru: output_dir уже используется другим запуском.
+  - file: src/eggpipe/utils/yaml.py
+    line: 1
+    original_ru: Загрузка YAML в безопасном режиме (YAML 1.2).
+  - file: src/eggpipe/utils/yaml.py
+    line: 21
+    original_ru: Прочитать один YAML-документ-словарь; duplicate keys — ошибка.
+  - file: src/eggpipe/utils/yaml.py
+    line: 43
+    original_ru: корень документа должен быть словарём
+  - file: src/eggpipe/utils/yaml.py
+    line: 39
+    original_ru: 'ожидался один YAML-документ, найдено: '
+  - file: src/eggpipe/utils/yaml.py
+    line: 25
+    original_ru: 'не удалось прочитать файл: '
+  - file: src/eggpipe/utils/yaml.py
+    line: 32
+    original_ru: 'дубликат ключа: '
+  - file: src/eggpipe/utils/yaml.py
+    line: 34
+    original_ru: 'синтаксис YAML: '
+  - file: src/eggpipe/version.py
+    line: 1
+    original_ru: Версия пакета в одном месте.
+  - file: src/eggpipe/watch/watcher.py
+    line: 1
+    original_ru: Watch-режим с lazy-import watchdog.
+  - file: src/eggpipe/watch/watcher.py
+    line: 85
+    original_ru: watchdog не установлен; используйте pip install 'eggpipe[watch]'
+  - file: tests/golden/test_golden.py
+    line: 1
+    original_ru: Golden-тест reference-генератора.
+  - file: tests/property/test_properties.py
+    line: 1
+    original_ru: Property-based тесты парсера и round-trip.
+  - file: tests/test_artifact_writer.py
+    line: 1
+    original_ru: 'Тесты writer: пути, ownership, глобальный manifest, lock.'
+  - file: tests/test_artifact_writer.py
+    line: 237
+    original_ru: symlink недоступен на платформе
+  - file: tests/test_check_docs.py
+    line: 1
+    original_ru: Тесты Python-чекера документации.
+  - file: tests/test_check_docs.py
+    line: 11
+    original_ru: "---\ndescription: test agent\nmode: subagent\npermissions:\n  - action: edit\n    resource: \"*\"\n    effect: deny\n  - action: shell\n    resource: \"*\"\n    effect: deny\n---\nТело агента.\n"
+  - file: tests/test_check_docs.py
+    line: 28
+    original_ru: "до\n```python\n[bad](missing.md)\n```\nпосле\n"
+  - file: tests/test_check_docs.py
+    line: 42
+    original_ru: Тело агента.
+  - file: tests/test_check_docs.py
+    line: 30
+    original_ru: до
+  - file: tests/test_check_docs.py
+    line: 30
+    original_ru: после
+  - file: tests/test_check_docs.py
+    line: 55
+    original_ru: "[битая](./missing.md)\n"
+  - file: tests/test_check_docs.py
+    line: 84
+    original_ru: Замещена
+  - file: tests/test_check_wheel.py
+    line: 1
+    original_ru: Тесты проверки артефактов сборки.
+  - file: tests/test_cli.py
+    line: 1
+    original_ru: Smoke-тесты CLI.
+  - file: tests/test_composition.py
+    line: 1
+    original_ru: Тесты композиции imports/extends.
+  - file: tests/test_config.py
+    line: 1
+    original_ru: Тесты .eggpipe.yaml.
+  - file: tests/test_contract.py
+    line: 1
+    original_ru: Contract-тесты публичных интерфейсов плагинов.
+  - file: tests/test_determinism.py
+    line: 1
+    original_ru: Determinism-тесты повторной генерации.
+  - file: tests/test_engine.py
+    line: 1
+    original_ru: 'Тесты Engine: build/generate/check.'
+  - file: tests/test_engine_composition.py
+    line: 1
+    original_ru: 'Engine: imports, extends, discovery и resources.'
+  - file: tests/test_formats.py
+    line: 1
+    original_ru: Тесты реестра форматов и наследования.
+  - file: tests/test_formats.py
+    line: 111
+    original_ru: ключи schemas
+  - file: tests/test_formats.py
+    line: 130
+    original_ru: базовая версия
+  - file: tests/test_formats.py
+    line: 162
+    original_ru: неизвестный базовый формат
+  - file: tests/test_formats.py
+    line: 178
+    original_ru: цикл
+  - file: tests/test_formats.py
+    line: 204
+    original_ru: глубина
+  - file: tests/test_generator_api.py
+    line: 1
+    original_ru: Тесты decorator API и проверки input_formats.
+  - file: tests/test_layers.py
+    line: 1
+    original_ru: Тесты model units, слоёв и ресурсов.
+  - file: tests/test_model.py
+    line: 1
+    original_ru: Тесты моделей, UNSET и индексов.
+  - file: tests/test_naming.py
+    line: 1
+    original_ru: Тесты naming-утилит.
+  - file: tests/test_package.py
+    line: 1
+    original_ru: Smoke-тесты публичного API.
+  - file: tests/test_parser.py
+    line: 1
+    original_ru: Тесты YAML-парсера и entity-model.
+  - file: tests/test_plugin_loader.py
+    line: 1
+    original_ru: Тесты загрузчика генераторов.
+  - file: tests/test_plugin_loader.py
+    line: 190
+    original_ru: не удалось импортировать
+  - file: tests/test_provenance.py
+    line: 1
+    original_ru: Тесты provenance.
+  - file: tests/test_provenance.py
+    line: 14
+    original_ru: git не установлен
+  - file: tests/test_slicing.py
+    line: 1
+    original_ru: Тесты срезов модели.
+  - file: tests/test_templating.py
+    line: 1
+    original_ru: Тесты опционального Jinja2-helper.
+  - file: tests/test_templating.py
+    line: 38
+    original_ru: каталог шаблонов не найден
+  - file: tests/test_templating.py
+    line: 58
+    original_ru: package или templates_dir
+  - file: tests/test_tpch_example.py
+    line: 1
+    original_ru: Golden и contract-проверки TPC-H example.
+  - file: tests/test_validator.py
+    line: 1
+    original_ru: Тесты семантической валидации.
+  - file: tests/test_watch.py
+    line: 1
+    original_ru: Тесты watch-фильтров.
+  - file: tests/test_watch_integration.py
+    line: 1
+    original_ru: Интеграционный тест watch-цикла.
+  - file: tools/build_ai_docs.py
+    line: 2
+    original_ru: 'Сгенерировать AI-документацию: llms.txt, manifest, schemas, diagnostics.'
+  - file: tools/check_docs.py
+    line: 2
+    original_ru: "Проверка согласованности документации Eggpipe.\n\nСкрипт не требует внешних зависимостей и рассчитан на Python 3.11+.\n\nПроверяется:\n- наличие обязательных файлов и валидность JSON-конфигурации;\n- относительные ссылки и структура Markdown;\n- реестр версий ТЗ и синхронизация версии в README/System Design/session context;\n- запрет правок исторических версий в opencode.json;\n- контракты harness: frontmatter агентов, команд и skills;\n- базовые термины, диагностические коды и недопустимые флаги.\n\nЗапуск:\n    python tools/check_docs.py\n    python tools/check_docs.py --strict\n    python tools/check_docs.py --verbose\n"
+  - file: tools/check_docs.py
+    line: 624
+    original_ru: Проверка согласованности документации
+  - file: tools/check_docs.py
+    line: 625
+    original_ru: корень репозитория
+  - file: tools/check_docs.py
+    line: 626
+    original_ru: считать warnings ошибками
+  - file: tools/check_docs.py
+    line: 627
+    original_ru: показать статистику
+  - file: tools/check_docs.py
+    line: 647
+    original_ru: 'Документация согласована: '
+  - file: tools/check_docs.py
+    line: 647
+    original_ru: ' файлов, '
+  - file: tools/check_docs.py
+    line: 647
+    original_ru: ' предупреждений.'
+  - file: tools/check_docs.py
+    line: 294
+    original_ru: незакрытый блок кода
+  - file: tools/check_docs.py
+    line: 328
+    original_ru: версия
+  - file: tools/check_docs.py
+    line: 344
+    original_ru: не найден реестр версий ТЗ
+  - file: tools/check_docs.py
+    line: 416
+    original_ru: неверный или отсутствующий $schema
+  - file: tools/check_docs.py
+    line: 433
+    original_ru: permissions должен быть массивом
+  - file: tools/check_docs.py
+    line: 464
+    original_ru: Замещена
+  - file: tools/check_docs.py
+    line: 514
+    original_ru: mode агента должен быть primary/subagent/all
+  - file: tools/check_docs.py
+    line: 519
+    original_ru: у spec-reviewer нет permissions
+  - file: tools/check_docs.py
+    line: 533
+    original_ru: spec-check должен запускаться через spec-reviewer
+  - file: tools/check_docs.py
+    line: 537
+    original_ru: skill должен называться SKILL.md
+  - file: tools/check_docs.py
+    line: 642
+    original_ru: 'Проверено Markdown-файлов: '
+  - file: tools/check_docs.py
+    line: 645
+    original_ru: 'Документация не согласована: '
+  - file: tools/check_docs.py
+    line: 645
+    original_ru: ' ошибок, '
+  - file: tools/check_docs.py
+    line: 645
+    original_ru: ' предупреждений.'
+  - file: tools/check_docs.py
+    line: 277
+    original_ru: обязательный файл отсутствует
+  - file: tools/check_docs.py
+    line: 296
+    original_ru: 'ожидался один заголовок H1, найдено: '
+  - file: tools/check_docs.py
+    line: 347
+    original_ru: Актуальная
+  - file: tools/check_docs.py
+    line: 353
+    original_ru: 'ожидалась одна актуальная версия ТЗ, найдено: '
+  - file: tools/check_docs.py
+    line: 359
+    original_ru: Актуальная
+  - file: tools/check_docs.py
+    line: 359
+    original_ru: Замещена
+  - file: tools/check_docs.py
+    line: 390
+    original_ru: Версия документа:\s*
+  - file: tools/check_docs.py
+    line: 393
+    original_ru: \*\*Статус ТЗ:\*\*\s*v
+  - file: tools/check_docs.py
+    line: 489
+    original_ru: каталог harness отсутствует
+  - file: tools/check_docs.py
+    line: 541
+    original_ru: 'некорректный id skill: '
+  - file: tools/check_docs.py
+    line: 245
+    original_ru: 'не удалось прочитать файл: '
+  - file: tools/check_docs.py
+    line: 364
+    original_ru: 'неизвестный статус версии '
+  - file: tools/check_docs.py
+    line: 371
+    original_ru: 'нет ссылки на файл версии '
+  - file: tools/check_docs.py
+    line: 380
+    original_ru: 'файл версии '
+  - file: tools/check_docs.py
+    line: 380
+    original_ru: ' не найден: '
+  - file: tools/check_docs.py
+    line: 402
+    original_ru: нет ссылки на актуальную версию v
+  - file: tools/check_docs.py
+    line: 412
+    original_ru: 'невалидный JSON: '
+  - file: tools/check_docs.py
+    line: 428
+    original_ru: '] не существует: '
+  - file: tools/check_docs.py
+    line: 437
+    original_ru: '] должен быть объектом'
+  - file: tools/check_docs.py
+    line: 444
+    original_ru: '] должен содержать action/resource/effect'
+  - file: tools/check_docs.py
+    line: 472
+    original_ru: историческая версия v
+  - file: tools/check_docs.py
+    line: 472
+    original_ru: ' не защищена deny-правилом'
+  - file: tools/check_docs.py
+    line: 482
+    original_ru: актуальная версия v
+  - file: tools/check_docs.py
+    line: 482
+    original_ru: ' ошибочно запрещена'
+  - file: tools/check_docs.py
+    line: 497
+    original_ru: отсутствует или не закрыт frontmatter
+  - file: tools/check_docs.py
+    line: 501
+    original_ru: во frontmatter нет description
+  - file: tools/check_docs.py
+    line: 503
+    original_ru: пустое тело файла
+  - file: tools/check_docs.py
+    line: 529
+    original_ru: 'spec-reviewer должен запрещать '
+  - file: tools/check_docs.py
+    line: 563
+    original_ru: required_by_default не должен использоваться
+  - file: tools/check_docs.py
+    line: 570
+    original_ru: флаг --format переименован в --output-format
+  - file: tools/check_docs.py
+    line: 310
+    original_ru: 'битая относительная ссылка: '
+  - file: tools/check_docs.py
+    line: 451
+    original_ru: ']: недопустимый effect '
+  - file: tools/check_docs.py
+    line: 577
+    original_ru: 'устаревший термин '
+  - file: tools/check_docs.py
+    line: 577
+    original_ru: ; используйте FieldDef/EnumDef
+  - file: tools/check_docs.py
+    line: 587
+    original_ru: 'отсутствует ключевой термин '
+  - file: tools/check_docs.py
+    line: 619
+    original_ru: 'неизвестный диагностический код '
+  - file: tools/check_wheel.py
+    line: 2
+    original_ru: "Проверка wheel/sdist и smoke-install собранного пакета.\n\nЗапуск:\n    uv run python tools/check_wheel.py dist\n"
+  - file: tools/check_wheel.py
+    line: 47
+    original_ru: Ошибка проверки артефактов.
+  - file: tools/check_wheel.py
+    line: 66
+    original_ru: в pyproject.toml нет секции [project]
+  - file: tools/check_wheel.py
+    line: 72
+    original_ru: project.name, project.version и project.requires-python обязательны
+  - file: tools/check_wheel.py
+    line: 110
+    original_ru: в wheel нет METADATA
+  - file: tools/check_wheel.py
+    line: 206
+    original_ru: не удалось установить wheel
+  - file: tools/check_wheel.py
+    line: 214
+    original_ru: wheel не импортируется или версия не совпадает
+  - file: tools/check_wheel.py
+    line: 217
+    original_ru: console script eggpipe не работает
+  - file: tools/check_wheel.py
+    line: 221
+    original_ru: Проверка артефактов сборки
+  - file: tools/check_wheel.py
+    line: 235
+    original_ru: ' и '
+  - file: tools/check_wheel.py
+    line: 235
+    original_ru: ' проверены'
+  - file: tools/check_wheel.py
+    line: 84
+    original_ru: 'в '
+  - file: tools/check_wheel.py
+    line: 84
+    original_ru: ' ожидались один wheel и один sdist, найдено: '
+  - file: tools/check_wheel.py
+    line: 117
+    original_ru: 'версия в METADATA не совпадает: '
+  - file: tools/check_wheel.py
+    line: 138
+    original_ru: 'в METADATA нет обязательных зависимостей: '
+  - file: tools/check_wheel.py
+    line: 158
+    original_ru: в wheel нет LICENSE
+  - file: tools/check_wheel.py
+    line: 164
+    original_ru: в wheel нет entry_points.txt
+  - file: tools/check_wheel.py
+    line: 167
+    original_ru: в wheel нет console script eggpipe
+  - file: tools/check_wheel.py
+    line: 179
+    original_ru: 'в sdist нет файлов: '
+  - file: tools/check_wheel.py
+    line: 182
+    original_ru: 'в sdist попали dev-файлы: '
+  - file: tools/check_wheel.py
+    line: 62
+    original_ru: 'не удалось прочитать '
+  - file: tools/check_wheel.py
+    line: 114
+    original_ru: 'METADATA не является UTF-8: '
+  - file: tools/check_wheel.py
+    line: 130
+    original_ru: ' в METADATA: '
+  - file: tools/check_wheel.py
+    line: 143
+    original_ru: 'в METADATA нет extra '
+  - file: tools/check_wheel.py
+    line: 151
+    original_ru: 'в wheel нет файлов: '
+  - file: tools/check_wheel.py
+    line: 154
+    original_ru: 'в wheel попали dev-файлы: '
+  - file: tools/check_wheel.py
+    line: 175
+    original_ru: 'не удалось прочитать sdist '
+  - file: examples/reference-generator/src/reference_generator/__init__.py
+    line: 1
+    original_ru: Reference-генератор для examples и golden-тестов.
+  - file: examples/reference-generator/src/reference_generator/__init__.py
+    line: 19
+    original_ru: Детерминированный вывод модели в JSON — эталон для golden-тестов.
+  - file: examples/tpc-h-generator/src/tpch_generator/ddl.py
+    line: 1
+    original_ru: Подготовка данных TPC-H для Jinja2-шаблона PostgreSQL DDL.
+  - file: examples/tpc-h-generator/src/tpch_generator/generator.py
+    line: 1
+    original_ru: 'TPC-H генераторы: DDL и Pydantic модели (decorator API).'
+  - file: examples/tpc-h-generator/src/tpch_generator/generator.py
+    line: 28
+    original_ru: options.templates_dir должен быть непустой строкой
+  - file: examples/tpc-h-generator/src/tpch_generator/metadata.py
+    line: 1
+    original_ru: Чтение Postgres-метаданных из TPC-H модели.
+  - file: examples/tpc-h-generator/src/tpch_generator/metadata.py
+    line: 85
+    original_ru: ': отсутствует metadata.postgres'
+  - file: examples/tpc-h-generator/src/tpch_generator/pydantic_models.py
+    line: 1
+    original_ru: Подготовка данных TPC-H для Jinja2-шаблона Pydantic v2 моделей.
+  - file: examples/tpc-h-generator/src/tpch_generator/pydantic_models.py
+    line: 56
+    original_ru: Сопоставить SQL-тип с Python-аннотацией и constraints Pydantic.

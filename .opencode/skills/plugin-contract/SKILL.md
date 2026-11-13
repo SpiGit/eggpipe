@@ -15,7 +15,7 @@ description: Контракты generator и FormatPlugin Eggpipe — публи
 `FormatInfo`, `FormatSchema`, `ImportedFile`, `SourceModel`, `ModelSlice`, `Entity`,
 `EntityIdentity`, `FieldIdentity`, `FieldDef`, `EnumDef`, `CustomType`, `GeneratorConfig`,
 `NamingStyle`, `transform`, `Diagnostic`, `EngineReport`, `Engine`, `AppConfig`,
-`GeneratorRules`, `GeneratorRulesLoader`, `FormatRegistry`, `FormatPlugin`,
+`ProjectConfig`, `ProjectConfigLoader`, `FormatRegistry`, `FormatPlugin`,
 `EntityModelFormat`, `MergePolicy`, `generator`, `Provenance`, `git_provenance`, `UNSET`,
 `PRIMITIVE_TYPES`, `Constraints` и базовые исключения.
 
@@ -45,7 +45,7 @@ def my_generator(
 - `name` опционален; по умолчанию human-readable имя.
 - `api_version` опционален, default `"1"`.
 - Аргументы инжектятся по аннотациям: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
-  Другие аннотации — MG302.
+  Другие аннотации — EG302.
 - Возврат: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`.
 - Entry point указывает на декорированную функцию.
 - Классовый `GeneratorPlugin` остаётся advanced-API.
@@ -72,7 +72,7 @@ class MyGenerator(GeneratorPlugin):
 
 Правила:
 
-- `input_formats` обязателен. Отсутствие поля — MG301.
+- `input_formats` обязателен. Отсутствие поля — EG301.
 - `id` совпадает с entry point id и pattern `^[a-z][a-z0-9-]*$`.
 - `generate()` получает `ModelSlice` + `GenerationContext` + `GeneratorConfig`;
   `AppConfig` не передаётся.
@@ -120,17 +120,17 @@ class MyFormat(EntityModelFormat):
 - `schemas[version]` содержит `layer_entity`/`full_entity`; ключи совпадают с версиями.
 - `full_entity` расширения наследует `full_entity` базовой версии.
 - `primitive_types` расширения — надмножество примитивов базы.
-- В одном запуске допускаются разные форматы; несовместимый генератор — MG033.
+- В одном запуске допускаются разные форматы; несовместимый генератор — EG033.
 - Дополнительные поля могут быть first-class полями Pydantic-модели; `metadata` —
   extension point.
-- Неизвестная версия формата — MG008; ошибка наследования/схем — MG034.
+- Неизвестная версия формата — EG008; ошибка наследования/схем — EG034.
 
 ## Versioning
 
 - `api_version = "1"` — первый стабильный контракт.
 - Несовместимый плагин не ломает запуск, если не выбран; показывается как incompatible.
 - Явно выбранный несовместимый плагин — exit 2.
-- MG033/MG034/MG301/MG302 — config/plugin errors, exit 2.
+- EG033/EG034/EG301/EG302 — config/plugin errors, exit 2.
 - Политика deprecation применяется после первого публичного релиза.
 
 ## Чек-лист ревью
@@ -157,7 +157,7 @@ class MyFormat(EntityModelFormat):
 - [ ] `version` опционален; latest берётся из `supported_versions`.
 - [ ] `base_versions` задаёт зависимость версий; `schemas` содержит layer/full entity.
 - [ ] `full_entity` наследует базовую схему; `primitive_types` — надмножество.
-- [ ] Ошибки версии — MG008; наследования/схем — MG034; несовместимости — MG033.
+- [ ] Ошибки версии — EG008; наследования/схем — EG034; несовместимости — EG033.
 
 ### Оба типа
 

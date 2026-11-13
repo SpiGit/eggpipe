@@ -1,4 +1,4 @@
-"""Исключения ядра."""
+"""Core exceptions."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ from typing_extensions import override
 
 
 class EggpipeError(Exception):
-    """Базовая ошибка библиотеки."""
+    """Base library error."""
 
 
 class DocumentError(EggpipeError):
-    """Ошибка чтения или разбора документа модели."""
+    """Model document read or parse error."""
 
     def __init__(self, code: str, path: Path | None, message: str) -> None:
         self.code = code
@@ -27,21 +27,21 @@ class DocumentError(EggpipeError):
 
 
 class ConfigValidationError(EggpipeError):
-    """Ошибка конфигурации."""
+    """Configuration error."""
 
 
 class FormatConflictError(ConfigValidationError):
-    """Конфликт регистрации формата."""
+    """Format registration conflict."""
 
 
 class FormatInheritanceError(ConfigValidationError):
-    """Нарушен контракт наследования формата (MG034)."""
+    """Format inheritance contract violated (EG034)."""
 
-    code = "MG034"
+    code = "EG034"
 
 
 class PluginContractError(ConfigValidationError):
-    """Нарушен контракт плагина."""
+    """Plugin contract violated."""
 
     def __init__(self, code: str, message: str) -> None:
         self.code = code
@@ -50,16 +50,16 @@ class PluginContractError(ConfigValidationError):
 
 
 class UnknownFormatError(ConfigValidationError):
-    """Формат не найден в реестре."""
+    """Format not found in the registry."""
 
 
 class ArtifactPathError(EggpipeError):
-    """Некорректный путь или содержимое артефакта."""
+    """Invalid artifact path or content."""
 
 
 class ManifestError(EggpipeError):
-    """Ошибка manifest."""
+    """Manifest error."""
 
 
 class LockError(EggpipeError):
-    """output_dir уже используется другим запуском."""
+    """output_dir is already used by another run."""

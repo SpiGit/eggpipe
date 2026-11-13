@@ -1,4 +1,4 @@
-"""Документ модели и импорты."""
+"""Model document and imports."""
 
 from __future__ import annotations
 

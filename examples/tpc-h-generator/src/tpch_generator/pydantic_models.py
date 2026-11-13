@@ -1,4 +1,4 @@
-"""Подготовка данных TPC-H для Jinja2-шаблона Pydantic v2 моделей."""
+"""Prepare TPC-H data for the Pydantic v2 model Jinja2 template."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ def render_pydantic(model: ModelSlice, templates_dir: Path | None = None) -> str
 
 
 def _python_type(sql_type: str) -> tuple[str, dict[str, int]]:
-    """Сопоставить SQL-тип с Python-аннотацией и constraints Pydantic."""
+    """Map a SQL type to a Python annotation and Pydantic constraints."""
     normalized = sql_type.strip().lower()
     match = _PARAMETERIZED.match(normalized)
     if match:

@@ -54,7 +54,7 @@ generators:
     options:
       schema: public
 diagnostics:
-  ignore: [MG015]
+  ignore: [EG015]
 ```
 
 - `model_dirs: ["*"]` — все каталоги моделей.

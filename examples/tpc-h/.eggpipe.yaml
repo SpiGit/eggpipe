@@ -11,4 +11,4 @@ generators:
       schema: public
 
 diagnostics:
-  ignore: [MG015]
+  ignore: [EG015]

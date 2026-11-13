@@ -102,4 +102,4 @@ eggpipe clean --dry-run
 eggpipe clean --yes
 ```
 
-Удаляются только unchanged owned-файлы. Изменённые вручную остаются с MG050.
+Удаляются только unchanged owned-файлы. Изменённые вручную остаются с EG050.

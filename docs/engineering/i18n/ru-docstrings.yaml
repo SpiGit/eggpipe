@@ -1,0 +1,478 @@
+baseline: 9924fa5
+docstrings:
+  - file: src/eggpipe/__init__.py
+    line: 1
+    name: <module>
+    original_ru: Eggpipe — публичный API ядра v0.1.
+  - file: src/eggpipe/cli/main.py
+    line: 270
+    name: generate
+    original_ru: Сгенерировать артефакты.
+  - file: src/eggpipe/cli/main.py
+    line: 319
+    name: init
+    original_ru: Создать минимальный .eggpipe.yaml и пример модели.
+  - file: src/eggpipe/cli/main.py
+    line: 384
+    name: watch
+    original_ru: 'Watch-режим: перегенерация при изменении sources.'
+  - file: src/eggpipe/cli/main.py
+    line: 473
+    name: config_show
+    original_ru: Показать merged config и resolved paths.
+  - file: src/eggpipe/cli/main.py
+    line: 503
+    name: config_validate
+    original_ru: Проверить .eggpipe.yaml и sources.
+  - file: src/eggpipe/cli/main.py
+    line: 515
+    name: config_schema
+    original_ru: Вывести JSON Schema .eggpipe.yaml.
+  - file: src/eggpipe/cli/main.py
+    line: 547
+    name: model_validate
+    original_ru: Проверить модели.
+  - file: src/eggpipe/cli/main.py
+    line: 576
+    name: model_schema
+    original_ru: Вывести JSON Schema документа модели или формата.
+  - file: src/eggpipe/cli/main.py
+    line: 608
+    name: gen_list
+    original_ru: Список генераторов из entry points.
+  - file: src/eggpipe/cli/main.py
+    line: 627
+    name: gen_info
+    original_ru: Информация о генераторе.
+  - file: src/eggpipe/cli/main.py
+    line: 647
+    name: format_info
+    original_ru: Информация о формате.
+  - file: src/eggpipe/cli/main.py
+    line: 663
+    name: format_list
+    original_ru: Список форматов.
+  - file: src/eggpipe/cli/main.py
+    line: 673
+    name: clean
+    original_ru: Удалить unchanged owned-артефакты по глобальному manifest.
+  - file: src/eggpipe/config/app_config.py
+    line: 1
+    name: <module>
+    original_ru: Техническая конфигурация приложения.
+  - file: src/eggpipe/config/generator_rules.py
+    line: 1
+    name: <module>
+    original_ru: Бизнес-конфигурация .eggpipe.yaml.
+  - file: src/eggpipe/config/generator_rules.py
+    line: 50
+    name: InputSlice
+    original_ru: Совместимое имя выбора input из System Design.
+  - file: src/eggpipe/config/generator_rules.py
+    line: 132
+    name: GeneratorRulesLoader
+    original_ru: Загрузка и поиск .eggpipe.yaml.
+  - file: src/eggpipe/config/logging.py
+    line: 1
+    name: <module>
+    original_ru: Единая точка настройки логирования CLI.
+  - file: src/eggpipe/core/composition.py
+    line: 1
+    name: <module>
+    original_ru: Композиция документов по ADR-0001.
+  - file: src/eggpipe/core/discovery.py
+    line: 1
+    name: <module>
+    original_ru: Discovery файлов моделей, model units и ресурсов.
+  - file: src/eggpipe/core/document.py
+    line: 1
+    name: <module>
+    original_ru: Документ модели и импорты.
+  - file: src/eggpipe/core/format_registry.py
+    line: 1
+    name: <module>
+    original_ru: Реестр форматов документов.
+  - file: src/eggpipe/core/format_registry.py
+    line: 42
+    name: FormatRegistry
+    original_ru: Встроенный entity-model и форматы от плагинов.
+  - file: src/eggpipe/core/format_registry.py
+    line: 71
+    name: accepts
+    original_ru: Проверить формат с учётом цепочки extends.
+  - file: src/eggpipe/core/layers.py
+    line: 1
+    name: <module>
+    original_ru: Сборка model unit из слоёв форматов (ADR-0008).
+  - file: src/eggpipe/core/layers.py
+    line: 41
+    name: merge_model_layers
+    original_ru: Проверить и аддитивно смержить слои одной модели.
+  - file: src/eggpipe/core/model.py
+    line: 1
+    name: <module>
+    original_ru: Внутренние immutable-модели ядра.
+  - file: src/eggpipe/core/model.py
+    line: 39
+    name: _Unset
+    original_ru: Sentinel для «значение не задано».
+  - file: src/eggpipe/core/model.py
+    line: 52
+    name: FormatInfo
+    original_ru: Конкретный формат и версия.
+  - file: src/eggpipe/core/model.py
+    line: 59
+    name: MergePolicy
+    original_ru: Политика merge для коллекций слоёв.
+  - file: src/eggpipe/core/model.py
+    line: 69
+    name: FormatSchema
+    original_ru: Pydantic-схемы одного слоя и итоговой сущности.
+  - file: src/eggpipe/core/model.py
+    line: 76
+    name: EntityIdentity
+    original_ru: Минимальная identity-модель сущности для дельта-слоя.
+  - file: src/eggpipe/core/model.py
+    line: 84
+    name: FieldIdentity
+    original_ru: Минимальная identity-модель поля для дельта-слоя.
+  - file: src/eggpipe/core/model.py
+    line: 159
+    name: LayerEntity
+    original_ru: Частичная схема сущности для файла-слоя.
+  - file: src/eggpipe/core/model.py
+    line: 224
+    name: _IndexedModel
+    original_ru: Immutable модель с индексами по именам.
+  - file: src/eggpipe/core/model.py
+    line: 279
+    name: InputSelection
+    original_ru: Выбор подмножества модели; None/пусто = все.
+  - file: src/eggpipe/core/naming.py
+    line: 1
+    name: <module>
+    original_ru: Утилиты именования; переименование модели остаётся решением плагина.
+  - file: src/eggpipe/core/naming.py
+    line: 16
+    name: transform
+    original_ru: Детерминированно преобразовать имя в выбранный стиль.
+  - file: src/eggpipe/core/parser.py
+    line: 1
+    name: <module>
+    original_ru: Парсер документов модели.
+  - file: src/eggpipe/core/parser.py
+    line: 19
+    name: normalize_version
+    original_ru: 'Нормализовать version: строка как есть, число — в строку с одним знаком.'
+  - file: src/eggpipe/core/provenance.py
+    line: 1
+    name: <module>
+    original_ru: 'Provenance источника: последний git-коммит файла.'
+  - file: src/eggpipe/core/provenance.py
+    line: 18
+    name: git_provenance
+    original_ru: Вернуть commit/date для файла или None, если git/история недоступны.
+  - file: src/eggpipe/core/slicing.py
+    line: 1
+    name: <module>
+    original_ru: Формирование замкнутого среза модели.
+  - file: src/eggpipe/core/slicing.py
+    line: 16
+    name: select_slice
+    original_ru: Выбрать подмножество и добавить транзитивное замыкание по enums/types.
+  - file: src/eggpipe/core/validator.py
+    line: 1
+    name: <module>
+    original_ru: Семантическая валидация модели поверх Pydantic.
+  - file: src/eggpipe/engine/artifact_writer.py
+    line: 1
+    name: <module>
+    original_ru: Планирование и запись артефактов с глобальным manifest.
+  - file: src/eggpipe/engine/engine.py
+    line: 1
+    name: <module>
+    original_ru: Engine — библиотечный фасад.
+  - file: src/eggpipe/engine/plugin_loader.py
+    line: 1
+    name: <module>
+    original_ru: Загрузка генераторов и форматов из entry points и локальных файлов.
+  - file: src/eggpipe/engine/policy.py
+    line: 1
+    name: <module>
+    original_ru: Политика фильтрации диагностик.
+  - file: src/eggpipe/engine/report.py
+    line: 1
+    name: <module>
+    original_ru: Модель отчёта Engine.
+  - file: src/eggpipe/interfaces/diagnostics.py
+    line: 1
+    name: <module>
+    original_ru: Структурированные диагностики ядра.
+  - file: src/eggpipe/interfaces/diagnostics.py
+    line: 11
+    name: DiagnosticLocation
+    original_ru: Где именно возникла диагностика.
+  - file: src/eggpipe/interfaces/diagnostics.py
+    line: 22
+    name: Diagnostic
+    original_ru: Диагностика валидации; код стабилен и документируется.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 1
+    name: <module>
+    original_ru: Контракты форматов документов.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 18
+    name: FormatPlugin
+    original_ru: 'Формат документа: парсер и валидатор.'
+  - file: src/eggpipe/interfaces/formats.py
+    line: 37
+    name: EntityModelFormat
+    original_ru: Встроенный формат entity-model.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 30
+    name: parse
+    original_ru: Построить документ из YAML-словаря.
+  - file: src/eggpipe/interfaces/formats.py
+    line: 70
+    name: parse_extensions
+    original_ru: Hook для format-плагинов, расширяющих entity-model.
+  - file: src/eggpipe/interfaces/generator.py
+    line: 1
+    name: <module>
+    original_ru: Контракты генераторов.
+  - file: src/eggpipe/interfaces/generator.py
+    line: 94
+    name: generator
+    original_ru: Объявить генератор функцией; создаёт класс-адаптер GeneratorPlugin.
+  - file: src/eggpipe/interfaces/generator.py
+    line: 84
+    name: generate
+    original_ru: Сгенерировать артефакты, не записывая файлы.
+  - file: src/eggpipe/templating.py
+    line: 1
+    name: <module>
+    original_ru: "Опциональный helper для Jinja2-шаблонов плагинов.\n\nЯдро не использует шаблонизатор и не импортирует Jinja2 при старте. Модуль доступен\nтолько при установленном extra ``[jinja]``; плагин вызывает его явно, чтобы не\nдублировать загрузку ``PackageLoader``/``FileSystemLoader``."
+  - file: src/eggpipe/templating.py
+    line: 19
+    name: TemplateError
+    original_ru: Ошибка загрузки или рендеринга шаблона.
+  - file: src/eggpipe/templating.py
+    line: 23
+    name: jinja_environment
+    original_ru: "Создать Jinja2-окружение для шаблонов плагина.\n\nArgs:\n    package: Пакет с каталогом ``templates`` внутри (``PackageLoader``).\n    templates_dir: Каталог шаблонов пользователя; имеет приоритет над ``package``.\n    config_dir: База для относительного ``templates_dir``.\n    **environment_options: Дополнительные аргументы ``jinja2.Environment``.\n\nRaises:\n    TemplateError: Jinja2 не установлен, каталог не найден или шаблоны пакета\n        недоступны."
+  - file: src/eggpipe/templating.py
+    line: 73
+    name: render_template
+    original_ru: Загрузить и отрендерить шаблон, преобразуя ошибки Jinja2 в TemplateError.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 1
+    name: <module>
+    original_ru: Исключения ядра.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 10
+    name: EggpipeError
+    original_ru: Базовая ошибка библиотеки.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 14
+    name: DocumentError
+    original_ru: Ошибка чтения или разбора документа модели.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 29
+    name: ConfigValidationError
+    original_ru: Ошибка конфигурации.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 33
+    name: FormatConflictError
+    original_ru: Конфликт регистрации формата.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 37
+    name: FormatInheritanceError
+    original_ru: Нарушен контракт наследования формата (MG034).
+  - file: src/eggpipe/utils/exceptions.py
+    line: 43
+    name: PluginContractError
+    original_ru: Нарушен контракт плагина.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 52
+    name: UnknownFormatError
+    original_ru: Формат не найден в реестре.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 56
+    name: ArtifactPathError
+    original_ru: Некорректный путь или содержимое артефакта.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 60
+    name: ManifestError
+    original_ru: Ошибка manifest.
+  - file: src/eggpipe/utils/exceptions.py
+    line: 64
+    name: LockError
+    original_ru: output_dir уже используется другим запуском.
+  - file: src/eggpipe/utils/yaml.py
+    line: 1
+    name: <module>
+    original_ru: Загрузка YAML в безопасном режиме (YAML 1.2).
+  - file: src/eggpipe/utils/yaml.py
+    line: 20
+    name: load_yaml
+    original_ru: Прочитать один YAML-документ-словарь; duplicate keys — ошибка.
+  - file: src/eggpipe/version.py
+    line: 1
+    name: <module>
+    original_ru: Версия пакета в одном месте.
+  - file: src/eggpipe/watch/watcher.py
+    line: 1
+    name: <module>
+    original_ru: Watch-режим с lazy-import watchdog.
+  - file: tests/golden/test_golden.py
+    line: 1
+    name: <module>
+    original_ru: Golden-тест reference-генератора.
+  - file: tests/property/test_properties.py
+    line: 1
+    name: <module>
+    original_ru: Property-based тесты парсера и round-trip.
+  - file: tests/test_artifact_writer.py
+    line: 1
+    name: <module>
+    original_ru: 'Тесты writer: пути, ownership, глобальный manifest, lock.'
+  - file: tests/test_check_docs.py
+    line: 1
+    name: <module>
+    original_ru: Тесты Python-чекера документации.
+  - file: tests/test_check_wheel.py
+    line: 1
+    name: <module>
+    original_ru: Тесты проверки артефактов сборки.
+  - file: tests/test_cli.py
+    line: 1
+    name: <module>
+    original_ru: Smoke-тесты CLI.
+  - file: tests/test_composition.py
+    line: 1
+    name: <module>
+    original_ru: Тесты композиции imports/extends.
+  - file: tests/test_config.py
+    line: 1
+    name: <module>
+    original_ru: Тесты .eggpipe.yaml.
+  - file: tests/test_contract.py
+    line: 1
+    name: <module>
+    original_ru: Contract-тесты публичных интерфейсов плагинов.
+  - file: tests/test_determinism.py
+    line: 1
+    name: <module>
+    original_ru: Determinism-тесты повторной генерации.
+  - file: tests/test_engine.py
+    line: 1
+    name: <module>
+    original_ru: 'Тесты Engine: build/generate/check.'
+  - file: tests/test_engine_composition.py
+    line: 1
+    name: <module>
+    original_ru: 'Engine: imports, extends, discovery и resources.'
+  - file: tests/test_formats.py
+    line: 1
+    name: <module>
+    original_ru: Тесты реестра форматов и наследования.
+  - file: tests/test_generator_api.py
+    line: 1
+    name: <module>
+    original_ru: Тесты decorator API и проверки input_formats.
+  - file: tests/test_layers.py
+    line: 1
+    name: <module>
+    original_ru: Тесты model units, слоёв и ресурсов.
+  - file: tests/test_model.py
+    line: 1
+    name: <module>
+    original_ru: Тесты моделей, UNSET и индексов.
+  - file: tests/test_naming.py
+    line: 1
+    name: <module>
+    original_ru: Тесты naming-утилит.
+  - file: tests/test_package.py
+    line: 1
+    name: <module>
+    original_ru: Smoke-тесты публичного API.
+  - file: tests/test_parser.py
+    line: 1
+    name: <module>
+    original_ru: Тесты YAML-парсера и entity-model.
+  - file: tests/test_plugin_loader.py
+    line: 1
+    name: <module>
+    original_ru: Тесты загрузчика генераторов.
+  - file: tests/test_provenance.py
+    line: 1
+    name: <module>
+    original_ru: Тесты provenance.
+  - file: tests/test_slicing.py
+    line: 1
+    name: <module>
+    original_ru: Тесты срезов модели.
+  - file: tests/test_templating.py
+    line: 1
+    name: <module>
+    original_ru: Тесты опционального Jinja2-helper.
+  - file: tests/test_tpch_example.py
+    line: 1
+    name: <module>
+    original_ru: Golden и contract-проверки TPC-H example.
+  - file: tests/test_validator.py
+    line: 1
+    name: <module>
+    original_ru: Тесты семантической валидации.
+  - file: tests/test_watch.py
+    line: 1
+    name: <module>
+    original_ru: Тесты watch-фильтров.
+  - file: tests/test_watch_integration.py
+    line: 1
+    name: <module>
+    original_ru: Интеграционный тест watch-цикла.
+  - file: tools/build_ai_docs.py
+    line: 1
+    name: <module>
+    original_ru: 'Сгенерировать AI-документацию: llms.txt, manifest, schemas, diagnostics.'
+  - file: tools/check_docs.py
+    line: 1
+    name: <module>
+    original_ru: "Проверка согласованности документации Eggpipe.\n\nСкрипт не требует внешних зависимостей и рассчитан на Python 3.11+.\n\nПроверяется:\n- наличие обязательных файлов и валидность JSON-конфигурации;\n- относительные ссылки и структура Markdown;\n- реестр версий ТЗ и синхронизация версии в README/System Design/session context;\n- запрет правок исторических версий в opencode.json;\n- контракты harness: frontmatter агентов, команд и skills;\n- базовые термины, диагностические коды и недопустимые флаги.\n\nЗапуск:\n    python tools/check_docs.py\n    python tools/check_docs.py --strict\n    python tools/check_docs.py --verbose"
+  - file: tools/check_wheel.py
+    line: 1
+    name: <module>
+    original_ru: "Проверка wheel/sdist и smoke-install собранного пакета.\n\nЗапуск:\n    uv run python tools/check_wheel.py dist"
+  - file: tools/check_wheel.py
+    line: 46
+    name: CheckError
+    original_ru: Ошибка проверки артефактов.
+  - file: examples/reference-generator/src/reference_generator/__init__.py
+    line: 1
+    name: <module>
+    original_ru: Reference-генератор для examples и golden-тестов.
+  - file: examples/reference-generator/src/reference_generator/__init__.py
+    line: 18
+    name: ReferenceGenerator
+    original_ru: Детерминированный вывод модели в JSON — эталон для golden-тестов.
+  - file: examples/tpc-h-generator/src/tpch_generator/ddl.py
+    line: 1
+    name: <module>
+    original_ru: Подготовка данных TPC-H для Jinja2-шаблона PostgreSQL DDL.
+  - file: examples/tpc-h-generator/src/tpch_generator/generator.py
+    line: 1
+    name: <module>
+    original_ru: 'TPC-H генераторы: DDL и Pydantic модели (decorator API).'
+  - file: examples/tpc-h-generator/src/tpch_generator/metadata.py
+    line: 1
+    name: <module>
+    original_ru: Чтение Postgres-метаданных из TPC-H модели.
+  - file: examples/tpc-h-generator/src/tpch_generator/pydantic_models.py
+    line: 1
+    name: <module>
+    original_ru: Подготовка данных TPC-H для Jinja2-шаблона Pydantic v2 моделей.
+  - file: examples/tpc-h-generator/src/tpch_generator/pydantic_models.py
+    line: 55
+    name: _python_type
+    original_ru: Сопоставить SQL-тип с Python-аннотацией и constraints Pydantic.

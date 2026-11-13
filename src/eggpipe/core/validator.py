@@ -1,4 +1,4 @@
-"""Семантическая валидация модели поверх Pydantic."""
+"""Semantic model validation on top of Pydantic."""
 
 from __future__ import annotations
 
@@ -53,8 +53,8 @@ def validate_entity_model(
         if enum.name not in referenced:
             diagnostics.append(
                 warning(
-                    "MG013",
-                    f"enum {enum.name} не используется",
+                    "EG013",
+                    f"enum {enum.name} is not used",
                     file=file,
                     entity=enum.name,
                 )
@@ -63,8 +63,8 @@ def validate_entity_model(
         if custom_type.name not in referenced:
             diagnostics.append(
                 warning(
-                    "MG013",
-                    f"type {custom_type.name} не используется",
+                    "EG013",
+                    f"type {custom_type.name} is not used",
                     file=file,
                     entity=custom_type.name,
                 )
@@ -93,8 +93,8 @@ def _validate_duplicate_names(
             if name in local:
                 diagnostics.append(
                     error(
-                        "MG002",
-                        f"дубликат имени {kind}: {name}",
+                        "EG002",
+                        f"duplicate {kind} name: {name}",
                         file=file,
                         path=f"{kind}[{index}]",
                         entity=name,
@@ -105,8 +105,8 @@ def _validate_duplicate_names(
             if previous is not None and previous != kind:
                 diagnostics.append(
                     error(
-                        "MG002",
-                        f"имя {name} используется и как {previous}, и как {kind}",
+                        "EG002",
+                        f"name {name} is used both as {previous} and as {kind}",
                         file=file,
                         path=f"{kind}[{index}]",
                         entity=name,
@@ -130,8 +130,8 @@ def _validate_case_collisions(
         if previous is not None and previous != name:
             diagnostics.append(
                 warning(
-                    "MG026",
-                    f"case-insensitive коллизия имён: {previous} и {name}",
+                    "EG026",
+                    f"case-insensitive name collision: {previous} and {name}",
                     file=file,
                     entity=name,
                 )
@@ -155,8 +155,8 @@ def _resolve_type_bases(
         if custom_type.name in stack:
             diagnostics.append(
                 error(
-                    "MG020",
-                    f"цикл CustomType.base: {' -> '.join((*stack, custom_type.name))}",
+                    "EG020",
+                    f"CustomType.base cycle: {' -> '.join((*stack, custom_type.name))}",
                     file=file,
                     entity=custom_type.name,
                 )
@@ -165,8 +165,8 @@ def _resolve_type_bases(
         if len(stack) > MAX_TYPE_DEPTH:
             diagnostics.append(
                 error(
-                    "MG020",
-                    f"глубина CustomType.base больше {MAX_TYPE_DEPTH}",
+                    "EG020",
+                    f"CustomType.base depth exceeds {MAX_TYPE_DEPTH}",
                     file=file,
                     entity=custom_type.name,
                 )
@@ -178,8 +178,8 @@ def _resolve_type_bases(
         if base in enum_names:
             diagnostics.append(
                 error(
-                    "MG004",
-                    f"CustomType.base не может ссылаться на enum: {base}",
+                    "EG004",
+                    f"CustomType.base cannot reference an enum: {base}",
                     file=file,
                     entity=custom_type.name,
                 )
@@ -189,8 +189,8 @@ def _resolve_type_bases(
         if parent is None:
             diagnostics.append(
                 error(
-                    "MG004",
-                    f"неизвестный базовый тип {base} у {custom_type.name}",
+                    "EG004",
+                    f"unknown base type {base} for {custom_type.name}",
                     file=file,
                     entity=custom_type.name,
                 )
@@ -208,15 +208,17 @@ def _resolve_type_bases(
 def _validate_enum(enum: EnumDef, file: Path | None) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     if not enum.values:
-        diagnostics.append(error("MG019", f"enum {enum.name} пуст", file=file, entity=enum.name))
+        diagnostics.append(
+            error("EG019", f"enum {enum.name} is empty", file=file, entity=enum.name)
+        )
     names: set[str] = set()
     values: set[tuple[str, Any]] = set()
     for index, item in enumerate(enum.values):
         if item.name in names:
             diagnostics.append(
                 error(
-                    "MG019",
-                    f"дубликат имени значения enum {enum.name}: {item.name}",
+                    "EG019",
+                    f"duplicate value name in enum {enum.name}: {item.name}",
                     file=file,
                     entity=enum.name,
                     field=item.name,
@@ -229,8 +231,8 @@ def _validate_enum(enum: EnumDef, file: Path | None) -> list[Diagnostic]:
         if marker in values:
             diagnostics.append(
                 error(
-                    "MG019",
-                    f"дубликат значения enum {enum.name}: {value!r}",
+                    "EG019",
+                    f"duplicate value in enum {enum.name}: {value!r}",
                     file=file,
                     entity=enum.name,
                     field=item.name,
@@ -253,8 +255,8 @@ def _validate_entity(
     if not re.fullmatch(r"[A-Z][A-Za-z0-9]*", entity.name):
         diagnostics.append(
             warning(
-                "MG012",
-                f"entity {entity.name} не в PascalCase",
+                "EG012",
+                f"entity {entity.name} is not PascalCase",
                 file=file,
                 entity=entity.name,
             )
@@ -265,8 +267,8 @@ def _validate_entity(
             if field.name in seen:
                 diagnostics.append(
                     error(
-                        "MG003",
-                        f"дубликат поля {field.name} в {entity.name}",
+                        "EG003",
+                        f"duplicate field {field.name} in {entity.name}",
                         file=file,
                         entity=entity.name,
                         field=field.name,
@@ -289,29 +291,29 @@ def _validate_entity(
         elif field.type in primitives:
             pass
         else:
-            diagnostics.append(error("MG004", f"неизвестный тип {field.type}", **location))
+            diagnostics.append(error("EG004", f"unknown type {field.type}", **location))
 
         if field.default is None and not field.nullable:
             diagnostics.append(
                 error(
-                    "MG010",
-                    "default: null недопустим при nullable: false",
+                    "EG010",
+                    "default: null is not allowed when nullable: false",
                     **location,
                 )
             )
         if field.required and field.nullable:
             diagnostics.append(
                 warning(
-                    "MG011",
-                    "required: true и nullable: true — валидно только для PATCH",
+                    "EG011",
+                    "required: true and nullable: true is valid only for PATCH",
                     **location,
                 )
             )
         if field.required and not field.description:
             diagnostics.append(
                 warning(
-                    "MG015",
-                    f"у обязательного поля {field.name} нет description",
+                    "EG015",
+                    f"required field {field.name} has no description",
                     **location,
                 )
             )
@@ -365,36 +367,36 @@ def _validate_constraints(
     temporal = base_type in {"date", "datetime"}
 
     if constraints.pattern is not None and not string_like:
-        diagnostics.append(error("MG021", "pattern применим только к строковым типам", **location))
+        diagnostics.append(error("EG021", "pattern applies only to string types", **location))
     if (constraints.min_length is not None or constraints.max_length is not None) and not (
         string_like
     ):
         diagnostics.append(
             error(
-                "MG021",
-                "min_length/max_length применимы только к строковым типам",
+                "EG021",
+                "min_length/max_length apply only to string types",
                 **location,
             )
         )
     if (constraints.min is not None or constraints.max is not None) and not (numeric or temporal):
-        diagnostics.append(error("MG021", "min/max применимы только к числам и датам", **location))
+        diagnostics.append(error("EG021", "min/max apply only to numbers and dates", **location))
     if (
         constraints.min is not None
         and constraints.max is not None
         and _safe_compare(constraints.min, constraints.max) > 0
     ):
-        diagnostics.append(error("MG021", "min больше max", **location))
+        diagnostics.append(error("EG021", "min is greater than max", **location))
     if (
         constraints.min_length is not None
         and constraints.max_length is not None
         and constraints.min_length > constraints.max_length
     ):
-        diagnostics.append(error("MG021", "min_length больше max_length", **location))
+        diagnostics.append(error("EG021", "min_length is greater than max_length", **location))
     if constraints.pattern is not None:
         try:
             re.compile(constraints.pattern)
         except re.error as exc:
-            diagnostics.append(error("MG005", f"некорректный regex: {exc}", **location))
+            diagnostics.append(error("EG005", f"invalid regex: {exc}", **location))
     return diagnostics
 
 
@@ -412,8 +414,8 @@ def _validate_default(
         if default not in values and default not in names:
             diagnostics.append(
                 error(
-                    "MG017",
-                    f"default {default!r} отсутствует в enum {enum.name}",
+                    "EG017",
+                    f"default {default!r} is not in enum {enum.name}",
                     **location,
                 )
             )
@@ -423,8 +425,8 @@ def _validate_default(
     if not valid:
         diagnostics.append(
             error(
-                "MG016",
-                f"default {default!r} не соответствует типу {base_type}",
+                "EG016",
+                f"default {default!r} does not match type {base_type}",
                 **location,
             )
         )
@@ -461,28 +463,44 @@ def _validate_default_constraints(
     try:
         if constraints.min is not None and _safe_compare(value, constraints.min) < 0:
             diagnostics.append(
-                error("MG017", f"default {value!r} меньше min {constraints.min!r}", **location)
+                error(
+                    "EG017", f"default {value!r} is less than min {constraints.min!r}", **location
+                )
             )
         if constraints.max is not None and _safe_compare(value, constraints.max) > 0:
             diagnostics.append(
-                error("MG017", f"default {value!r} больше max {constraints.max!r}", **location)
+                error(
+                    "EG017",
+                    f"default {value!r} is greater than max {constraints.max!r}",
+                    **location,
+                )
             )
     except TypeError:
-        diagnostics.append(error("MG017", f"default {value!r} не сравним с min/max", **location))
+        diagnostics.append(
+            error("EG017", f"default {value!r} cannot be compared with min/max", **location)
+        )
     if isinstance(value, str):
         if constraints.min_length is not None and len(value) < constraints.min_length:
             diagnostics.append(
-                error("MG017", f"default короче min_length {constraints.min_length}", **location)
+                error(
+                    "EG017",
+                    f"default is shorter than min_length {constraints.min_length}",
+                    **location,
+                )
             )
         if constraints.max_length is not None and len(value) > constraints.max_length:
             diagnostics.append(
-                error("MG017", f"default длиннее max_length {constraints.max_length}", **location)
+                error(
+                    "EG017",
+                    f"default is longer than max_length {constraints.max_length}",
+                    **location,
+                )
             )
         if constraints.pattern is not None and not re.fullmatch(constraints.pattern, value):
             diagnostics.append(
                 error(
-                    "MG017",
-                    f"default не соответствует pattern {constraints.pattern!r}",
+                    "EG017",
+                    f"default does not match pattern {constraints.pattern!r}",
                     **location,
                 )
             )

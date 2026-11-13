@@ -1,4 +1,4 @@
-"""Политика фильтрации диагностик."""
+"""Diagnostic filtering policy."""
 
 from __future__ import annotations
 

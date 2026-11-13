@@ -1,4 +1,4 @@
-"""Модель отчёта Engine."""
+"""Engine report model."""
 
 from __future__ import annotations
 

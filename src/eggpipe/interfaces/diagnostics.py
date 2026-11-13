@@ -1,4 +1,4 @@
-"""Структурированные диагностики ядра."""
+"""Structured core diagnostics."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class DiagnosticLocation(BaseModel):
-    """Где именно возникла диагностика."""
+    """Where the diagnostic originated."""
 
     file: Path | None = None
     entity: str | None = None
@@ -20,7 +20,7 @@ class DiagnosticLocation(BaseModel):
 
 
 class Diagnostic(BaseModel):
-    """Диагностика валидации; код стабилен и документируется."""
+    """Validation diagnostic; the code is stable and documented."""
 
     level: Literal["warning", "error"]
     code: str

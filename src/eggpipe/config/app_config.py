@@ -1,4 +1,4 @@
-"""Техническая конфигурация приложения."""
+"""Application technical configuration."""
 
 from __future__ import annotations
 

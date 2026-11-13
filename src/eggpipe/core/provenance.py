@@ -1,4 +1,4 @@
-"""Provenance источника: последний git-коммит файла."""
+"""Source provenance: the last git commit of a file."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ class Provenance:
 
 
 def git_provenance(path: Path) -> Provenance | None:
-    """Вернуть commit/date для файла или None, если git/история недоступны."""
+    """Return commit/date for a file, or None when git/history is unavailable."""
     resolved = path.resolve()
     try:
         result = subprocess.run(

@@ -1,4 +1,4 @@
-"""Тесты naming-утилит."""
+"""Tests for the naming utilities."""
 
 from __future__ import annotations
 

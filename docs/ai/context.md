@@ -7,8 +7,8 @@
 - Проект: **Eggpipe**.
 - Package/import/CLI: `eggpipe`.
 - Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
-- Актуальное ТЗ: `docs/engineering/requirements/v2.1.md`.
-- Версия пакета: `0.1.0`; версия ТЗ: `2.1`.
+- Актуальное ТЗ: `docs/engineering/requirements/v2.2.md`.
+- Версия пакета: `0.3.0`; версия ТЗ: `2.2`.
 
 ## Установка и проверки
 
@@ -30,7 +30,7 @@ GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext,
 FormatInfo, FormatSchema, ImportedFile, SourceModel, ModelSlice, Entity,
 EntityIdentity, FieldIdentity, FieldDef, EnumDef, CustomType, GeneratorConfig,
 NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig,
-GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin,
+ProjectConfig, ProjectConfigLoader, FormatRegistry, FormatPlugin,
 EntityModelFormat, MergePolicy, generator, Provenance, git_provenance,
 UNSET, PRIMITIVE_TYPES, Constraints
 ```
@@ -64,5 +64,5 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 - Плагин не пишет файлы сам; только возвращает `Artifact`.
 - `GenerationContext` и входы плагина immutable/read-only.
 - Ownership только через `.eggpipe/manifest.json`.
-- MG033/MG034/MG301/MG302 — config/plugin errors, exit 2.
+- EG033/EG034/EG301/EG302 — config/plugin errors, exit 2.
 - `--plan`/`--check` не пишут файлы и не берут lock.

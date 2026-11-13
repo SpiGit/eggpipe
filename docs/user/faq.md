@@ -9,7 +9,7 @@
 Да:
 
 ```python
-rules = GeneratorRulesLoader().load(".eggpipe.yaml")
+rules = ProjectConfigLoader().load(".eggpipe.yaml")
 engine = Engine(AppConfig(), rules)
 report = engine.generate()
 ```
@@ -30,7 +30,7 @@ root-logger.
 ### Можно ли смешивать форматы в одном запуске?
 
 Да. Каждая сущность несёт `Entity.format`; генератор проверяется против `input_formats`
-до запуска. Несовместимость — MG033, exit 2.
+до запуска. Несовместимость — EG033, exit 2.
 
 ### Где хранится ownership?
 
@@ -66,4 +66,4 @@ root-logger.
 
 ### Где искать код ошибки?
 
-В [каталоге диагностик](reference/diagnostics.md) и через `rg "MGxxx" src tests`.
+В [каталоге диагностик](reference/diagnostics.md) и через `rg "EGxxx" src tests`.

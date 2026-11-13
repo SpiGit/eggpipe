@@ -1,4 +1,4 @@
-"""Бизнес-конфигурация .eggpipe.yaml."""
+"""Business configuration in .eggpipe.yaml."""
 
 from __future__ import annotations
 
@@ -47,10 +47,6 @@ def _coerce_resource(value: object) -> object:
 ResourceInput = Annotated[ResourceConfig, BeforeValidator(_coerce_resource)]
 
 
-class InputSlice(InputSelection):
-    """Совместимое имя выбора input из System Design."""
-
-
 class ModelOverride(BaseModel):
     files: tuple[str, ...] | None = None
     resources: tuple[ResourceInput, ...] | None = None
@@ -61,7 +57,7 @@ class ModelOverride(BaseModel):
 class GeneratorConfig(BaseModel):
     id: str = Field(..., pattern=r"^[a-z][a-z0-9-]*$")
     enabled: bool = True
-    input: InputSlice = Field(default_factory=InputSlice)
+    input: InputSelection = Field(default_factory=InputSelection)
     output_dir: Path
     on_conflict: Literal["overwrite", "skip", "error"] = "overwrite"
     cleanup: Literal["off", "prompt", "enabled"] = "off"
@@ -73,7 +69,7 @@ class GeneratorConfig(BaseModel):
     @classmethod
     def _output_dir_must_be_relative(cls, value: Path) -> Path:
         if value.is_absolute():
-            raise ValueError("output_dir должен быть относительным")
+            raise ValueError("output_dir must be relative")
         return value
 
 
@@ -89,7 +85,7 @@ class SourceConfig(BaseModel):
     files: tuple[str, ...] | None = None
     model_dirs: tuple[str, ...] | None = None
     models: dict[str, ModelOverride] = Field(default_factory=dict)
-    input: InputSlice = Field(default_factory=InputSlice)
+    input: InputSelection = Field(default_factory=InputSelection)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -97,16 +93,16 @@ class SourceConfig(BaseModel):
     def _validate_layout(self) -> SourceConfig:
         if self.layout == "monolith":
             if self.files is not None or self.model_dirs is not None or self.models:
-                raise ValueError("monolith не поддерживает files/model_dirs/models")
+                raise ValueError("monolith does not support files/model_dirs/models")
             return self
         if not self.files:
-            raise ValueError(f"{self.layout} требует непустой files")
+            raise ValueError(f"{self.layout} requires non-empty files")
         if self.layout == "file-per-model":
             if self.model_dirs is not None or self.models:
-                raise ValueError("file-per-model не поддерживает model_dirs/models")
+                raise ValueError("file-per-model does not support model_dirs/models")
             return self
         if not self.model_dirs:
-            raise ValueError("directory-per-model требует непустой model_dirs")
+            raise ValueError("directory-per-model requires non-empty model_dirs")
         return self
 
 
@@ -117,7 +113,7 @@ class DiagnosticsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class GeneratorRules(BaseModel):
+class ProjectConfig(BaseModel):
     version: Literal["1.0"]
     defaults: DefaultsConfig = Field(default_factory=DefaultsConfig)
     diagnostics: DiagnosticsConfig = Field(default_factory=DiagnosticsConfig)
@@ -129,16 +125,16 @@ class GeneratorRules(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class GeneratorRulesLoader:
-    """Загрузка и поиск .eggpipe.yaml."""
+class ProjectConfigLoader:
+    """Loading and discovery of .eggpipe.yaml."""
 
-    def load(self, path: Path) -> GeneratorRules:
+    def load(self, path: Path) -> ProjectConfig:
         try:
             data = load_yaml(path)
         except YamlLoadError as exc:
             raise ConfigValidationError(f"{path}: {exc.code}: {exc.message}") from exc
         try:
-            return GeneratorRules.model_validate(data)
+            return ProjectConfig.model_validate(data)
         except ValidationError as exc:
             raise ConfigValidationError(f"{path}: {exc}") from exc
 
@@ -157,11 +153,10 @@ __all__ = [
     "DefaultsConfig",
     "DiagnosticsConfig",
     "GeneratorConfig",
-    "GeneratorRules",
-    "GeneratorRulesLoader",
-    "InputSlice",
     "Layout",
     "ModelOverride",
+    "ProjectConfig",
+    "ProjectConfigLoader",
     "ResourceConfig",
     "SourceConfig",
 ]

@@ -1,4 +1,4 @@
-"""Engine — библиотечный фасад."""
+"""Engine — library facade."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from eggpipe.config.app_config import AppConfig
-from eggpipe.config.generator_rules import GeneratorConfig, GeneratorRules
+from eggpipe.config.project_config import GeneratorConfig, ProjectConfig
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
-from eggpipe.core.model import FormatInfo, ModelSlice
+from eggpipe.core.model import PRIMITIVE_TYPES, FormatInfo, ModelSlice
 from eggpipe.core.parser import Parser
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
@@ -71,7 +71,7 @@ class Engine:
     def __init__(
         self,
         config: AppConfig,
-        rules: GeneratorRules,
+        rules: ProjectConfig,
         *,
         config_dir: Path | None = None,
         generators: Mapping[str, GeneratorPlugin] | None = None,
@@ -131,7 +131,7 @@ class Engine:
         self._timings["generate_ms"] = _elapsed(phase)
         diagnostics.extend(run.diagnostics)
         self._pending = list(run.pending)
-        if not any(item.code == "MG052" for item in diagnostics):
+        if not any(item.code == "EG052" for item in diagnostics):
             self._stale = self._stale_location_entries()
             diagnostics.extend(_stale_diagnostics(self._stale))
         success = not _has_errors(diagnostics)
@@ -176,7 +176,7 @@ class Engine:
         for plugin in plugins:
             primitives.update(plugin.primitive_types)
         if not primitives:
-            primitives.update(self.registry.get(composition.format).primitive_types)
+            primitives.update(PRIMITIVE_TYPES)
         diagnostics.extend(
             validate_entity_model(
                 composition.model,
@@ -199,7 +199,7 @@ class Engine:
                 continue
             plugin = self.generators.get(generator_config.id)
             if plugin is None:
-                raise ConfigValidationError(f"неизвестный генератор: {generator_config.id}")
+                raise ConfigValidationError(f"unknown generator: {generator_config.id}")
             generator_started = time.perf_counter()
             result, plan = self._run_generator(composition, generator_config, plugin)
             plan.diagnostics.extend(
@@ -264,7 +264,7 @@ class Engine:
             return self._report(
                 False,
                 1,
-                [error("MG300", f"не удалось взять lock: {exc}")],
+                [error("EG300", f"failed to acquire the lock: {exc}")],
                 [],
                 time.perf_counter(),
             )
@@ -279,8 +279,8 @@ class Engine:
                 if cleanup == "prompt":
                     diagnostics.append(
                         warning(
-                            "MG030",
-                            "cleanup: prompt без tty; используется off",
+                            "EG030",
+                            "cleanup: prompt without a tty; using off",
                             path=str(pending.output_dir),
                         )
                     )
@@ -295,7 +295,7 @@ class Engine:
                     )
                 )
         except (ManifestError, OSError) as exc:
-            diagnostics.append(error("MG300", f"не удалось записать артефакты: {exc}"))
+            diagnostics.append(error("EG300", f"failed to write artifacts: {exc}"))
             if self._pending:
                 failed = {pending.config.id for pending in self._pending}
                 generators = [
@@ -357,7 +357,7 @@ class Engine:
                 {},
             )
         if not self.rules.sources:
-            raise ConfigValidationError("в .eggpipe.yaml нет sources")
+            raise ConfigValidationError(".eggpipe.yaml has no sources")
         discovered = discover_sources(
             self.rules,
             self.config_dir,
@@ -402,8 +402,8 @@ class Engine:
                     warnings=slice_warnings,
                     errors=[
                         error(
-                            "MG300",
-                            f"validate_config {generator_config.id} упал: "
+                            "EG300",
+                            f"validate_config {generator_config.id} failed: "
                             f"{type(exc).__name__}: {exc}",
                         )
                     ],
@@ -425,8 +425,8 @@ class Engine:
                     warnings=warnings,
                     errors=[
                         error(
-                            "MG300",
-                            f"генератор {generator_config.id} упал: {type(exc).__name__}: {exc}",
+                            "EG300",
+                            f"generator {generator_config.id} failed: {type(exc).__name__}: {exc}",
                         )
                     ],
                 ),
@@ -449,7 +449,7 @@ class Engine:
             return (
                 GenerationResult(
                     warnings=warnings,
-                    errors=[error("MG052", str(exc))],
+                    errors=[error("EG052", str(exc))],
                 ),
                 ExecutionPlan(),
             )
@@ -550,8 +550,9 @@ def _stale_date_diagnostics(
             if updated < file_date:
                 diagnostics.append(
                     warning(
-                        "MG014",
-                        f"updated_at {updated.isoformat()} старше mtime {file_date.isoformat()}",
+                        "EG014",
+                        f"updated_at {updated.isoformat()} is older than "
+                        f"mtime {file_date.isoformat()}",
                         file=document.path,
                         entity=entity.name,
                     )
@@ -570,9 +571,10 @@ def _composition_sources(composition: CompositionResult) -> list[Path]:
 def _format_summaries(composition: CompositionResult) -> list[FormatSummary]:
     counts: dict[tuple[str, str], int] = {}
     for entity in composition.model.entities:
-        name = entity.format or composition.format
-        version = entity.format_version or composition.version
-        counts[(name, version)] = counts.get((name, version), 0) + 1
+        if entity.format is None or entity.format_version is None:
+            continue
+        key = (entity.format, entity.format_version)
+        counts[key] = counts.get(key, 0) + 1
     return [
         FormatSummary(name=name, version=version, entities=count)
         for (name, version), count in sorted(counts.items())
@@ -594,8 +596,8 @@ def _input_formats(plugin: GeneratorPlugin) -> list[str] | None:
 def _stale_diagnostics(stale: list[StaleLocation]) -> list[Diagnostic]:
     return [
         warning(
-            "MG051",
-            "stale generated location в manifest",
+            "EG051",
+            "stale generated location in the manifest",
             path=item.output_dir,
         )
         for item in stale
@@ -616,8 +618,9 @@ def _claim_paths(
             if name == other or name.startswith(f"{other}/") or other.startswith(f"{name}/"):
                 diagnostics.append(
                     error(
-                        "MG042",
-                        f"path {item.path} уже занят location {owner.generator}:{owner.output_dir}",
+                        "EG042",
+                        f"path {item.path} is already claimed by location "
+                        f"{owner.generator}:{owner.output_dir}",
                         path=str(item.path),
                     )
                 )
@@ -637,9 +640,9 @@ def _check_input_formats(
     missing = object()
     accepted = getattr(type(plugin), "input_formats", missing)
     if accepted is missing:
-        return [error("MG301", f"генератор {generator_id}: input_formats обязателен")]
+        return [error("EG301", f"generator {generator_id}: input_formats is required")]
     if accepted is not None and not isinstance(accepted, set):
-        return [error("MG301", f"генератор {generator_id}: input_formats должен быть set[str]")]
+        return [error("EG301", f"generator {generator_id}: input_formats must be set[str]")]
     errors: list[Diagnostic] = []
     for entity in slice_.entities:
         if entity.format is None:
@@ -647,8 +650,8 @@ def _check_input_formats(
         if not registry.accepts(entity.format, accepted):
             errors.append(
                 error(
-                    "MG033",
-                    f"генератор {generator_id} не поддерживает формат {entity.format}",
+                    "EG033",
+                    f"generator {generator_id} does not support format {entity.format}",
                     entity=entity.name,
                 )
             )
@@ -670,7 +673,7 @@ def _has_errors(diagnostics: list[Diagnostic]) -> bool:
 def _exit_code(success: bool, diagnostics: list[Diagnostic]) -> int:
     if success:
         return 0
-    return 2 if any(item.code == "MG033" for item in diagnostics) else 1
+    return 2 if any(item.code == "EG033" for item in diagnostics) else 1
 
 
 __all__ = ["Engine"]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Сгенерировать AI-документацию: llms.txt, manifest, schemas, diagnostics."""
+"""Generate AI documentation: llms.txt, manifest, schemas, diagnostics."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import eggpipe
-from eggpipe.config.generator_rules import GeneratorRules
+from eggpipe.config.project_config import ProjectConfig
 from eggpipe.core.document import ModelDocument
 from eggpipe.engine.artifact_writer import Manifest
 from eggpipe.engine.report import EngineReport
@@ -50,7 +50,7 @@ DOCUMENTS = (
     "docs/ai/context.md",
     "docs/ai/tasks.md",
     "docs/ai/invariants.md",
-    "docs/engineering/requirements/v2.1.md",
+    "docs/engineering/requirements/v2.2.md",
     "docs/engineering/system-design/index.md",
 )
 
@@ -69,7 +69,7 @@ COMMANDS = (
 def main() -> None:
     SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
     _write_json(SCHEMA_DIR / "model.schema.json", _schema(ModelDocument))
-    _write_json(SCHEMA_DIR / "config.schema.json", _schema(GeneratorRules))
+    _write_json(SCHEMA_DIR / "config.schema.json", _schema(ProjectConfig))
     _write_json(SCHEMA_DIR / "report.schema.json", _schema(EngineReport))
     _write_json(SCHEMA_DIR / "manifest.schema.json", _schema(Manifest))
     _write_json(AI_DIR / "diagnostics.json", _diagnostics())
@@ -87,7 +87,7 @@ def _schema(model: type[Any]) -> dict[str, Any]:
 def _diagnostics() -> list[dict[str, str]]:
     result: list[dict[str, str]] = []
     for line in DIAGNOSTICS.read_text(encoding="utf-8").splitlines():
-        if not line.startswith("| MG"):
+        if not line.startswith("| EG"):
             continue
         cells = [cell.strip() for cell in line.strip("|").split("|")]
         if len(cells) < 5:
@@ -107,7 +107,7 @@ def _diagnostics() -> list[dict[str, str]]:
 def _llms_index() -> str:
     return """# Eggpipe documentation index
 
-> Eggpipe generates artifacts from YAML model definitions. Current spec: v2.1.
+> Eggpipe generates artifacts from YAML model definitions. Current spec: v2.2.
 
 ## User
 
@@ -132,7 +132,7 @@ def _llms_index() -> str:
 
 ## Engineering
 
-- [Requirements v2.1](../engineering/requirements/v2.1.md)
+- [Requirements v2.2](../engineering/requirements/v2.2.md)
 - [System Design](../engineering/system-design/index.md)
 - [ADR index](../engineering/adr/index.md)
 """
@@ -149,7 +149,7 @@ def _llms_full() -> str:
 def _manifest() -> dict[str, Any]:
     return {
         "project": "eggpipe",
-        "spec_version": "2.1",
+        "spec_version": "2.2",
         "package_version": eggpipe.__version__,
         "public_api": sorted(eggpipe.__all__),
         "commands": list(COMMANDS),

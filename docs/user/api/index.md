@@ -5,9 +5,9 @@
 ## Engine
 
 ```python
-from eggpipe import AppConfig, Engine, GeneratorRulesLoader
+from eggpipe import AppConfig, Engine, ProjectConfigLoader
 
-rules = GeneratorRulesLoader().load(".eggpipe.yaml")
+rules = ProjectConfigLoader().load(".eggpipe.yaml")
 engine = Engine(AppConfig(), rules)
 
 plan = engine.build()       # без записи
@@ -50,10 +50,10 @@ report.timings: dict[str, int]
 ## Исключения
 
 - `EggpipeError` — базовая ошибка библиотеки.
-- `DocumentError` — YAML/модель/формат; несёт `code` (`MGxxx`).
+- `DocumentError` — YAML/модель/формат; несёт `code` (`EGxxx`).
 - `ConfigValidationError` — конфиг/usage.
 - `FormatConflictError`, `FormatInheritanceError`, `UnknownFormatError`.
-- `PluginContractError` — MG301/MG302.
+- `PluginContractError` — EG301/EG302.
 - `ArtifactPathError`, `ManifestError`, `LockError`.
 
 Ошибки генераторов не выбрасываются наружу: они попадают в `GenerationResult.errors`

@@ -13,4 +13,4 @@ generators:
     output_dir: ./generated
 
 diagnostics:
-  ignore: [MG015]
+  ignore: [EG015]

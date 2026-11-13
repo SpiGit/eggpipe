@@ -1,4 +1,4 @@
-"""Тесты writer: пути, ownership, глобальный manifest, lock."""
+"""Writer tests: paths, ownership, global manifest, lock."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from eggpipe.utils.exceptions import LockError, ManifestError
 
 
 def writer(tmp_path: Path) -> ArtifactWriter:
-    return ArtifactWriter(eggpipe_version="0.1.0", config_dir=tmp_path)
+    return ArtifactWriter(eggpipe_version="0.3.0", config_dir=tmp_path)
 
 
 def plan_for(
@@ -93,7 +93,7 @@ def test_path_traversal_and_invalid_content(tmp_path: Path) -> None:
         Artifact(path="a.txt", content="crlf\r\n"),
     ):
         plan = plan_for(tmp_path, output, artifact)
-        assert plan.diagnostics[0].code == "MG040"
+        assert plan.diagnostics[0].code == "EG040"
 
 
 def test_case_collision(tmp_path: Path) -> None:
@@ -104,7 +104,7 @@ def test_case_collision(tmp_path: Path) -> None:
         Artifact(path="A.txt", content="a"),
         Artifact(path="a.txt", content="b"),
     )
-    assert plan.diagnostics[0].code == "MG042"
+    assert plan.diagnostics[0].code == "EG042"
 
 
 def test_non_owned_requires_force(tmp_path: Path) -> None:
@@ -113,7 +113,7 @@ def test_non_owned_requires_force(tmp_path: Path) -> None:
     target = output / "a.txt"
     target.write_text("old", encoding="utf-8")
     blocked = plan_for(tmp_path, output, Artifact(path="a.txt", content="new"))
-    assert blocked.diagnostics[0].code == "MG041"
+    assert blocked.diagnostics[0].code == "EG041"
     allowed = plan_for(tmp_path, output, Artifact(path="a.txt", content="new"), force=True)
     assert allowed.artifacts[0].action == "update"
     write(tmp_path, output, allowed)
@@ -131,7 +131,7 @@ def test_owned_update_and_skip(tmp_path: Path) -> None:
         Artifact(path="a.txt", content="two"),
         on_conflict="error",
     )
-    assert error_plan.diagnostics[0].code == "MG041"
+    assert error_plan.diagnostics[0].code == "EG041"
     skipped = plan_for(
         tmp_path,
         output,
@@ -155,7 +155,7 @@ def test_skip_non_owned_does_not_claim(tmp_path: Path) -> None:
         on_conflict="skip",
     )
     assert plan.artifacts == []
-    assert plan.diagnostics[0].code == "MG043"
+    assert plan.diagnostics[0].code == "EG043"
     write(tmp_path, output, plan)
     assert writer(tmp_path).load_manifest().locations == []
 
@@ -180,7 +180,7 @@ def test_force_does_not_take_file_from_other_location(tmp_path: Path) -> None:
         generator_id="second",
         force=True,
     )
-    assert blocked.diagnostics[0].code == "MG041"
+    assert blocked.diagnostics[0].code == "EG041"
     assert "first" in blocked.diagnostics[0].message
 
 
@@ -190,7 +190,7 @@ def test_check_detects_drift(tmp_path: Path) -> None:
     write(tmp_path, output, plan)
     assert writer(tmp_path).check(plan=plan) == []
     (output / "a.txt").write_text("changed", encoding="utf-8")
-    assert writer(tmp_path).check(plan=plan)[0].code == "MG300"
+    assert writer(tmp_path).check(plan=plan)[0].code == "EG300"
 
 
 def test_lock(tmp_path: Path) -> None:
@@ -234,9 +234,9 @@ def test_symlink_escape_is_rejected(tmp_path: Path) -> None:
     try:
         (output / "link").symlink_to(outside, target_is_directory=True)
     except OSError:
-        pytest.skip("symlink недоступен на платформе")
+        pytest.skip("symlink is not available on this platform")
     plan = plan_for(tmp_path, output, Artifact(path="link/escape.txt", content="x"))
-    assert plan.diagnostics[0].code == "MG040"
+    assert plan.diagnostics[0].code == "EG040"
 
 
 def test_cleanup_off_keeps_stale_entries(tmp_path: Path) -> None:
@@ -271,7 +271,7 @@ def test_cleanup_keeps_modified_owned_file(tmp_path: Path) -> None:
         cleanup="enabled",
     )
     assert (output / "old.txt").read_text(encoding="utf-8") == "user edit"
-    assert diagnostics[0].code == "MG050"
+    assert diagnostics[0].code == "EG050"
     assert {item.path for item in location(tmp_path).artifacts} == {"old.txt", "new.txt"}
 
 

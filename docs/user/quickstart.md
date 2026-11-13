@@ -87,5 +87,5 @@ generators:
 ## Дальше
 
 - [Плагины](plugins.md) — как написать генератор или формат.
-- [Диагностики](reference/diagnostics.md) — что означает код `MGxxx`.
+- [Диагностики](reference/diagnostics.md) — что означает код `EGxxx`.
 - [AI context](../ai/context.md) — если документацию читает агент.

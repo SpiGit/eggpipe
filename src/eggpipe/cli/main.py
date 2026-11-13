@@ -1,4 +1,4 @@
-"""CLI eggpipe (v0.1)."""
+"""Eggpipe command-line interface."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ from typing import Annotated, Any, ParamSpec, TypeVar
 import typer
 
 from eggpipe.config.app_config import AppConfig
-from eggpipe.config.generator_rules import GeneratorRules, GeneratorRulesLoader
 from eggpipe.config.logging import setup_logging
+from eggpipe.config.project_config import ProjectConfig, ProjectConfigLoader
 from eggpipe.core.discovery import discover_sources
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
@@ -42,10 +42,10 @@ from eggpipe.version import __version__
 from eggpipe.watch.watcher import run_watch
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="Eggpipe")
-config_app = typer.Typer(no_args_is_help=True, help="Конфигурация")
-model_app = typer.Typer(no_args_is_help=True, help="Модели")
-gen_app = typer.Typer(no_args_is_help=True, help="Генераторы")
-format_app = typer.Typer(no_args_is_help=True, help="Форматы")
+config_app = typer.Typer(no_args_is_help=True, help="Configuration")
+model_app = typer.Typer(no_args_is_help=True, help="Models")
+gen_app = typer.Typer(no_args_is_help=True, help="Generators")
+format_app = typer.Typer(no_args_is_help=True, help="Formats")
 app.add_typer(config_app, name="config")
 app.add_typer(model_app, name="model")
 app.add_typer(gen_app, name="gen")
@@ -53,11 +53,11 @@ app.add_typer(format_app, name="format")
 
 ConfigOption = Annotated[
     Path | None,
-    typer.Option("--config", "-c", help="Путь к .eggpipe.yaml"),
+    typer.Option("--config", "-c", help="Path to .eggpipe.yaml"),
 ]
 GeneratorOption = Annotated[
     list[str] | None,
-    typer.Option("--generator", "-g", help="Генераторы: через запятую или повторно"),
+    typer.Option("--generator", "-g", help="Generators: comma-separated or repeated"),
 ]
 
 
@@ -113,11 +113,11 @@ class RunOptions:
     verbose: bool
 
 
-def _load_rules(config_path: Path | None) -> tuple[GeneratorRules, Path]:
-    path = config_path or GeneratorRulesLoader.discover()
+def _load_rules(config_path: Path | None) -> tuple[ProjectConfig, Path]:
+    path = config_path or ProjectConfigLoader.discover()
     if path is None:
-        raise ConfigValidationError("не найден .eggpipe.yaml; укажите --config")
-    rules = GeneratorRulesLoader().load(path)
+        raise ConfigValidationError(".eggpipe.yaml not found; pass --config")
+    rules = ProjectConfigLoader().load(path)
     return rules, path.resolve().parent
 
 
@@ -130,13 +130,13 @@ def _selected_generators(values: list[str] | None) -> set[str] | None:
     return result or None
 
 
-def _filter_rules(rules: GeneratorRules, selected: set[str] | None) -> GeneratorRules:
+def _filter_rules(rules: ProjectConfig, selected: set[str] | None) -> ProjectConfig:
     if selected is None:
         return rules
     known = {item.id for item in rules.generators}
     unknown = selected - known
     if unknown:
-        raise ConfigValidationError(f"неизвестные генераторы: {', '.join(sorted(unknown))}")
+        raise ConfigValidationError(f"unknown generators: {', '.join(sorted(unknown))}")
     return rules.model_copy(
         update={"generators": tuple(item for item in rules.generators if item.id in selected)}
     )
@@ -147,7 +147,7 @@ def _parse_variables(values: list[str] | None) -> dict[str, str]:
     for item in values or []:
         key, separator, value = item.partition("=")
         if not separator or not key:
-            raise ConfigValidationError(f"некорректный --var: {item!r}")
+            raise ConfigValidationError(f"invalid --var: {item!r}")
         result[key] = value
     return result
 
@@ -223,7 +223,7 @@ def _location(location: Any) -> str:
 
 def _run_engine(options: RunOptions) -> None:
     if options.output_format not in {"text", "json"}:
-        raise ConfigValidationError("--output-format должен быть text или json")
+        raise ConfigValidationError("--output-format must be text or json")
     rules, config_dir = _load_rules(options.config)
     rules = _filter_rules(rules, _selected_generators(options.generator))
     app_config = AppConfig(
@@ -269,7 +269,7 @@ def _run_engine(options: RunOptions) -> None:
 @command_errors
 def generate(
     models: Annotated[
-        list[Path] | None, typer.Argument(help="Модели (по умолчанию sources)")
+        list[Path] | None, typer.Argument(help="Models (defaults to sources)")
     ] = None,
     config: ConfigOption = None,
     generator: GeneratorOption = None,
@@ -290,7 +290,7 @@ def generate(
     verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
     no_color: Annotated[bool, typer.Option("--no-color")] = False,
 ) -> None:
-    """Сгенерировать артефакты."""
+    """Generate artifacts."""
     del no_color
     _run_engine(
         RunOptions(
@@ -321,10 +321,10 @@ def init(
     force: Annotated[bool, typer.Option("--force")] = False,
     layout: Annotated[str | None, typer.Option("--layout")] = None,
 ) -> None:
-    """Создать минимальный .eggpipe.yaml и пример модели."""
+    """Create a minimal .eggpipe.yaml and an example model."""
     if layout is None:
         if not sys.stdin.isatty():
-            typer.echo("error: в non-tty нужен --layout", err=True)
+            typer.echo("error: --layout is required in non-tty mode", err=True)
             raise typer.Exit(code=2)
         layout = typer.prompt(
             "layout",
@@ -332,10 +332,10 @@ def init(
             type=str,
         )
     if layout not in {"monolith", "file-per-model", "directory-per-model"}:
-        typer.echo(f"error: неизвестный layout: {layout}", err=True)
+        typer.echo(f"error: unknown layout: {layout}", err=True)
         raise typer.Exit(code=2)
     if path.exists() and not force:
-        typer.echo(f"error: {path} уже существует; используйте --force", err=True)
+        typer.echo(f"error: {path} already exists; use --force", err=True)
         raise typer.Exit(code=2)
     path.write_text(_default_config(layout), encoding="utf-8")
     model_path = _default_model(path.parent, layout, force=force)
@@ -383,7 +383,7 @@ def _default_config(layout: str) -> str:
 @command_errors
 def watch(
     models: Annotated[
-        list[Path] | None, typer.Argument(help="Модели (по умолчанию sources)")
+        list[Path] | None, typer.Argument(help="Models (defaults to sources)")
     ] = None,
     config: ConfigOption = None,
     generator: GeneratorOption = None,
@@ -401,11 +401,11 @@ def watch(
     no_color: Annotated[bool, typer.Option("--no-color")] = False,
     debounce: Annotated[int, typer.Option("--debounce-ms", "--debounce")] = 300,
 ) -> None:
-    """Watch-режим: перегенерация при изменении sources."""
+    """Watch mode: regenerate when sources change."""
     del no_color
-    path = config or GeneratorRulesLoader.discover()
+    path = config or ProjectConfigLoader.discover()
     if path is None:
-        raise ConfigValidationError("не найден .eggpipe.yaml; укажите --config")
+        raise ConfigValidationError(".eggpipe.yaml not found; pass --config")
     path = path.resolve()
     rules, config_dir = _load_rules(path)
     rules = _filter_rules(rules, _selected_generators(generator))
@@ -475,7 +475,7 @@ def config_show(
     output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
     show_secrets: Annotated[bool, typer.Option("--show-secrets")] = False,
 ) -> None:
-    """Показать merged config и resolved paths."""
+    """Show the merged config and resolved paths."""
     rules, config_dir = _load_rules(config)
     data = rules.model_dump(mode="json", by_alias=True)
     if not show_secrets:
@@ -501,7 +501,7 @@ def config_show(
 @config_app.command("validate")
 @command_errors
 def config_validate(config: ConfigOption = None) -> None:
-    """Проверить .eggpipe.yaml и sources."""
+    """Validate .eggpipe.yaml and sources."""
     rules, config_dir = _load_rules(config)
     discovered = discover_sources(rules, config_dir)
     for item in discovered.diagnostics:
@@ -515,12 +515,12 @@ def config_validate(config: ConfigOption = None) -> None:
 def config_schema(
     output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
-    """Вывести JSON Schema .eggpipe.yaml."""
-    _print_schema(_safe_schema(GeneratorRules), output)
+    """Print the .eggpipe.yaml JSON Schema."""
+    _print_schema(_safe_schema(ProjectConfig), output)
 
 
 def _safe_schema(model: type[Any]) -> dict[str, Any]:
-    # UNSET не является JSON-значением; default исключается из схемы.
+    # UNSET is not a JSON value; default is excluded from the schema.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         return model.model_json_schema()
@@ -548,7 +548,7 @@ def model_validate(
     models: Annotated[list[Path], typer.Argument()],
     output_format: Annotated[str, typer.Option("--output-format")] = "text",
 ) -> None:
-    """Проверить модели."""
+    """Validate models."""
     parser = Parser(_load_format_registry())
     diagnostics = []
     for path in models:
@@ -578,7 +578,7 @@ def model_schema(
     format_name: Annotated[str | None, typer.Option("--format")] = None,
     version: Annotated[str | None, typer.Option("--version")] = None,
 ) -> None:
-    """Вывести JSON Schema документа модели или формата."""
+    """Print the JSON Schema of a model or format document."""
     if format_name is None:
         _print_schema(_safe_schema(ModelDocument), output)
         return
@@ -591,7 +591,7 @@ def model_schema(
     resolved = version or plugin.supported_versions[-1]
     schema = plugin.schemas.get(resolved)
     if schema is None:
-        typer.echo(f"error: {format_name} не поддерживает версию {resolved}", err=True)
+        typer.echo(f"error: {format_name} does not support version {resolved}", err=True)
         raise typer.Exit(code=2)
     _print_schema(
         {
@@ -608,7 +608,7 @@ def model_schema(
 def gen_list(
     show_all: Annotated[bool, typer.Option("--all")] = False,
 ) -> None:
-    """Список генераторов из entry points."""
+    """List generators from entry points."""
     plugins, issues = load_generators_with_issues()
     if show_all:
         _print_plugin_issues(issues)
@@ -625,10 +625,10 @@ def gen_list(
 
 @gen_app.command("info")
 def gen_info(generator_id: str) -> None:
-    """Информация о генераторе."""
+    """Show generator information."""
     plugin = _load_generators(None).get(generator_id)
     if plugin is None:
-        typer.echo(f"error: неизвестный генератор: {generator_id}", err=True)
+        typer.echo(f"error: unknown generator: {generator_id}", err=True)
         raise typer.Exit(code=2)
     typer.echo(f"id: {plugin.id}")
     typer.echo(f"name: {plugin.name or plugin.id}")
@@ -645,7 +645,7 @@ def _input_formats_label(formats: set[str] | None) -> str:
 
 @format_app.command("info")
 def format_info(name: str) -> None:
-    """Информация о формате."""
+    """Show format information."""
     registry = _load_format_registry()
     try:
         plugin = registry.get(name)
@@ -661,7 +661,7 @@ def format_info(name: str) -> None:
 
 @format_app.command("list")
 def format_list() -> None:
-    """Список форматов."""
+    """List formats."""
     registry, issues = build_format_registry_with_issues()
     _print_plugin_issues(issues)
     for item in registry.list():
@@ -676,7 +676,7 @@ def clean(
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     yes: Annotated[bool, typer.Option("--yes")] = False,
 ) -> None:
-    """Удалить unchanged owned-артефакты по глобальному manifest."""
+    """Remove unchanged owned artifacts using the global manifest."""
     if root is not None:
         config_dir = root.resolve()
     elif config is not None:
@@ -685,9 +685,9 @@ def clean(
         config_dir = Path.cwd()
     if not dry_run and not yes:
         if not sys.stdin.isatty():
-            typer.echo("error: в non-tty нужен --yes", err=True)
+            typer.echo("error: --yes is required in non-tty mode", err=True)
             raise typer.Exit(code=2)
-        if not typer.confirm("Удалить unchanged owned-артефакты?"):
+        if not typer.confirm("Remove unchanged owned artifacts?"):
             return
     writer = ArtifactWriter(eggpipe_version=__version__, config_dir=config_dir)
     if not writer.manifest_path.is_file():

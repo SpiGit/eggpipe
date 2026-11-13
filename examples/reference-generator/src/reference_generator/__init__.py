@@ -1,4 +1,4 @@
-"""Reference-генератор для examples и golden-тестов."""
+"""Reference generator for examples and golden tests."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from eggpipe import (
 
 
 class ReferenceGenerator(GeneratorPlugin):
-    """Детерминированный вывод модели в JSON — эталон для golden-тестов."""
+    """Deterministic JSON dump of the model — the baseline for golden tests."""
 
     id = "reference"
     name = "Reference Generator"

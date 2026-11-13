@@ -1,4 +1,4 @@
-"""Интеграционный тест watch-цикла."""
+"""Integration test for the watch loop."""
 
 from __future__ import annotations
 

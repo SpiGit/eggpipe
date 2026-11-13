@@ -1,12 +1,12 @@
-"""Eggpipe — публичный API ядра v0.1."""
+"""Eggpipe — public core API."""
 
 from __future__ import annotations
 
 from eggpipe.config.app_config import AppConfig
-from eggpipe.config.generator_rules import (
+from eggpipe.config.project_config import (
     GeneratorConfig,
-    GeneratorRules,
-    GeneratorRulesLoader,
+    ProjectConfig,
+    ProjectConfigLoader,
     SourceConfig,
 )
 from eggpipe.core.composition import Composition, CompositionResult
@@ -101,8 +101,6 @@ __all__ = [
     "GeneratorInput",
     "GeneratorPlugin",
     "GeneratorReport",
-    "GeneratorRules",
-    "GeneratorRulesLoader",
     "ImportSpec",
     "ImportedFile",
     "InputSelection",
@@ -114,6 +112,8 @@ __all__ = [
     "NamingStyle",
     "Parser",
     "PluginContractError",
+    "ProjectConfig",
+    "ProjectConfigLoader",
     "Provenance",
     "SourceConfig",
     "SourceModel",

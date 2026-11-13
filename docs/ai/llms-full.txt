@@ -13,8 +13,8 @@
 - Проект: **Eggpipe**.
 - Package/import/CLI: `eggpipe`.
 - Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
-- Актуальное ТЗ: `docs/engineering/requirements/v2.1.md`.
-- Версия пакета: `0.1.0`; версия ТЗ: `2.1`.
+- Актуальное ТЗ: `docs/engineering/requirements/v2.2.md`.
+- Версия пакета: `0.3.0`; версия ТЗ: `2.2`.
 
 ## Установка и проверки
 
@@ -36,7 +36,7 @@ GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext,
 FormatInfo, FormatSchema, ImportedFile, SourceModel, ModelSlice, Entity,
 EntityIdentity, FieldIdentity, FieldDef, EnumDef, CustomType, GeneratorConfig,
 NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig,
-GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin,
+ProjectConfig, ProjectConfigLoader, FormatRegistry, FormatPlugin,
 EntityModelFormat, MergePolicy, generator, Provenance, git_provenance,
 UNSET, PRIMITIVE_TYPES, Constraints
 ```
@@ -70,7 +70,7 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 - Плагин не пишет файлы сам; только возвращает `Artifact`.
 - `GenerationContext` и входы плагина immutable/read-only.
 - Ownership только через `.eggpipe/manifest.json`.
-- MG033/MG034/MG301/MG302 — config/plugin errors, exit 2.
+- EG033/EG034/EG301/EG302 — config/plugin errors, exit 2.
 - `--plan`/`--check` не пишут файлы и не берут lock.
 
 ---
@@ -83,7 +83,7 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 
 ## Добавить генератор
 
-1. Прочитать `docs/engineering/requirements/v2.1.md` §6.1 и `docs/user/plugins.md`.
+1. Прочитать `docs/engineering/requirements/v2.2.md` §6.1 и `docs/user/plugins.md`.
 2. Создать функцию с `@generator(id=..., input_formats=...)`.
 3. Аннотировать аргументы только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
 4. Вернуть `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]` или `GenerationResult`.
@@ -98,13 +98,13 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 3. Задать `format_names`, `supported_versions`, `extends`, `base_versions`,
    `primitive_types`, `schemas`.
 4. Реализовать `parse_extensions`/`validate_extensions`, если нужны дополнительные поля.
-5. Добавить тесты наследования, версий, latest-версии и MG034.
-6. Проверить mixed formats и `input_formats` генератора (MG033).
+5. Добавить тесты наследования, версий, latest-версии и EG034.
+6. Проверить mixed formats и `input_formats` генератора (EG033).
 
 ## Разобрать диагностику
 
 1. Найти код в `docs/user/reference/diagnostics.md`.
-2. Найти место эмиссии: `rg "MG0xx"`.
+2. Найти место эмиссии: `rg "EG0xx"`.
 3. Исправить причину, а не подавлять ошибку.
 4. `ignore` применять только к warnings; errors не игнорируются.
 5. Добавить регрессионный тест.
@@ -142,7 +142,7 @@ uv run python tools/check_wheel.py dist
 ## Документация
 
 - Актуальное ТЗ — только файл со статусом **Актуальная** в
-  `docs/engineering/requirements/index.md` (сейчас `v2.1.md`).
+  `docs/engineering/requirements/index.md` (сейчас `v2.2.md`).
 - Исторические ТЗ (`v1.0`–`v2.0`) и старые ADR не редактировать.
 - Новое поведение — новая версия ТЗ; ADR не переписываются задним числом.
 - Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `Entity`, `FieldDef`, `EnumDef`,
@@ -259,7 +259,7 @@ generators:
 ## Дальше
 
 - [Плагины](plugins.md) — как написать генератор или формат.
-- [Диагностики](reference/diagnostics.md) — что означает код `MGxxx`.
+- [Диагностики](reference/diagnostics.md) — что означает код `EGxxx`.
 - [AI context](../ai/context.md) — если документацию читает агент.
 
 ---
@@ -322,12 +322,12 @@ Merge слоёв аддитивный:
 - metadata — рекурсивно;
 - переопределение существующих значений запрещено.
 
-Дубликат формата, несвязанные форматы, конфликт metadata → MG029.
+Дубликат формата, несвязанные форматы, конфликт metadata → EG029.
 
 ## Срез и closure
 
 `generators[].input` выбирает entities/enums/types. После выбора ядро транзитивно добавляет
-все enum/type, на которые ссылаются поля и `CustomType.base`. Неизвестное имя → MG018.
+все enum/type, на которые ссылаются поля и `CustomType.base`. Неизвестное имя → EG018.
 
 ## Ownership и manifest
 
@@ -347,7 +347,7 @@ Merge слоёв аддитивный:
 
 ## Диагностики
 
-Все ошибки и предупреждения — структурированные `Diagnostic` с кодом `MGxxx`.
+Все ошибки и предупреждения — структурированные `Diagnostic` с кодом `EGxxx`.
 Warnings можно игнорировать через `diagnostics.ignore` или `--ignore`; errors — нельзя.
 
 ---
@@ -369,7 +369,7 @@ variables:
   env: dev
 diagnostics:
   stale_dates: false
-  ignore: [MG015]
+  ignore: [EG015]
 resources:
   - path: ./shared/templates
   - path: ./shared/seed.json
@@ -383,7 +383,7 @@ generators: []
 | `version` | да | версия схемы конфига, сейчас `"1.0"` |
 | `defaults.naming_convention` | нет | подсказка плагинам |
 | `variables` | нет | строковые переменные для `GenerationContext` |
-| `diagnostics.stale_dates` | нет | MG014 для `file-per-model` |
+| `diagnostics.stale_dates` | нет | EG014 для `file-per-model` |
 | `diagnostics.ignore` | нет | коды warnings, которые нужно скрыть |
 | `resources` | нет | общие ресурсы относительно каталога конфига |
 | `sources` | да для генерации | модели |
@@ -457,14 +457,14 @@ resources:
 - Путь или glob; каталог разворачивается рекурсивно.
 - `as` допустим только для одного файла.
 - Alias по умолчанию — путь без расширения; для модели — `<model_dir>/<path>`.
-- Коллизия alias → MG032.
+- Коллизия alias → EG032.
 - Ресурсы попадают в `GenerationContext.imports`.
 
 ## Input и closure
 
 `input` фильтрует модель после композиции. Пустое значение означает «все». После выбора
 ядро добавляет transitively все enum/type, на которые ссылаются поля. Неизвестное имя →
-MG018.
+EG018.
 
 ## Переменные
 
@@ -580,7 +580,7 @@ eggpipe clean --root ./project
 |-----|----------|
 | `0` | успех |
 | `1` | errors парсинга/валидации/генерации, drift, `--strict` warnings |
-| `2` | config/usage/plugin errors, MG033/MG034/MG301/MG302 |
+| `2` | config/usage/plugin errors, EG033/EG034/EG301/EG302 |
 | `130` | Ctrl+C в `generate`; watch завершается штатно с `0` |
 
 ## JSON
@@ -603,9 +603,9 @@ eggpipe generate --output-format json
 ## Engine
 
 ```python
-from eggpipe import AppConfig, Engine, GeneratorRulesLoader
+from eggpipe import AppConfig, Engine, ProjectConfigLoader
 
-rules = GeneratorRulesLoader().load(".eggpipe.yaml")
+rules = ProjectConfigLoader().load(".eggpipe.yaml")
 engine = Engine(AppConfig(), rules)
 
 plan = engine.build()       # без записи
@@ -648,10 +648,10 @@ report.timings: dict[str, int]
 ## Исключения
 
 - `EggpipeError` — базовая ошибка библиотеки.
-- `DocumentError` — YAML/модель/формат; несёт `code` (`MGxxx`).
+- `DocumentError` — YAML/модель/формат; несёт `code` (`EGxxx`).
 - `ConfigValidationError` — конфиг/usage.
 - `FormatConflictError`, `FormatInheritanceError`, `UnknownFormatError`.
-- `PluginContractError` — MG301/MG302.
+- `PluginContractError` — EG301/EG302.
 - `ArtifactPathError`, `ManifestError`, `LockError`.
 
 Ошибки генераторов не выбрасываются наружу: они попадают в `GenerationResult.errors`
@@ -692,7 +692,7 @@ def my_generator(
 - `name` опционален.
 - `api_version` по умолчанию `"1"`.
 - Аннотации инжектируются: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
-  Неизвестная аннотация — MG302.
+  Неизвестная аннотация — EG302.
 - Возврат: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`.
 - Entry point указывает на декорированную функцию:
 
@@ -742,12 +742,12 @@ GeneratorInput(
 - `Artifact.content` — `str`, UTF-8, LF, без BOM.
 - Ошибки/warnings — `Diagnostic`.
 - Если `errors` непустой, артефакты этого генератора отбрасываются.
-- Исключение ловится ядром и превращается в MG300; остальные генераторы продолжаются.
+- Исключение ловится ядром и превращается в EG300; остальные генераторы продолжаются.
 
 ## Совместимость форматов
 
 Ядро проверяет каждую сущность среза против `input_formats` до `validate_config()` и
-`generate()`. Несовместимость — MG033, exit 2, pre-flight ошибка всего запуска.
+`generate()`. Несовместимость — EG033, exit 2, pre-flight ошибка всего запуска.
 
 `{"entity-model"}` принимает сам `entity-model` и всех его наследников.
 
@@ -806,8 +806,8 @@ class PostgresFormat(EntityModelFormat):
 - Версии форматов независимы.
 - `base_versions[B_version] = A_version`.
 - Нет `version` в YAML — берётся последняя из `supported_versions`.
-- Цикл/глубина > 10, неверная база, конфликт схем/примитивов — MG034.
-- Неизвестная версия — MG008.
+- Цикл/глубина > 10, неверная база, конфликт схем/примитивов — EG034.
+- Неизвестная версия — EG008.
 - `entity-model` зарезервирован.
 
 ## Entry point
@@ -899,4 +899,4 @@ FieldDef(
 ## Инъекция
 
 В `@generator` можно принимать только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
-Другие типы дают MG302.
+Другие типы дают EG302.

@@ -1,4 +1,4 @@
-"""Формирование замкнутого среза модели."""
+"""Build a closed model slice."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def select_slice(
     model: SourceModel,
     selection: InputSelection | None = None,
 ) -> tuple[ModelSlice, list[Diagnostic]]:
-    """Выбрать подмножество и добавить транзитивное замыкание по enums/types."""
+    """Select a subset and add the transitive closure over enums/types."""
     if selection is None:
         return (
             ModelSlice(
@@ -85,7 +85,7 @@ def _requested(
     for name in requested:
         if name not in available_set:
             diagnostics.append(
-                error("MG018", f"неизвестное имя в input.{label}: {name}", path=f"input.{label}")
+                error("EG018", f"unknown name in input.{label}: {name}", path=f"input.{label}")
             )
     return set(requested)
 

@@ -1,4 +1,4 @@
-"""Golden и contract-проверки TPC-H example."""
+"""Golden and contract checks for the TPC-H example."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from tpch_generator import (
 from eggpipe import (
     AppConfig,
     Engine,
-    GeneratorRulesLoader,
     Parser,
+    ProjectConfigLoader,
 )
 
 ROOT = Path(__file__).parents[1]
@@ -25,7 +25,7 @@ EXPECTED = EXAMPLE / "expected"
 def test_tpch_single_generator_golden(tmp_path: Path) -> None:
     engine = Engine(
         AppConfig(output_root=tmp_path),
-        GeneratorRulesLoader().load(EXAMPLE / ".eggpipe.yaml"),
+        ProjectConfigLoader().load(EXAMPLE / ".eggpipe.yaml"),
         config_dir=EXAMPLE,
         generators={"tpch": TpchGenerator()},
     )
@@ -42,7 +42,7 @@ def test_tpch_single_generator_golden(tmp_path: Path) -> None:
 def test_tpch_split_generators_golden(tmp_path: Path) -> None:
     engine = Engine(
         AppConfig(output_root=tmp_path),
-        GeneratorRulesLoader().load(EXAMPLE / ".eggpipe.split.yaml"),
+        ProjectConfigLoader().load(EXAMPLE / ".eggpipe.split.yaml"),
         config_dir=EXAMPLE,
         generators={
             "tpch-ddl": TpchDdlGenerator(),

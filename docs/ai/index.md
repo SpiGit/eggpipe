@@ -8,7 +8,7 @@
 - [llms.txt](llms.txt) — краткий индекс для LLM (plain text).
 - [llms-full.txt](llms-full.txt) — полный контекст одним файлом.
 - [manifest.json](manifest.json) — карта документов, API и команд.
-- [diagnostics.json](diagnostics.json) — машиночитаемый каталог MGxxx.
+- [diagnostics.json](diagnostics.json) — машиночитаемый каталог EGxxx.
 - [schemas/](schemas/model.schema.json) — JSON Schema модели, конфига, отчёта и manifest.
 
 Пересборка:

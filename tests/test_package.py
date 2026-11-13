@@ -1,4 +1,4 @@
-"""Smoke-тесты публичного API."""
+"""Public API smoke tests."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import eggpipe
 
 
 def test_version() -> None:
-    assert eggpipe.__version__ == "0.1.0"
+    assert eggpipe.__version__ == "0.3.0"
 
 
 def test_public_api_exports_core_models() -> None:

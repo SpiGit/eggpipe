@@ -1,4 +1,4 @@
-"""Реестр форматов документов."""
+"""Document format registry."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ class _FormatContract:
 
 
 class FormatRegistry:
-    """Встроенный entity-model и форматы от плагинов."""
+    """Built-in entity-model plus formats from plugins."""
 
     def __init__(self, *, include_builtin: bool = True) -> None:
         self._formats: dict[str, _FormatContract] = {}
@@ -53,10 +53,10 @@ class FormatRegistry:
         for name in contract.names:
             if name == "entity-model" and not isinstance(plugin, EntityModelFormat):
                 raise FormatConflictError(
-                    "entity-model зарезервирован ядром и не может быть переопределён"
+                    "entity-model is reserved by the core and cannot be overridden"
                 )
             if name in self._formats:
-                raise FormatConflictError(f"формат уже зарегистрирован: {name}")
+                raise FormatConflictError(f"format is already registered: {name}")
         for name in contract.names:
             self._formats[name] = contract
         self._validated = False
@@ -66,10 +66,10 @@ class FormatRegistry:
         try:
             return self._formats[name].plugin
         except KeyError as exc:
-            raise UnknownFormatError(f"неизвестный формат: {name}") from exc
+            raise UnknownFormatError(f"unknown format: {name}") from exc
 
     def accepts(self, format_name: str, accepted: set[str] | None) -> bool:
-        """Проверить формат с учётом цепочки extends."""
+        """Check a format, following the extends chain."""
         if accepted is None:
             return True
         self.validate()
@@ -109,7 +109,7 @@ class FormatRegistry:
         parent = self._formats.get(contract.extends or "")
         if parent is None:
             raise FormatInheritanceError(
-                f"{contract.name}: неизвестный базовый формат {contract.extends!r}"
+                f"{contract.name}: unknown base format {contract.extends!r}"
             )
 
         seen: set[int] = set()
@@ -117,37 +117,37 @@ class FormatRegistry:
         depth = 0
         while current is not None and current.extends is not None:
             if id(current) in seen:
-                raise FormatInheritanceError(f"{contract.name}: цикл наследования форматов")
+                raise FormatInheritanceError(f"{contract.name}: format inheritance cycle")
             seen.add(id(current))
             current = self._formats.get(current.extends)
             if current is None:
                 raise FormatInheritanceError(
-                    f"{contract.name}: неизвестный базовый формат {contract.extends!r}"
+                    f"{contract.name}: unknown base format {contract.extends!r}"
                 )
             depth += 1
             if depth > MAX_FORMAT_DEPTH:
                 raise FormatInheritanceError(
-                    f"{contract.name}: глубина наследования больше {MAX_FORMAT_DEPTH}"
+                    f"{contract.name}: inheritance depth exceeds {MAX_FORMAT_DEPTH}"
                 )
 
         for version in contract.versions:
             base_version = contract.base_versions[version]
             if base_version not in parent.versions:
                 raise FormatInheritanceError(
-                    f"{contract.name} {version}: базовая версия {base_version} не "
-                    f"поддерживается {contract.extends}"
+                    f"{contract.name} {version}: base version {base_version} is not "
+                    f"supported by {contract.extends}"
                 )
             own_schema = contract.schemas[version]
             parent_schema = parent.schemas[base_version]
             if not issubclass(own_schema.full_entity, parent_schema.full_entity):
                 raise FormatInheritanceError(
-                    f"{contract.name} {version}: full_entity должен наследовать "
+                    f"{contract.name} {version}: full_entity must inherit "
                     f"full_entity {contract.extends} {base_version}"
                 )
         missing = set(parent.primitives) - set(contract.primitives)
         if missing:
             raise FormatInheritanceError(
-                f"{contract.name}: primitive_types должен включать примитивы "
+                f"{contract.name}: primitive_types must include the primitives of "
                 f"{contract.extends}: {', '.join(sorted(missing))}"
             )
 
@@ -155,66 +155,62 @@ class FormatRegistry:
 def _contract(plugin: FormatPlugin) -> _FormatContract:
     names = getattr(plugin, "format_names", None)
     if not isinstance(names, list) or not names:
-        raise FormatInheritanceError("format_names должен быть непустым списком")
+        raise FormatInheritanceError("format_names must be a non-empty list")
     if len(set(names)) != len(names):
-        raise FormatInheritanceError("format_names содержит дубликаты")
+        raise FormatInheritanceError("format_names contains duplicates")
     if any(not isinstance(name, str) or not name for name in names):
-        raise FormatInheritanceError("format_names должен содержать строки")
+        raise FormatInheritanceError("format_names must contain strings")
 
     versions = getattr(plugin, "supported_versions", None)
     if not isinstance(versions, list) or not versions:
-        raise FormatInheritanceError(f"{names[0]}: supported_versions должен быть непустым списком")
+        raise FormatInheritanceError(f"{names[0]}: supported_versions must be a non-empty list")
     if any(not isinstance(version, str) or not version for version in versions):
-        raise FormatInheritanceError(f"{names[0]}: supported_versions должен содержать строки")
+        raise FormatInheritanceError(f"{names[0]}: supported_versions must contain strings")
     if len(set(versions)) != len(versions):
-        raise FormatInheritanceError(f"{names[0]}: supported_versions содержит дубликаты")
+        raise FormatInheritanceError(f"{names[0]}: supported_versions contains duplicates")
 
     schemas = getattr(plugin, "schemas", None)
     if not isinstance(schemas, dict):
-        raise FormatInheritanceError(f"{names[0]}: schemas должен быть словарём")
+        raise FormatInheritanceError(f"{names[0]}: schemas must be a mapping")
     if set(schemas) != set(versions):
-        raise FormatInheritanceError(
-            f"{names[0]}: ключи schemas должны совпадать с supported_versions"
-        )
+        raise FormatInheritanceError(f"{names[0]}: schemas keys must match supported_versions")
     for version in versions:
         schema = schemas[version]
         if not isinstance(schema, FormatSchema):
-            raise FormatInheritanceError(
-                f"{names[0]}: schemas[{version!r}] должен быть FormatSchema"
-            )
+            raise FormatInheritanceError(f"{names[0]}: schemas[{version!r}] must be a FormatSchema")
         if not _is_model(schema.layer_entity):
             raise FormatInheritanceError(
-                f"{names[0]}: schemas[{version!r}].layer_entity должен быть BaseModel"
+                f"{names[0]}: schemas[{version!r}].layer_entity must be a BaseModel"
             )
         if not _is_model(schema.full_entity):
             raise FormatInheritanceError(
-                f"{names[0]}: schemas[{version!r}].full_entity должен быть BaseModel"
+                f"{names[0]}: schemas[{version!r}].full_entity must be a BaseModel"
             )
 
     primitives = getattr(plugin, "primitive_types", None)
     if not isinstance(primitives, (set, frozenset)) or any(
         not isinstance(item, str) for item in primitives
     ):
-        raise FormatInheritanceError(f"{names[0]}: primitive_types должен быть множеством строк")
+        raise FormatInheritanceError(f"{names[0]}: primitive_types must be a set of strings")
 
     extends = getattr(plugin, "extends", None)
     if extends is not None and (not isinstance(extends, str) or not extends):
-        raise FormatInheritanceError(f"{names[0]}: extends должен быть непустой строкой")
+        raise FormatInheritanceError(f"{names[0]}: extends must be a non-empty string")
     base_versions = getattr(plugin, "base_versions", None)
     if not isinstance(base_versions, dict):
-        raise FormatInheritanceError(f"{names[0]}: base_versions должен быть словарём")
+        raise FormatInheritanceError(f"{names[0]}: base_versions must be a mapping")
     if extends is None:
         if base_versions:
-            raise FormatInheritanceError(f"{names[0]}: base_versions допустим только при extends")
+            raise FormatInheritanceError(f"{names[0]}: base_versions is only allowed with extends")
     else:
         if extends in names:
-            raise FormatInheritanceError(f"{names[0]}: формат не может наследовать сам себя")
+            raise FormatInheritanceError(f"{names[0]}: a format cannot extend itself")
         if set(base_versions) != set(versions):
             raise FormatInheritanceError(
-                f"{names[0]}: base_versions должен содержать запись для каждой версии"
+                f"{names[0]}: base_versions must contain an entry for every version"
             )
         if any(not isinstance(value, str) or not value for value in base_versions.values()):
-            raise FormatInheritanceError(f"{names[0]}: версии в base_versions должны быть строками")
+            raise FormatInheritanceError(f"{names[0]}: versions in base_versions must be strings")
 
     return _FormatContract(
         plugin=plugin,

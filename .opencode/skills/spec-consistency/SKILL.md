@@ -1,6 +1,6 @@
 ---
 name: spec-consistency
-description: Проверка согласованности документов Eggpipe — термины, контракты, коды MGxxx, CLI и версии
+description: Проверка согласованности документов Eggpipe — термины, контракты, коды EGxxx, CLI и версии
 ---
 
 # Проверка согласованности документации
@@ -39,11 +39,11 @@ description: Проверка согласованности документо�
 ### Композиция и срезы
 
 - [ ] `sources[].input` фильтрует свой source; `generators[].input` применяется к union.
-- [ ] Финальный срез замыкается по enums/types; неизвестное имя — `MG018`.
+- [ ] Финальный срез замыкается по enums/types; неизвестное имя — `EG018`.
 - [ ] Импорты ограничены project root; есть `--allow-outside-imports`.
 - [ ] Discovery: `**/*.yaml` и `**/*.yml`, лексикографический порядок; пропускаются скрытые
       файлы/каталоги, `.git`, `.eggpipe`, `__pycache__`, `.venv`, `node_modules` и все `output_dir`.
-- [ ] Дубли resolved-путей обрабатываются один раз (`MG024`).
+- [ ] Дубли resolved-путей обрабатываются один раз (`EG024`).
 
 ### CLI и диагностика
 
@@ -53,18 +53,18 @@ description: Проверка согласованности документо�
       `--ignore`, `--show-secrets`.
 - [ ] `--format` не существует как имя CLI-флага; вывод управляется `--output-format`.
 - [ ] Exit codes: 0 — успех, 1 — errors/drift/strict, 2 — config/usage, 130 — Ctrl+C.
-- [ ] Коды `MGxxx` не переиспользованы; диапазоны §9.3 соответствуют фактическим кодам §9.1.
+- [ ] Коды `EGxxx` не переиспользованы; диапазоны §9.3 соответствуют фактическим кодам §9.1.
 - [ ] `--plan`/`--dry-run` не создают каталоги и не берут write-lock; `--check` не пишет файлы
       и не обновляет манифест.
 
 ### Запись артефактов
 
-- [ ] Ownership: перезапись и удаление только owned-файлов; чужие — `MG041` / `--force`.
+- [ ] Ownership: перезапись и удаление только owned-файлов; чужие — `EG041` / `--force`.
 - [ ] Manifest: глобальный `.eggpipe/manifest.json`, locations `(generator, output_dir)`.
-- [ ] `on_conflict: overwrite | skip | error`; `skip` не захватывает чужие файлы (`MG043`).
+- [ ] `on_conflict: overwrite | skip | error`; `skip` не захватывает чужие файлы (`EG043`).
 - [ ] `cleanup` по умолчанию `off`; удаляются только неизменённые owned-файлы.
 - [ ] `skipped: true` не удаляется; failed generator не управляет cleanup.
-- [ ] Валидация путей: POSIX, без `..`, NUL, backslash, reserved names; NFC; symlink (`MG040`).
+- [ ] Валидация путей: POSIX, без `..`, NUL, backslash, reserved names; NFC; symlink (`EG040`).
 
 ### Версии и статусы
 
@@ -85,7 +85,7 @@ description: Проверка согласованности документо�
 - `required_by_default` — не должно быть нигде, кроме истории.
 - `Field`/`Enum` без суффикса `Def` — только в исторических версиях и changelog.
 - `--format` — только как часть `--output-format`; отдельного флага быть не должно.
-- `MGxxx` — каждый код должен иметь один смысл; диапазоны — см. примечание в чек-листе.
+- `EGxxx` — каждый код должен иметь один смысл; диапазоны — см. примечание в чек-листе.
 - `v1.x` — сверь статусы в `docs/engineering/requirements/index.md` с README и System Design.
 
 ## Формат отчёта

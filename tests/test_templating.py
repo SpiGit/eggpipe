@@ -1,4 +1,4 @@
-"""Тесты опционального Jinja2-helper."""
+"""Tests for the optional Jinja2 helper."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def test_templates_dir_relative_to_config_dir(tmp_path: Path) -> None:
 
 
 def test_missing_templates_dir(tmp_path: Path) -> None:
-    with pytest.raises(TemplateError, match="каталог шаблонов не найден"):
+    with pytest.raises(TemplateError, match="template directory not found"):
         jinja_environment(templates_dir=tmp_path / "missing")
 
 
@@ -55,7 +55,7 @@ def test_undefined_variable_is_error(tmp_path: Path) -> None:
 
 
 def test_requires_loader_source() -> None:
-    with pytest.raises(TemplateError, match="package или templates_dir"):
+    with pytest.raises(TemplateError, match="package or templates_dir"):
         jinja_environment()
 
 

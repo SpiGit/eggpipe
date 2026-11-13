@@ -1,4 +1,4 @@
-"""Тесты срезов модели."""
+"""Tests for model slices."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def test_unknown_names() -> None:
         build_model(), InputSelection(entities=("Missing",), enums=("Nope",))
     )
     assert result.entities == ()
-    assert {item.code for item in diagnostics} == {"MG018"}
+    assert {item.code for item in diagnostics} == {"EG018"}
 
 
 def test_custom_type_closure() -> None:

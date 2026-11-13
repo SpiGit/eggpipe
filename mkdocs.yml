@@ -35,6 +35,7 @@ nav:
       - Engineering home: engineering/index.md
       - Требования:
           - Обзор: engineering/requirements/index.md
+          - v2.2: engineering/requirements/v2.2.md
           - v2.1: engineering/requirements/v2.1.md
           - v2.0: engineering/requirements/v2.0.md
           - v1.4: engineering/requirements/v1.4.md
@@ -56,8 +57,11 @@ nav:
           - 0009 — global manifest: engineering/adr/0009-global-manifest-ownership.md
           - 0010 — generator decorators: engineering/adr/0010-decorator-generator-api.md
           - 0011 — public API and identity: engineering/adr/0011-public-api-v2-identity.md
+          - 0012 — English-only source: engineering/adr/0012-english-only-source.md
+          - 0013 — diagnostic code namespace: engineering/adr/0013-diagnostic-code-namespace.md
       - План v2.0: engineering/plan-v2.md
       - Релиз: engineering/release.md
+      - Translation memory: engineering/i18n/README.md
       - Решения: engineering/decisions/eggpipe.md
       - Ревью v2.0: engineering/reviews/2026-11-12-v2-review.md
       - Code quality review: engineering/reviews/2026-11-13-code-quality-review.md

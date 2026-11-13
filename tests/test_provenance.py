@@ -1,4 +1,4 @@
-"""Тесты provenance."""
+"""Tests for provenance."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import pytest
 
 from eggpipe import git_provenance
 
-pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git не установлен")
+pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
 
 
 def test_git_provenance(tmp_path: Path) -> None:

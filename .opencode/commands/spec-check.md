@@ -20,7 +20,7 @@ agent: spec-reviewer
 
 1. Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `FieldDef`, `EnumDef`, `UNSET`.
 2. Публичный API и контракты плагинов (список из ТЗ §6.2, System Design §2).
-3. Диагностические коды `MGxxx`, их диапазоны и смысл.
+3. Диагностические коды `EGxxx`, их диапазоны и смысл.
 4. CLI-команды, флаги и exit codes (0 / 1 / 2 / 130).
 5. Правила путей, ownership, manifest и cleanup.
 6. Версии и статусы в `docs/engineering/requirements/index.md` и README.

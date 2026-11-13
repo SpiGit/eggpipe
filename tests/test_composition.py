@@ -1,4 +1,4 @@
-"""Тесты композиции imports/extends."""
+"""Tests for imports/extends composition."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import pytest
 from eggpipe import (
     Composition,
     GeneratorConfig,
-    GeneratorRules,
     InputSelection,
     Parser,
+    ProjectConfig,
     SourceConfig,
 )
 from eggpipe.core.discovery import SourceGroup, discover_sources
@@ -113,7 +113,7 @@ def test_cycle_and_outside_root(tmp_path: Path) -> None:
     write(tmp_path / "b.yaml", doc("  imports:\n    - path: ./a.yaml\n"))
     with pytest.raises(DocumentError) as cycle:
         Composition(Parser(), project_root=tmp_path).resolve([a])
-    assert cycle.value.code == "MG006"
+    assert cycle.value.code == "EG006"
 
     outside = write(tmp_path.parent / "outside.yaml", doc("  entities: []\n"))
     root = write(
@@ -122,7 +122,7 @@ def test_cycle_and_outside_root(tmp_path: Path) -> None:
     )
     with pytest.raises(DocumentError) as escaped:
         Composition(Parser(), project_root=tmp_path).resolve([root])
-    assert escaped.value.code == "MG022"
+    assert escaped.value.code == "EG022"
 
 
 def test_duplicate_names(tmp_path: Path) -> None:
@@ -134,7 +134,7 @@ def test_duplicate_names(tmp_path: Path) -> None:
     )
     with pytest.raises(DocumentError) as error:
         Composition(Parser(), project_root=tmp_path).resolve([main])
-    assert error.value.code == "MG002"
+    assert error.value.code == "EG002"
 
 
 def test_ambiguous_short_extends(tmp_path: Path) -> None:
@@ -155,7 +155,7 @@ def test_ambiguous_short_extends(tmp_path: Path) -> None:
     )
     with pytest.raises(DocumentError) as error:
         Composition(Parser(), project_root=tmp_path).resolve([main])
-    assert error.value.code == "MG009"
+    assert error.value.code == "EG009"
 
 
 def test_discover_directory_and_skip_output(tmp_path: Path) -> None:
@@ -164,7 +164,7 @@ def test_discover_directory_and_skip_output(tmp_path: Path) -> None:
     write(models / "a.yaml", doc("  entities:\n    - name: A\n"))
     write(models / ".hidden.yaml", doc("  entities:\n    - name: Hidden\n"))
     write(models / "out" / "generated.yaml", doc("  entities:\n    - name: Generated\n"))
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(SourceConfig(path=Path("models"), layout="file-per-model", files=("*.yaml",)),),
         generators=(GeneratorConfig(id="demo", output_dir=Path("models/out")),),
@@ -207,4 +207,4 @@ def test_source_input_unknown_name(tmp_path: Path) -> None:
         [main],
         [SourceGroup(paths=(main,), input=InputSelection(entities=("Missing",)))],
     )
-    assert result.diagnostics[0].code == "MG018"
+    assert result.diagnostics[0].code == "EG018"

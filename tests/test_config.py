@@ -1,4 +1,4 @@
-"""Тесты .eggpipe.yaml."""
+"""Tests for .eggpipe.yaml."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 
 from eggpipe import (
     ConfigValidationError,
-    GeneratorRulesLoader,
+    ProjectConfigLoader,
 )
 
 RULES = """\
@@ -29,7 +29,7 @@ generators:
 def test_load_rules(tmp_path: Path) -> None:
     path = tmp_path / ".eggpipe.yaml"
     path.write_text(RULES, encoding="utf-8")
-    rules = GeneratorRulesLoader().load(path)
+    rules = ProjectConfigLoader().load(path)
     assert rules.version == "1.0"
     assert rules.variables["env"] == "dev"
     assert rules.generators[0].id == "demo"
@@ -40,14 +40,14 @@ def test_absolute_output_dir_is_rejected(tmp_path: Path) -> None:
     path = tmp_path / ".eggpipe.yaml"
     path.write_text(RULES.replace("./out", "/tmp/out"), encoding="utf-8")
     with pytest.raises(ConfigValidationError):
-        GeneratorRulesLoader().load(path)
+        ProjectConfigLoader().load(path)
 
 
 def test_unknown_version_is_rejected(tmp_path: Path) -> None:
     path = tmp_path / ".eggpipe.yaml"
     path.write_text(RULES.replace('"1.0"', '"2.0"'), encoding="utf-8")
     with pytest.raises(ConfigValidationError):
-        GeneratorRulesLoader().load(path)
+        ProjectConfigLoader().load(path)
 
 
 def test_discover(tmp_path: Path) -> None:
@@ -55,7 +55,7 @@ def test_discover(tmp_path: Path) -> None:
     path.write_text(RULES, encoding="utf-8")
     nested = tmp_path / "a" / "b"
     nested.mkdir(parents=True)
-    assert GeneratorRulesLoader.discover(nested) == path
+    assert ProjectConfigLoader.discover(nested) == path
 
 
 def test_source_layout_rules() -> None:

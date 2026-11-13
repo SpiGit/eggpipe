@@ -71,4 +71,4 @@ FieldDef(
 ## Инъекция
 
 В `@generator` можно принимать только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
-Другие типы дают MG302.
+Другие типы дают EG302.

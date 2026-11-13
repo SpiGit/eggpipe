@@ -4,7 +4,7 @@
 
 ## Добавить генератор
 
-1. Прочитать `docs/engineering/requirements/v2.1.md` §6.1 и `docs/user/plugins.md`.
+1. Прочитать `docs/engineering/requirements/v2.2.md` §6.1 и `docs/user/plugins.md`.
 2. Создать функцию с `@generator(id=..., input_formats=...)`.
 3. Аннотировать аргументы только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
 4. Вернуть `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]` или `GenerationResult`.
@@ -19,13 +19,13 @@
 3. Задать `format_names`, `supported_versions`, `extends`, `base_versions`,
    `primitive_types`, `schemas`.
 4. Реализовать `parse_extensions`/`validate_extensions`, если нужны дополнительные поля.
-5. Добавить тесты наследования, версий, latest-версии и MG034.
-6. Проверить mixed formats и `input_formats` генератора (MG033).
+5. Добавить тесты наследования, версий, latest-версии и EG034.
+6. Проверить mixed formats и `input_formats` генератора (EG033).
 
 ## Разобрать диагностику
 
 1. Найти код в `docs/user/reference/diagnostics.md`.
-2. Найти место эмиссии: `rg "MG0xx"`.
+2. Найти место эмиссии: `rg "EG0xx"`.
 3. Исправить причину, а не подавлять ошибку.
 4. `ignore` применять только к warnings; errors не игнорируются.
 5. Добавить регрессионный тест.

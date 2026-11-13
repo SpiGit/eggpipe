@@ -1,4 +1,4 @@
-"""Контракты генераторов."""
+"""Generator contracts."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Any, ClassVar, Literal, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from eggpipe.config.generator_rules import GeneratorConfig
+from eggpipe.config.project_config import GeneratorConfig
 from eggpipe.core.model import FormatInfo, ModelSlice
 from eggpipe.core.naming import NamingStyle
 from eggpipe.interfaces.diagnostics import Diagnostic
@@ -82,7 +82,7 @@ class GeneratorPlugin(ABC):
 
     @abstractmethod
     def generate(self, input: GeneratorInput) -> GenerationResult:
-        """Сгенерировать артефакты, не записывая файлы."""
+        """Generate artifacts without writing files."""
 
     def validate_config(self, config: GeneratorConfig) -> list[Diagnostic]:
         return []
@@ -98,18 +98,18 @@ def generator(
     input_formats: set[str] | None,
     api_version: Literal["1"] = "1",
 ) -> Callable[[Callable[..., Any]], type[GeneratorPlugin]]:
-    """Объявить генератор функцией; создаёт класс-адаптер GeneratorPlugin."""
+    """Declare a generator as a function; creates a GeneratorPlugin adapter class."""
     if input_formats is not None and (
         not isinstance(input_formats, set)
         or any(not isinstance(item, str) or not item for item in input_formats)
     ):
-        raise PluginContractError("MG301", "input_formats должен быть set[str] или None")
+        raise PluginContractError("EG301", "input_formats must be set[str] or None")
     formats = set(input_formats) if input_formats is not None else None
 
     def decorate(function: Callable[..., Any]) -> type[GeneratorPlugin]:
         generator_id = id or function.__name__.lower().replace("_", "-")
         if not re.fullmatch(r"^[a-z][a-z0-9-]*$", generator_id):
-            raise PluginContractError("MG301", f"некорректный id генератора: {generator_id!r}")
+            raise PluginContractError("EG301", f"invalid generator id: {generator_id!r}")
         generator_name = name or function.__name__.replace("_", " ").title()
         adapter_version = api_version
         adapter_formats = formats
@@ -136,15 +136,15 @@ def validate_generator_contract(plugin: GeneratorPlugin) -> None:
     plugin_type = type(plugin)
     plugin_id = getattr(plugin_type, "id", None)
     if not isinstance(plugin_id, str) or not re.fullmatch(r"^[a-z][a-z0-9-]*$", plugin_id):
-        raise PluginContractError("MG301", f"некорректный id генератора: {plugin_id!r}")
+        raise PluginContractError("EG301", f"invalid generator id: {plugin_id!r}")
     if not hasattr(plugin_type, "input_formats"):
-        raise PluginContractError("MG301", "input_formats обязателен")
+        raise PluginContractError("EG301", "input_formats is required")
     formats = plugin_type.input_formats
     if formats is not None and (
         not isinstance(formats, set)
         or any(not isinstance(item, str) or not item for item in formats)
     ):
-        raise PluginContractError("MG301", "input_formats должен быть set[str] или None")
+        raise PluginContractError("EG301", "input_formats must be set[str] or None")
     function = getattr(plugin_type, "_function", None)
     if function is not None:
         validate_generator_function(function)
@@ -155,30 +155,30 @@ def validate_generator_function(function: Callable[..., Any]) -> None:
         hints = get_type_hints(function)
         signature = inspect.signature(function)
     except (NameError, TypeError) as exc:
-        raise PluginContractError("MG301", f"не удалось прочитать сигнатуру: {exc}") from exc
+        raise PluginContractError("EG301", f"failed to read the signature: {exc}") from exc
 
     injected: set[type[Any]] = set()
     for parameter in signature.parameters.values():
         if parameter.kind in (parameter.VAR_POSITIONAL, parameter.VAR_KEYWORD):
-            raise PluginContractError("MG301", "*args/**kwargs не поддерживаются")
+            raise PluginContractError("EG301", "*args/**kwargs are not supported")
         hint = hints.get(parameter.name)
         if hint is None:
             raise PluginContractError(
-                "MG301",
-                f"у параметра {parameter.name} нет аннотации",
+                "EG301",
+                f"parameter {parameter.name} has no annotation",
             )
         if hint not in _INJECTABLE:
             raise PluginContractError(
-                "MG302",
-                f"неизвестный инжектируемый параметр {parameter.name}: {hint!r}",
+                "EG302",
+                f"unknown injectable parameter {parameter.name}: {hint!r}",
             )
         if hint in injected:
-            raise PluginContractError("MG301", f"повторная инъекция {hint.__name__}")
+            raise PluginContractError("EG301", f"duplicate injection of {hint.__name__}")
         injected.add(hint)
 
     result_hint = hints.get("return")
     if not _is_valid_return_hint(result_hint):
-        raise PluginContractError("MG301", f"недопустимый return type: {result_hint!r}")
+        raise PluginContractError("EG301", f"invalid return type: {result_hint!r}")
 
 
 def _invoke_generator(function: Callable[..., Any], input: GeneratorInput) -> Any:
@@ -208,8 +208,8 @@ def _normalize_generation_result(value: Any) -> GenerationResult:
     if isinstance(value, (list, tuple)) and all(isinstance(item, Artifact) for item in value):
         return GenerationResult(artifacts=list(value))
     raise PluginContractError(
-        "MG301",
-        f"недопустимый return type: {type(value).__name__}",
+        "EG301",
+        f"invalid return type: {type(value).__name__}",
     )
 
 

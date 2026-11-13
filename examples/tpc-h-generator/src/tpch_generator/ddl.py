@@ -1,4 +1,4 @@
-"""Подготовка данных TPC-H для Jinja2-шаблона PostgreSQL DDL."""
+"""Prepare TPC-H data for the PostgreSQL DDL Jinja2 template."""
 
 from __future__ import annotations
 

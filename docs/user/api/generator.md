@@ -23,7 +23,7 @@ def my_generator(
 - `name` опционален.
 - `api_version` по умолчанию `"1"`.
 - Аннотации инжектируются: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
-  Неизвестная аннотация — MG302.
+  Неизвестная аннотация — EG302.
 - Возврат: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`.
 - Entry point указывает на декорированную функцию:
 
@@ -73,11 +73,11 @@ GeneratorInput(
 - `Artifact.content` — `str`, UTF-8, LF, без BOM.
 - Ошибки/warnings — `Diagnostic`.
 - Если `errors` непустой, артефакты этого генератора отбрасываются.
-- Исключение ловится ядром и превращается в MG300; остальные генераторы продолжаются.
+- Исключение ловится ядром и превращается в EG300; остальные генераторы продолжаются.
 
 ## Совместимость форматов
 
 Ядро проверяет каждую сущность среза против `input_formats` до `validate_config()` и
-`generate()`. Несовместимость — MG033, exit 2, pre-flight ошибка всего запуска.
+`generate()`. Несовместимость — EG033, exit 2, pre-flight ошибка всего запуска.
 
 `{"entity-model"}` принимает сам `entity-model` и всех его наследников.

@@ -1,4 +1,4 @@
-"""Тесты загрузчика генераторов."""
+"""Tests for the generator loader."""
 
 from __future__ import annotations
 
@@ -128,7 +128,7 @@ def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
     plugins, issues = plugin_loader.load_generators_with_issues()
     assert plugins == {}
-    assert issues[0].code == "MG301"
+    assert issues[0].code == "EG301"
 
 
 def test_load_formats_and_registry(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -187,4 +187,4 @@ def test_load_local_generators_reports_import_error(tmp_path: Path) -> None:
     plugins, issues = plugin_loader.load_local_generators_with_issues([module])
     assert plugins == {}
     assert issues[0].entry_point == str(module)
-    assert "не удалось импортировать" in issues[0].message
+    assert "failed to import" in issues[0].message

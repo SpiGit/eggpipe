@@ -1,4 +1,4 @@
-"""Watch-режим с lazy-import watchdog."""
+"""Watch mode with a lazily imported watchdog."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ from typing import Any
 
 from typing_extensions import override
 
+from eggpipe.core.paths import is_ignored_part
 from eggpipe.utils.exceptions import ConfigValidationError
 
-IGNORED_PARTS = {".git", ".eggpipe", "__pycache__", ".venv", "node_modules"}
 LOGGER = logging.getLogger(__name__)
 
 
@@ -22,7 +22,7 @@ def should_ignore(path: Path, ignored_dirs: set[Path], *, allow: set[Path]) -> b
     resolved = path.resolve()
     if resolved in allow:
         return False
-    if any(part in IGNORED_PARTS or part.startswith(".") for part in resolved.parts):
+    if any(is_ignored_part(part) for part in resolved.parts):
         return True
     return any(
         resolved == directory or resolved.is_relative_to(directory) for directory in ignored_dirs
@@ -53,7 +53,7 @@ class _Debouncer:
             self._running = True
         try:
             self._callback()
-        except Exception:  # watch не должен падать от одной ошибки
+        except Exception:  # watch mode must survive a single error
             LOGGER.exception("watch generation failed")
         finally:
             with self._lock:
@@ -82,7 +82,7 @@ class WatchRunner:
             from watchdog.observers import Observer
         except ImportError as exc:
             raise ConfigValidationError(
-                "watchdog не установлен; используйте pip install 'eggpipe[watch]'"
+                "watchdog is not installed; run pip install 'eggpipe[watch]'"
             ) from exc
 
         handler = _make_handler(self)

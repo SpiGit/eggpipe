@@ -1,4 +1,4 @@
-"""Тесты YAML-парсера и entity-model."""
+"""Tests for the YAML parser and entity-model."""
 
 from __future__ import annotations
 
@@ -64,11 +64,11 @@ def test_numeric_version_is_normalized(tmp_path: Path) -> None:
 
 
 def test_missing_format(tmp_path: Path) -> None:
-    assert code(write(tmp_path, VALID.replace("format: entity-model\n", ""))) == "MG007"
+    assert code(write(tmp_path, VALID.replace("format: entity-model\n", ""))) == "EG007"
 
 
 def test_unknown_format(tmp_path: Path) -> None:
-    assert code(write(tmp_path, VALID.replace("entity-model", "unknown"))) == "MG007"
+    assert code(write(tmp_path, VALID.replace("entity-model", "unknown"))) == "EG007"
 
 
 def test_missing_version_uses_latest(tmp_path: Path) -> None:
@@ -78,25 +78,25 @@ def test_missing_version_uses_latest(tmp_path: Path) -> None:
 
 def test_invalid_version_type(tmp_path: Path) -> None:
     path = write(tmp_path, VALID.replace('version: "1.0"', "version: true"))
-    assert code(path) == "MG008"
+    assert code(path) == "EG008"
 
 
 def test_unsupported_version(tmp_path: Path) -> None:
-    assert code(write(tmp_path, VALID.replace('"1.0"', '"2.0"'))) == "MG008"
+    assert code(write(tmp_path, VALID.replace('"1.0"', '"2.0"'))) == "EG008"
 
 
 def test_duplicate_keys(tmp_path: Path) -> None:
     text = VALID + "  name: Other\n"
-    assert code(write(tmp_path, text)) == "MG000"
+    assert code(write(tmp_path, text)) == "EG000"
 
 
 def test_multiple_documents(tmp_path: Path) -> None:
     text = VALID + "---\nmodel: {}\n"
-    assert code(write(tmp_path, text)) == "MG000"
+    assert code(write(tmp_path, text)) == "EG000"
 
 
 def test_non_mapping_root(tmp_path: Path) -> None:
-    assert code(write(tmp_path, "- item\n")) == "MG000"
+    assert code(write(tmp_path, "- item\n")) == "EG000"
 
 
 def test_imports_are_parsed(tmp_path: Path) -> None:

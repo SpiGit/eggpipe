@@ -5,15 +5,26 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-13
+
 ### Changed
 
+- ТЗ v2.2: English-only source code, comments, docstrings, CLI help и diagnostics.
+- Диагностические коды `MGxxx` → `EGxxx`; номера сохранены (ADR-0013).
+- `GeneratorRules`/`GeneratorRulesLoader` → `ProjectConfig`/`ProjectConfigLoader`;
+  `config/generator_rules.py` → `config/project_config.py`.
+- Удалён `InputSlice`; публичный тип выбора входа — `InputSelection`.
+- Удалены legacy-поля `CompositionResult.format`/`version`.
+- Унифицированы ignore-константы; `WIN_RESERVED` → `WINDOWS_RESERVED_NAMES`.
+- Translation memory русских сообщений и docstrings: `docs/engineering/i18n/`.
+- ADR-0012 (English-only) и ADR-0013 (EG-коды).
 - Проект переименован в **Eggpipe**: CLI `eggpipe`, конфиг `.eggpipe.yaml`, state `.eggpipe/`,
   package/import `eggpipe`.
 - ТЗ v2.0: breaking changes, решения v1.4 вошли без изменения смысла.
 - CLI/UX, diagnostics и JSON-отчёт v2 зафиксированы.
 - Переименование кода/пакета выполнено: `eggpipe`, `eggpipe.*`, `.eggpipe*`.
 - Реализованы форматы/наследование, model units и слои, resources, decorator API,
-  `input_formats`/MG033, глобальный manifest/ownership/cleanup, CLI и JSON v2.
+  `input_formats`/EG033, глобальный manifest/ownership/cleanup, CLI и JSON v2.
 - TPC-H example переведён на `directory-per-model` и decorator API.
 
 ## [0.1.0] - 2026-11-11

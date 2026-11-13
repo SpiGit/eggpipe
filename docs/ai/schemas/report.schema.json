@@ -47,7 +47,7 @@
     },
     "Diagnostic": {
       "additionalProperties": false,
-      "description": "Диагностика валидации; код стабилен и документируется.",
+      "description": "Validation diagnostic; the code is stable and documented.",
       "properties": {
         "code": {
           "title": "Code",
@@ -87,7 +87,7 @@
     },
     "DiagnosticLocation": {
       "additionalProperties": false,
-      "description": "Где именно возникла диагностика.",
+      "description": "Where the diagnostic originated.",
       "properties": {
         "entity": {
           "anyOf": [

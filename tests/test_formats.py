@@ -1,4 +1,4 @@
-"""Тесты реестра форматов и наследования."""
+"""Tests for the format registry and inheritance."""
 
 from __future__ import annotations
 
@@ -108,9 +108,9 @@ def test_schema_keys_must_match_versions() -> None:
         format_names: ClassVar[list[str]] = ["wrong"]
         schemas: ClassVar[dict[str, FormatSchema]] = {}
 
-    with pytest.raises(FormatInheritanceError, match="ключи schemas") as caught:
+    with pytest.raises(FormatInheritanceError, match="schemas keys") as caught:
         registry_with(WrongSchemas())
-    assert caught.value.code == "MG034"
+    assert caught.value.code == "EG034"
 
 
 def test_base_versions_are_required() -> None:
@@ -127,7 +127,7 @@ def test_base_version_must_be_supported() -> None:
         format_names: ClassVar[list[str]] = ["missing-version"]
         base_versions: ClassVar[dict[str, str]] = {"2.0": "9.9"}
 
-    with pytest.raises(FormatInheritanceError, match="базовая версия"):
+    with pytest.raises(FormatInheritanceError, match="base version"):
         registry_with(MissingVersion())
 
 
@@ -159,7 +159,7 @@ def test_unknown_parent() -> None:
         format_names: ClassVar[list[str]] = ["unknown-parent"]
         extends: ClassVar[str | None] = "missing"
 
-    with pytest.raises(FormatInheritanceError, match="неизвестный базовый формат"):
+    with pytest.raises(FormatInheritanceError, match="unknown base format"):
         registry_with(UnknownParent())
 
 
@@ -175,7 +175,7 @@ def test_cycle_is_rejected() -> None:
     registry = FormatRegistry()
     registry.register(First())
     registry.register(Second())
-    with pytest.raises(FormatInheritanceError, match="цикл"):
+    with pytest.raises(FormatInheritanceError, match="cycle"):
         registry.validate()
 
 
@@ -201,7 +201,7 @@ def test_depth_limit_is_rejected() -> None:
         )
         registry.register(plugin())
         parent = name
-    with pytest.raises(FormatInheritanceError, match="глубина"):
+    with pytest.raises(FormatInheritanceError, match="depth"):
         registry.validate()
 
 

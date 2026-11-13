@@ -63,7 +63,7 @@
           "type": "string"
         },
         "input": {
-          "$ref": "#/$defs/InputSlice"
+          "$ref": "#/$defs/InputSelection"
         },
         "on_conflict": {
           "default": "overwrite",
@@ -93,9 +93,9 @@
       "title": "GeneratorConfig",
       "type": "object"
     },
-    "InputSlice": {
+    "InputSelection": {
       "additionalProperties": false,
-      "description": "Совместимое имя выбора input из System Design.",
+      "description": "Model subset selection; None/empty means all.",
       "properties": {
         "entities": {
           "anyOf": [
@@ -143,7 +143,7 @@
           "title": "Types"
         }
       },
-      "title": "InputSlice",
+      "title": "InputSelection",
       "type": "object"
     },
     "ModelOverride": {
@@ -239,7 +239,7 @@
           "title": "Files"
         },
         "input": {
-          "$ref": "#/$defs/InputSlice"
+          "$ref": "#/$defs/InputSelection"
         },
         "layout": {
           "enum": [
@@ -334,6 +334,6 @@
   "required": [
     "version"
   ],
-  "title": "GeneratorRules",
+  "title": "ProjectConfig",
   "type": "object"
 }

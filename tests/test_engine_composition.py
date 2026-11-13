@@ -1,4 +1,4 @@
-"""Engine: imports, extends, discovery и resources."""
+"""Engine: imports, extends, discovery and resources."""
 
 from __future__ import annotations
 
@@ -13,10 +13,11 @@ from eggpipe import (
     GeneratorConfig,
     GeneratorInput,
     GeneratorPlugin,
-    GeneratorRules,
+    InputSelection,
+    ProjectConfig,
     SourceConfig,
 )
-from eggpipe.config.generator_rules import DiagnosticsConfig, InputSlice
+from eggpipe.config.project_config import DiagnosticsConfig
 
 BASE = """\
 format: entity-model
@@ -61,7 +62,7 @@ class CaptureGenerator(GeneratorPlugin):
 
 
 def make_engine(tmp_path: Path, *, allow_outside: bool = False) -> Engine:
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(SourceConfig(path=Path("models"), layout="file-per-model", files=("*.yaml",)),),
         generators=(GeneratorConfig(id="capture", output_dir=Path("out")),),
@@ -106,7 +107,7 @@ def test_outside_imports_require_flag(tmp_path: Path) -> None:
     )
     blocked = make_engine(root).generate()
     assert blocked.success is False
-    assert any(item.code == "MG022" for item in blocked.diagnostics)
+    assert any(item.code == "EG022" for item in blocked.diagnostics)
     allowed = make_engine(root, allow_outside=True).generate()
     assert allowed.success is True
 
@@ -116,14 +117,14 @@ def test_source_input_through_engine(tmp_path: Path) -> None:
     models.mkdir()
     (models / "base.yaml").write_text(BASE, encoding="utf-8")
     (models / "post.yaml").write_text(POST, encoding="utf-8")
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(
             SourceConfig(
                 path=Path("models"),
                 layout="file-per-model",
                 files=("*.yaml",),
-                input=InputSlice(entities=("Post",)),
+                input=InputSelection(entities=("Post",)),
             ),
         ),
         generators=(GeneratorConfig(id="capture", output_dir=Path("out")),),
@@ -151,7 +152,7 @@ def test_stale_dates_opt_in(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     (models / "post.yaml").write_text(POST, encoding="utf-8")
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         diagnostics=DiagnosticsConfig(stale_dates=True),
         sources=(
@@ -170,7 +171,7 @@ def test_stale_dates_opt_in(tmp_path: Path) -> None:
         generators={"capture": CaptureGenerator()},
     )
     report = engine.build()
-    assert "MG014" in {item.code for item in report.diagnostics}
+    assert "EG014" in {item.code for item in report.diagnostics}
 
 
 def test_stale_dates_disabled_by_default(tmp_path: Path) -> None:
@@ -181,7 +182,7 @@ def test_stale_dates_disabled_by_default(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
-    rules = GeneratorRules(
+    rules = ProjectConfig(
         version="1.0",
         sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id="capture", output_dir=Path("out")),),
@@ -192,4 +193,4 @@ def test_stale_dates_disabled_by_default(tmp_path: Path) -> None:
         config_dir=tmp_path,
         generators={"capture": CaptureGenerator()},
     )
-    assert "MG014" not in {item.code for item in engine.build().diagnostics}
+    assert "EG014" not in {item.code for item in engine.build().diagnostics}
