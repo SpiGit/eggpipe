@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 
@@ -355,4 +355,4 @@ def test_pending_deletions_for_cleanup(tmp_path: Path) -> None:
         output_dir=output,
         plan=plan,
         cleanup="enabled",
-    ) == [Path("old.txt")]
+    ) == [PurePosixPath("old.txt")]
