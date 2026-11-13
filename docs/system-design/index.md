@@ -113,10 +113,10 @@ class GenerationContext(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-class FormatInfo(BaseModel):
+@dataclass(frozen=True)
+class FormatInfo:
     name: str
     version: str
-    model_config = ConfigDict(frozen=True)
 
 class ImportedFile(BaseModel):
     name: str          # значение `as` из imports
@@ -610,13 +610,19 @@ YAML-загрузчик:
 Реестр:
 
 ```python
+@dataclass(frozen=True)
+class FormatRegistryInfo:
+    name: str
+    versions: tuple[str, ...]
+    primitive_types: frozenset[str]
+
 class FormatRegistry:
     """Встроенный 'entity-model' + форматы от формат-плагинов."""
     def register(self, name: str, plugin: FormatPlugin) -> None:
         # duplicate name → FormatConflictError (MG007)
         # name == "entity-model" для внешнего плагина → MG007
     def get(self, name: str) -> FormatPlugin: ...   # UnknownFormatError
-    def list(self) -> list[FormatInfo]: ...
+    def list(self) -> list[FormatRegistryInfo]: ...
 ```
 
 ### 4.2 Imports (см. ADR-0001, полный алгоритм — там)

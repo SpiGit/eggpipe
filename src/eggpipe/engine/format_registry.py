@@ -12,7 +12,7 @@ from eggpipe.utils.exceptions import (
 
 
 @dataclass(frozen=True)
-class FormatInfo:
+class FormatRegistryInfo:
     name: str
     versions: tuple[str, ...]
     primitive_types: frozenset[str]
@@ -42,9 +42,9 @@ class FormatRegistry:
         except KeyError as exc:
             raise UnknownFormatError(f"неизвестный формат: {name}") from exc
 
-    def list(self) -> list[FormatInfo]:
+    def list(self) -> list[FormatRegistryInfo]:
         return [
-            FormatInfo(
+            FormatRegistryInfo(
                 name=name,
                 versions=tuple(plugin.supported_versions),
                 primitive_types=frozenset(plugin.primitive_types),
@@ -53,4 +53,4 @@ class FormatRegistry:
         ]
 
 
-__all__ = ["FormatInfo", "FormatRegistry"]
+__all__ = ["FormatRegistry", "FormatRegistryInfo"]

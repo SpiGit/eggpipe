@@ -35,7 +35,11 @@
       ]
     }
   ],
-  "format": "entity-model",
-  "types": [],
-  "version": "1.0"
+  "formats": [
+    {
+      "name": "entity-model",
+      "version": "1.0"
+    }
+  ],
+  "types": []
 }

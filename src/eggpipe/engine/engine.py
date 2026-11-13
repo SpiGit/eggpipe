@@ -273,13 +273,13 @@ class Engine:
         slice_, slice_diagnostics = select_slice(model, generator_config.input)
         if self._composition is None:
             raise ConfigValidationError("composition не инициализирована")
+        formats = slice_.formats
         context = GenerationContext(
             variables=dict(self.variables),
             naming_hint=self.rules.defaults.naming_convention,
             imports=dict(self._composition.imports),
             sources=[document.path for document in self._composition.documents],
-            format=self._composition.format,
-            format_version=self._composition.version,
+            formats=formats,
             run_id=self.run_id,
             config_dir=self.config_dir,
         )

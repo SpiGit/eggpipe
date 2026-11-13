@@ -9,7 +9,7 @@ from typing import ClassVar, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from eggpipe.config.generator_rules import GeneratorConfig
-from eggpipe.core.model import ModelSlice
+from eggpipe.core.model import FormatInfo, ModelSlice
 from eggpipe.core.naming import NamingStyle
 from eggpipe.interfaces.diagnostics import Diagnostic
 
@@ -30,8 +30,7 @@ class GenerationContext(BaseModel):
     naming_hint: NamingStyle | None = None
     imports: dict[str, ImportedFile] = Field(default_factory=dict)
     sources: list[Path] = Field(default_factory=list)
-    format: str
-    format_version: str
+    formats: frozenset[FormatInfo] = frozenset()
     run_id: str
     config_dir: Path
 

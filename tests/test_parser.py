@@ -8,6 +8,7 @@ import pytest
 
 from eggpipe import (
     UNSET,
+    FormatInfo,
     Parser,
 )
 from eggpipe.utils.exceptions import DocumentError
@@ -51,6 +52,9 @@ def test_parse_valid_document(tmp_path: Path) -> None:
     assert document.model.entity("User").fields[0].default is UNSET
     assert document.model.entity("User").fields[1].default is UNSET
     assert document.model.entity("User").source == path
+    assert document.model.entity("User").format == "entity-model"
+    assert document.model.entity("User").format_version == "1.0"
+    assert document.model.formats == frozenset({FormatInfo(name="entity-model", version="1.0")})
     assert "source" not in document.model.entity("User").model_dump()
 
 

@@ -23,8 +23,12 @@ class ReferenceGenerator(GeneratorPlugin):
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         payload = {
-            "format": input.context.format,
-            "version": input.context.format_version,
+            "formats": [
+                {"name": item.name, "version": item.version}
+                for item in sorted(
+                    input.context.formats, key=lambda item: (item.name, item.version)
+                )
+            ],
             "entities": [
                 {
                     "name": entity.name,

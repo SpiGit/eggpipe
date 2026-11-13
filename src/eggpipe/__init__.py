@@ -17,11 +17,16 @@ from eggpipe.core.model import (
     Constraints,
     CustomType,
     Entity,
+    EntityIdentity,
     EnumDef,
     EnumValue,
     ExtendsRef,
     FieldDef,
+    FieldIdentity,
+    FormatInfo,
+    FormatSchema,
     InputSelection,
+    MergePolicy,
     ModelSlice,
     SourceModel,
 )
@@ -31,7 +36,7 @@ from eggpipe.core.provenance import Provenance, git_provenance
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_document, validate_entity_model
 from eggpipe.engine.engine import Engine
-from eggpipe.engine.format_registry import FormatInfo, FormatRegistry
+from eggpipe.engine.format_registry import FormatRegistry
 from eggpipe.engine.report import ArtifactReport, EngineReport, GeneratorReport
 from eggpipe.interfaces.diagnostics import Diagnostic, DiagnosticLocation
 from eggpipe.interfaces.formats import EntityModelFormat, FormatPlugin
@@ -47,10 +52,10 @@ from eggpipe.utils.exceptions import (
     ArtifactPathError,
     ConfigValidationError,
     DocumentError,
+    EggpipeError,
     FormatConflictError,
     LockError,
     ManifestError,
-    MetadataGeneratorError,
     UnknownFormatError,
 )
 from eggpipe.version import __version__
@@ -70,18 +75,22 @@ __all__ = [
     "Diagnostic",
     "DiagnosticLocation",
     "DocumentError",
+    "EggpipeError",
     "Engine",
     "EngineReport",
     "Entity",
+    "EntityIdentity",
     "EntityModelFormat",
     "EnumDef",
     "EnumValue",
     "ExtendsRef",
     "FieldDef",
+    "FieldIdentity",
     "FormatConflictError",
     "FormatInfo",
     "FormatPlugin",
     "FormatRegistry",
+    "FormatSchema",
     "GenerationContext",
     "GenerationResult",
     "GeneratorConfig",
@@ -95,7 +104,7 @@ __all__ = [
     "InputSelection",
     "LockError",
     "ManifestError",
-    "MetadataGeneratorError",
+    "MergePolicy",
     "ModelDocument",
     "ModelSlice",
     "NamingStyle",

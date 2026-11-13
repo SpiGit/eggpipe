@@ -7,11 +7,11 @@ from pathlib import Path
 from typing_extensions import override
 
 
-class MetadataGeneratorError(Exception):
+class EggpipeError(Exception):
     """Базовая ошибка библиотеки."""
 
 
-class DocumentError(MetadataGeneratorError):
+class DocumentError(EggpipeError):
     """Ошибка чтения или разбора документа модели."""
 
     def __init__(self, code: str, path: Path | None, message: str) -> None:
@@ -26,7 +26,7 @@ class DocumentError(MetadataGeneratorError):
         return f"{location}{self.code}: {self.message}"
 
 
-class ConfigValidationError(MetadataGeneratorError):
+class ConfigValidationError(EggpipeError):
     """Ошибка конфигурации."""
 
 
@@ -38,17 +38,17 @@ class UnknownFormatError(ConfigValidationError):
     """Формат не найден в реестре."""
 
 
-class LookupError(MetadataGeneratorError):
+class LookupError(EggpipeError):
     """Имя не найдено в модели."""
 
 
-class ArtifactPathError(MetadataGeneratorError):
+class ArtifactPathError(EggpipeError):
     """Некорректный путь или содержимое артефакта."""
 
 
-class ManifestError(MetadataGeneratorError):
+class ManifestError(EggpipeError):
     """Ошибка manifest."""
 
 
-class LockError(MetadataGeneratorError):
+class LockError(EggpipeError):
     """output_dir уже используется другим запуском."""

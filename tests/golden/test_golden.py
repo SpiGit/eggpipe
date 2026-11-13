@@ -7,6 +7,7 @@ from pathlib import Path
 from reference_generator import ReferenceGenerator
 
 from eggpipe import (
+    FormatInfo,
     GenerationContext,
     GeneratorConfig,
     GeneratorInput,
@@ -25,8 +26,7 @@ def test_reference_generator_golden() -> None:
     assert diagnostics == []
     config = GeneratorConfig(id="reference", output_dir=Path("out"))
     context = GenerationContext(
-        format=document.format,
-        format_version=document.version,
+        formats=frozenset({FormatInfo(name=document.format, version=document.version)}),
         run_id="golden",
         config_dir=FIXTURES,
     )

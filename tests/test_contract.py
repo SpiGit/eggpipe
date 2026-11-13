@@ -10,11 +10,15 @@ from pydantic import ValidationError
 from eggpipe import (
     Artifact,
     Diagnostic,
+    EntityIdentity,
+    FieldIdentity,
+    FormatInfo,
     GenerationContext,
     GenerationResult,
     GeneratorConfig,
     GeneratorInput,
     GeneratorPlugin,
+    MergePolicy,
     ModelSlice,
 )
 
@@ -31,14 +35,26 @@ def test_generator_input_is_frozen_and_validated() -> None:
         model=ModelSlice(),
         config=GeneratorConfig(id="demo", output_dir=Path("out")),
         context=GenerationContext(
-            format="entity-model",
-            format_version="1.0",
+            formats=frozenset({FormatInfo(name="entity-model", version="1.0")}),
             run_id="run",
             config_dir=Path("."),
         ),
     )
     with pytest.raises(ValidationError):
         input.model = ModelSlice()  # type: ignore[misc]
+
+
+def test_format_public_models() -> None:
+    assert MergePolicy.KEYED == "keyed"
+    assert MergePolicy.APPEND == "append"
+    assert MergePolicy.UNION == "union"
+    assert MergePolicy.ERROR == "error"
+    left = FormatInfo(name="entity-model", version="1.0")
+    right = FormatInfo(name="entity-model", version="1.0")
+    assert left == right
+    assert hash(left) == hash(right)
+    assert EntityIdentity(name="User").name == "User"
+    assert FieldIdentity(name="id").name == "id"
 
 
 def test_generation_result_success() -> None:

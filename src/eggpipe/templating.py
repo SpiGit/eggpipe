@@ -10,13 +10,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from eggpipe.utils.exceptions import MetadataGeneratorError
+from eggpipe.utils.exceptions import EggpipeError
 
 if TYPE_CHECKING:
     from jinja2 import Environment
 
 
-class TemplateError(MetadataGeneratorError):
+class TemplateError(EggpipeError):
     """Ошибка загрузки или рендеринга шаблона."""
 
 

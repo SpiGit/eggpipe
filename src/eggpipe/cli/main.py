@@ -31,7 +31,7 @@ from eggpipe.interfaces.generator import GeneratorPlugin
 from eggpipe.utils.exceptions import (
     ConfigValidationError,
     DocumentError,
-    MetadataGeneratorError,
+    EggpipeError,
 )
 from eggpipe.version import __version__
 from eggpipe.watch.watcher import run_watch
@@ -264,7 +264,7 @@ def generate(
     except DocumentError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
-    except (ConfigValidationError, MetadataGeneratorError) as exc:
+    except (ConfigValidationError, EggpipeError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
@@ -365,7 +365,7 @@ def watch(
     except DocumentError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
-    except (ConfigValidationError, MetadataGeneratorError) as exc:
+    except (ConfigValidationError, EggpipeError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
@@ -379,7 +379,7 @@ def config_show(
     """Показать merged config и resolved paths."""
     try:
         rules, config_dir = _load_rules(config)
-    except MetadataGeneratorError as exc:
+    except EggpipeError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
     data = rules.model_dump(mode="json")
@@ -408,7 +408,7 @@ def config_validate(config: ConfigOption = None) -> None:
     """Проверить .eggpipe.yaml."""
     try:
         _load_rules(config)
-    except MetadataGeneratorError as exc:
+    except EggpipeError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
     typer.echo("OK")
@@ -529,7 +529,7 @@ def clean(
     """Удалить unchanged owned-артефакты из manifest."""
     try:
         rules, config_dir = _load_rules(config)
-    except MetadataGeneratorError as exc:
+    except EggpipeError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
     if not dry_run and not yes:

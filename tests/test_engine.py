@@ -10,6 +10,7 @@ from eggpipe import (
     AppConfig,
     Artifact,
     Engine,
+    FormatInfo,
     GenerationResult,
     GeneratorConfig,
     GeneratorInput,
@@ -47,6 +48,18 @@ class FailingGenerator(GeneratorPlugin):
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         raise RuntimeError("boom")
+
+
+class ContextGenerator(GeneratorPlugin):
+    id = "context"
+    name = "Context"
+
+    def __init__(self) -> None:
+        self.formats: frozenset[FormatInfo] = frozenset()
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        self.formats = input.context.formats
+        return GenerationResult()
 
 
 def make_rules(generator_id: str = "demo") -> GeneratorRules:
@@ -102,6 +115,19 @@ def test_unknown_generator_is_config_error(tmp_path: Path) -> None:
     engine = make_engine(tmp_path, "missing")
     with pytest.raises(ConfigValidationError):
         engine.build()
+
+
+def test_generation_context_formats(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    generator = ContextGenerator()
+    engine = Engine(
+        AppConfig(),
+        make_rules("context"),
+        config_dir=tmp_path,
+        generators={"context": generator},
+    )
+    assert engine.generate().success is True
+    assert generator.formats == frozenset({FormatInfo(name="entity-model", version="1.0")})
 
 
 def test_output_root(tmp_path: Path) -> None:

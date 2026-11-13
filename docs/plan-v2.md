@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** E0–E1 выполнены; следующий этап — E2
+- **Статус:** E0–E2 выполнены; следующий этап — E3
 
 ---
 
@@ -75,11 +75,11 @@
 
 Задачи:
 
-- [ ] `FormatInfo`, `FormatSchema`, `MergePolicy`, `EntityIdentity`, `FieldIdentity`.
-- [ ] `Entity.format`, `format_version`, `layer_sources`, `FieldDef.source`.
-- [ ] `GenerationContext.formats: frozenset[FormatInfo]`; удалить `format`/`format_version`.
-- [ ] `ModelSlice`/`SourceModel` helpers для форматов.
-- [ ] Обновить `__init__.__all__` и `py.typed`.
+- [x] `FormatInfo`, `FormatSchema`, `MergePolicy`, `EntityIdentity`, `FieldIdentity`.
+- [x] `Entity.format`, `format_version`, `layer_sources`, `FieldDef.source`.
+- [x] `GenerationContext.formats: frozenset[FormatInfo]`; удалить `format`/`format_version`.
+- [x] `ModelSlice`/`SourceModel` helpers для форматов.
+- [x] Обновить `__init__.__all__` и `py.typed`.
 
 **Критерий:** контрактные тесты публичного API; mypy/pyrefly/pyright.
 

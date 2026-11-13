@@ -72,7 +72,14 @@ class Parser:
             description=document.model.description,
             metadata=document.model.metadata,
             entities=tuple(
-                entity.model_copy(update={"source": path}) for entity in document.model.entities
+                entity.model_copy(
+                    update={
+                        "source": path,
+                        "format": format_name,
+                        "format_version": version,
+                    }
+                )
+                for entity in document.model.entities
             ),
             enums=document.model.enums,
             types=document.model.types,

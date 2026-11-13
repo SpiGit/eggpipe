@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +48,47 @@ UNSET = _Unset()
 DefaultValue = str | int | float | bool | date | datetime | None
 
 
+@dataclass(frozen=True)
+class FormatInfo:
+    """Конкретный формат и версия."""
+
+    name: str
+    version: str
+
+
+class MergePolicy(StrEnum):
+    """Политика merge для коллекций слоёв."""
+
+    KEYED = "keyed"
+    APPEND = "append"
+    UNION = "union"
+    ERROR = "error"
+
+
+@dataclass(frozen=True)
+class FormatSchema:
+    """Pydantic-схемы одного слоя и итоговой сущности."""
+
+    layer_entity: type[BaseModel]
+    full_entity: type[BaseModel]
+
+
+class EntityIdentity(BaseModel):
+    """Минимальная identity-модель сущности для дельта-слоя."""
+
+    name: str = Field(..., pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class FieldIdentity(BaseModel):
+    """Минимальная identity-модель поля для дельта-слоя."""
+
+    name: str = Field(..., pattern=r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
 class Constraints(BaseModel):
     min: int | float | date | datetime | None = None
     max: int | float | date | datetime | None = None
@@ -65,6 +108,7 @@ class FieldDef(BaseModel):
     default: DefaultValue | _Unset = UNSET
     constraints: Constraints | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+    source: Path | None = Field(default=None, exclude=True, repr=False)
 
     model_config = ConfigDict(
         extra="forbid",
@@ -121,6 +165,9 @@ class Entity(BaseModel):
     fields: tuple[FieldDef, ...] = ()
     metadata: dict[str, Any] = Field(default_factory=dict)
     source: Path | None = Field(default=None, exclude=True, repr=False)
+    format: str | None = Field(default=None, exclude=True, repr=False)
+    format_version: str | None = Field(default=None, exclude=True, repr=False)
+    layer_sources: tuple[Path, ...] = Field(default=(), exclude=True, repr=False)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -203,7 +250,13 @@ class _IndexedModel(BaseModel):
 
 
 class ModelSlice(_IndexedModel):
-    pass
+    @property
+    def formats(self) -> frozenset[FormatInfo]:
+        return frozenset(
+            FormatInfo(entity.format, entity.format_version)
+            for entity in self.entities
+            if entity.format is not None and entity.format_version is not None
+        )
 
 
 class SourceModel(ModelSlice):
@@ -228,11 +281,16 @@ __all__ = [
     "CustomType",
     "DefaultValue",
     "Entity",
+    "EntityIdentity",
     "EnumDef",
     "EnumValue",
     "ExtendsRef",
     "FieldDef",
+    "FieldIdentity",
+    "FormatInfo",
+    "FormatSchema",
     "InputSelection",
+    "MergePolicy",
     "ModelSlice",
     "SourceModel",
 ]
