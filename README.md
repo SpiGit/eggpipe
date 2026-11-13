@@ -2,8 +2,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/lockup/eggpipe-wordmark-dark.png">
-    <img src="docs/assets/brand/lockup/eggpipe-wordmark-light.png" alt="Eggpipe" width="420">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/SpiGit/eggpipe/main/docs/assets/brand/lockup/eggpipe-wordmark-dark.png">
+    <img src="https://raw.githubusercontent.com/SpiGit/eggpipe/main/docs/assets/brand/lockup/eggpipe-wordmark-light.png" alt="Eggpipe" width="420">
   </picture>
 </p>
 
@@ -12,7 +12,7 @@
 > **Статус: beta (0.x).** Проект находится в стадии бета-тестирования. До версии 1.0
 > публичный API, CLI, формат `.eggpipe.yaml`, JSON-отчёт и генерируемые артефакты могут
 > меняться без сохранения обратной совместимости. Для production фиксируйте версию и
-> читайте `CHANGELOG.md`. Подробнее — [Статус и совместимость](docs/user/status.md).
+> читайте `CHANGELOG.md`. Подробнее — [Статус и совместимость](https://github.com/SpiGit/eggpipe/blob/main/docs/user/status.md).
 
 ## Концепция
 

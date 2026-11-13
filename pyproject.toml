@@ -46,6 +46,13 @@ dev = [
     "jinja2>=3.1.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/SpiGit/eggpipe"
+Documentation = "https://github.com/SpiGit/eggpipe/tree/main/docs"
+Repository = "https://github.com/SpiGit/eggpipe"
+Changelog = "https://github.com/SpiGit/eggpipe/blob/main/CHANGELOG.md"
+Issues = "https://github.com/SpiGit/eggpipe/issues"
+
 [project.scripts]
 eggpipe = "eggpipe.cli.main:app"
 
