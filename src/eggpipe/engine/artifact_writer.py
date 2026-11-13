@@ -331,6 +331,31 @@ class ArtifactWriter:
         self.save_manifest(Manifest(manifest_version=MANIFEST_VERSION, locations=locations))
         return diagnostics
 
+    def pending_deletions(
+        self,
+        *,
+        generator_id: str,
+        output_dir: Path,
+        plan: ExecutionPlan,
+        cleanup: Literal["off", "prompt", "enabled"],
+    ) -> list[PurePosixPath]:
+        if cleanup != "enabled":
+            return []
+        manifest = self.load_manifest()
+        location = self._find_location(manifest, generator_id, output_dir)
+        if location is None:
+            return []
+        current = {str(item.path) for item in plan.artifacts}
+        result: list[PurePosixPath] = []
+        for artifact in location.artifacts:
+            if artifact.path in current or artifact.skipped:
+                continue
+            target = output_dir / artifact.path
+            if not target.exists() or _sha256_file(target) != artifact.sha256:
+                continue
+            result.append(PurePosixPath(artifact.path))
+        return result
+
     def check(self, *, plan: ExecutionPlan) -> list[Diagnostic]:
         diagnostics: list[Diagnostic] = []
         for item in plan.artifacts:

@@ -381,7 +381,7 @@ class Engine:
             variables=dict(self.variables),
             naming_hint=self.rules.defaults.naming_convention,
             imports=dict(composition.imports),
-            sources=_composition_sources(composition),
+            sources=tuple(_composition_sources(composition)),
             formats=slice_.formats,
             run_id=self.run_id,
             config_dir=self.config_dir,

@@ -5,11 +5,12 @@ from __future__ import annotations
 import inspect
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, ClassVar, Literal, get_args, get_origin, get_type_hints
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from eggpipe.config.generator_rules import GeneratorConfig
 from eggpipe.core.model import FormatInfo, ModelSlice
@@ -30,15 +31,20 @@ class ImportedFile(BaseModel):
 
 
 class GenerationContext(BaseModel):
-    variables: dict[str, str] = Field(default_factory=dict)
+    variables: Mapping[str, str] = Field(default_factory=dict)
     naming_hint: NamingStyle | None = None
-    imports: dict[str, ImportedFile] = Field(default_factory=dict)
-    sources: list[Path] = Field(default_factory=list)
+    imports: Mapping[str, ImportedFile] = Field(default_factory=dict)
+    sources: tuple[Path, ...] = ()
     formats: frozenset[FormatInfo] = frozenset()
     run_id: str
     config_dir: Path
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @field_validator("variables", "imports", mode="after")
+    @classmethod
+    def _freeze_mapping(cls, value: Mapping[str, object]) -> Mapping[str, object]:
+        return MappingProxyType(dict(value))
 
 
 class Artifact(BaseModel):

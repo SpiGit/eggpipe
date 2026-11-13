@@ -208,6 +208,7 @@ def test_stale_lock_is_removed(
     lock = tmp_path / ".eggpipe" / "lock"
     lock.parent.mkdir()
     lock.write_text("999999\n", encoding="utf-8")
+
     def never_alive(pid: int) -> bool:
         return False
 
@@ -333,3 +334,25 @@ def test_empty_plan_runs_cleanup_for_previous_location(tmp_path: Path) -> None:
     )
     assert not (output / "old.txt").exists()
     assert writer(tmp_path).load_manifest().locations == []
+
+
+def test_pending_deletions_for_cleanup(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(tmp_path, output, plan_for(tmp_path, output, Artifact(path="old.txt", content="old")))
+    plan = plan_for(tmp_path, output, Artifact(path="new.txt", content="new"))
+    instance = writer(tmp_path)
+    assert (
+        instance.pending_deletions(
+            generator_id="gen",
+            output_dir=output,
+            plan=plan,
+            cleanup="off",
+        )
+        == []
+    )
+    assert instance.pending_deletions(
+        generator_id="gen",
+        output_dir=output,
+        plan=plan,
+        cleanup="enabled",
+    ) == [Path("old.txt")]

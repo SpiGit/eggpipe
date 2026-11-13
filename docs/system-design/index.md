@@ -103,10 +103,10 @@ class GeneratorInput(BaseModel):
 ```python
 class GenerationContext(BaseModel):
     """Контекст генерации; копируется на каждый генератор."""
-    variables: dict[str, str] = {}       # --var ∪ .eggpipe.yaml variables (CLI > config)
+    variables: Mapping[str, str]         # --var ∪ .eggpipe.yaml (CLI > config), read-only
     naming_hint: NamingStyle | None     # defaults.naming_convention (подсказка!)
-    imports: dict[str, ImportedFile]    # alias (as) → файл
-    sources: list[Path]                 # относительные пути source-файлов (провенанс)
+    imports: Mapping[str, ImportedFile] # alias (as) → файл, read-only
+    sources: tuple[Path, ...]           # относительные пути source-файлов (провенанс)
     formats: frozenset[FormatInfo]      # форматы среза
     run_id: str                         # идентификатор запуска
     config_dir: Path                    # каталог .eggpipe.yaml
