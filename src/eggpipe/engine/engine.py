@@ -32,6 +32,7 @@ from eggpipe.interfaces.generator import (
     GenerationResult,
     GeneratorInput,
     GeneratorPlugin,
+    ImportedFile,
 )
 from eggpipe.utils.exceptions import (
     ConfigValidationError,
@@ -89,11 +90,11 @@ class Engine:
         started = time.perf_counter()
         self._pending = []
         diagnostics: list[Diagnostic] = []
-        sources, source_groups = self._source_paths(diagnostics)
+        sources, source_groups, resources = self._source_paths(diagnostics)
         if not sources:
             return self._report(False, 1, diagnostics, [], started)
 
-        composition = self._load_composition(sources, source_groups, diagnostics)
+        composition = self._load_composition(sources, source_groups, resources, diagnostics)
         if composition is None:
             return self._report(False, 1, diagnostics, [], started)
 
@@ -119,6 +120,7 @@ class Engine:
         self,
         sources: list[Path],
         source_groups: list[SourceGroup] | None,
+        resources: dict[str, ImportedFile],
         diagnostics: list[Diagnostic],
     ) -> CompositionResult | None:
         composition = Composition(
@@ -127,7 +129,7 @@ class Engine:
             allow_outside=self.config.allow_outside_imports,
         )
         try:
-            result = composition.resolve(sources, source_groups)
+            result = composition.resolve(sources, source_groups, resources=resources)
         except DocumentError as exc:
             diagnostics.append(error(exc.code, exc.message, file=exc.path))
             return None
@@ -268,7 +270,7 @@ class Engine:
 
     def _source_paths(
         self, diagnostics: list[Diagnostic]
-    ) -> tuple[list[Path], list[SourceGroup] | None]:
+    ) -> tuple[list[Path], list[SourceGroup] | None, dict[str, ImportedFile]]:
         if self.source_paths is not None:
             return (
                 [
@@ -276,12 +278,17 @@ class Engine:
                     for path in self.source_paths
                 ],
                 None,
+                {},
             )
         if not self.rules.sources:
             raise ConfigValidationError("в .eggpipe.yaml нет sources")
-        discovered = discover_sources(self.rules, self.config_dir)
+        discovered = discover_sources(
+            self.rules,
+            self.config_dir,
+            allow_outside=self.config.allow_outside_imports,
+        )
         diagnostics.extend(discovered.diagnostics)
-        return discovered.paths, discovered.groups
+        return discovered.paths, discovered.groups, discovered.resources
 
     def _run_generator(
         self,
@@ -309,7 +316,7 @@ class Engine:
             variables=dict(self.variables),
             naming_hint=self.rules.defaults.naming_convention,
             imports=dict(composition.imports),
-            sources=[document.path for document in composition.documents],
+            sources=_composition_sources(composition),
             formats=slice_.formats,
             run_id=self.run_id,
             config_dir=self.config_dir,
@@ -411,6 +418,14 @@ def _stale_date_diagnostics(
                     )
                 )
     return diagnostics
+
+
+def _composition_sources(composition: CompositionResult) -> list[Path]:
+    paths = {document.path for document in composition.documents}
+    for document in composition.documents:
+        for entity in document.model.entities:
+            paths.update(entity.layer_sources)
+    return sorted(paths, key=lambda item: item.as_posix())
 
 
 def _partition(

@@ -31,6 +31,7 @@ RULES = """\
 version: "1.0"
 sources:
   - path: ./model.yaml
+    layout: monolith
 generators: []
 """
 
@@ -201,3 +202,13 @@ class Local(GeneratorPlugin):
     assert result.exit_code == 0
     assert (tmp_path / "out" / "local.txt").read_text(encoding="utf-8") == "local\n"
     assert model.is_file()
+
+
+def test_init_with_layout(tmp_path: Path) -> None:
+    path = tmp_path / ".eggpipe.yaml"
+    result = CliRunner().invoke(
+        app,
+        ["init", str(path), "--layout", "directory-per-model"],
+    )
+    assert result.exit_code == 0
+    assert "layout: directory-per-model" in path.read_text(encoding="utf-8")

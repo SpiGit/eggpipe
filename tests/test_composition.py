@@ -166,7 +166,7 @@ def test_discover_directory_and_skip_output(tmp_path: Path) -> None:
     write(models / "out" / "generated.yaml", doc("  entities:\n    - name: Generated\n"))
     rules = GeneratorRules(
         version="1.0",
-        sources=(SourceConfig(path=Path("models")),),
+        sources=(SourceConfig(path=Path("models"), layout="file-per-model", files=("*.yaml",)),),
         generators=(GeneratorConfig(id="demo", output_dir=Path("models/out")),),
     )
     discovered = discover_sources(rules, tmp_path)

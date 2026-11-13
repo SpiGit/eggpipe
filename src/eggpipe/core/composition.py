@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from eggpipe.core.discovery import SourceGroup
+from eggpipe.core.discovery import ModelUnit, SourceGroup
 from eggpipe.core.document import ImportSpec, ModelDocument
+from eggpipe.core.layers import merge_model_layers
 from eggpipe.core.model import (
     CustomType,
     Entity,
@@ -42,6 +43,7 @@ class ResolveState:
     closures: dict[Path, set[Path]] = field(default_factory=dict)
     aliases: dict[Path, dict[str, Path]] = field(default_factory=dict)
     resources: dict[str, ImportedFile] = field(default_factory=dict)
+    resource_aliases: set[str] = field(default_factory=set)
     alias_names: dict[Path, set[str]] = field(default_factory=dict)
 
 
@@ -61,25 +63,40 @@ class Composition:
         self,
         sources: list[Path],
         groups: list[SourceGroup] | None = None,
+        *,
+        resources: dict[str, ImportedFile] | None = None,
     ) -> CompositionResult:
-        if not sources:
+        unit_refs = _unit_refs(sources, groups)
+        if not unit_refs:
             raise DocumentError("MG000", None, "нет источников модели")
         state = ResolveState(
             project_root=self.project_root,
             allow_outside=self.allow_outside,
+            resources=dict(resources or {}),
+            resource_aliases=set(resources or {}),
         )
         diagnostics: list[Diagnostic] = []
         root_format: str | None = None
         root_version: str | None = None
-        for source in sources:
-            canonical = source.resolve()
-            document = self._visit(canonical, state, (), root_format, root_version)
+        visited_keys: list[Path] = []
+        grouped: dict[int, tuple[SourceGroup, list[Path]]] = {}
+        for group, unit in unit_refs:
+            keys = self._visit_unit(unit, state, root_format, root_version, diagnostics)
+            if not keys:
+                continue
+            visited_keys.extend(keys)
+            if group is not None:
+                _, group_keys = grouped.setdefault(id(group), (group, []))
+                group_keys.extend(keys)
             if root_format is None:
-                root_format = document.format
-                root_version = document.version
+                first_document = state.cache[keys[0]]
+                root_format = first_document.format
+                root_version = first_document.version
+        if not visited_keys:
+            raise DocumentError("MG000", None, "нет источников модели")
 
         resolved = self._resolve_extends(state)
-        selections = self._selections(state, groups, diagnostics)
+        selections = self._selections(state, list(grouped.values()), diagnostics)
         entities: list[Entity] = []
         enums: list[EnumDef] = []
         types: list[CustomType] = []
@@ -123,7 +140,7 @@ class Composition:
                 seen_types.add(custom_type.name)
                 types.append(custom_type)
 
-        first = state.cache[sources[0].resolve()]
+        first = state.cache[visited_keys[0]]
         model = SourceModel(
             name=first.model.name,
             description=first.model.description,
@@ -143,16 +160,12 @@ class Composition:
     def _selections(
         self,
         state: ResolveState,
-        groups: list[SourceGroup] | None,
+        grouped: list[tuple[SourceGroup, list[Path]]],
         diagnostics: list[Diagnostic],
     ) -> dict[Path, tuple[set[str] | None, set[str] | None, set[str] | None]]:
         result: dict[Path, tuple[set[str] | None, set[str] | None, set[str] | None]] = {}
-        if not groups:
-            return result
-        for group in groups:
-            documents = [
-                state.cache[path.resolve()] for path in group.paths if path.resolve() in state.cache
-            ]
+        for group, keys in grouped:
+            documents = [state.cache[key] for key in keys if key in state.cache]
             if not documents:
                 continue
             entities = [item.name for document in documents for item in document.model.entities]
@@ -164,9 +177,47 @@ class Composition:
                 _selected(group.input.enums, enums, "enums", location, diagnostics),
                 _selected(group.input.types, types, "types", location, diagnostics),
             )
-            for path in group.paths:
-                result.setdefault(path.resolve(), selection)
+            for key in keys:
+                result.setdefault(key, selection)
         return result
+
+    def _visit_unit(
+        self,
+        unit: ModelUnit,
+        state: ResolveState,
+        root_format: str | None,
+        root_version: str | None,
+        diagnostics: list[Diagnostic],
+    ) -> tuple[Path, ...]:
+        if not unit.layered:
+            keys: list[Path] = []
+            for path in unit.paths:
+                canonical = path.resolve()
+                document = self._visit(canonical, state, (), root_format, root_version)
+                if unit.single_entity and len(document.model.entities) != 1:
+                    raise DocumentError(
+                        "MG031",
+                        canonical,
+                        "файл file-per-model должен содержать одну сущность",
+                    )
+                if root_format is None:
+                    root_format = document.format
+                    root_version = document.version
+                keys.append(canonical)
+            return tuple(keys)
+
+        documents = [self.parser.parse_document(path.resolve()) for path in unit.paths]
+        merged = merge_model_layers(documents, self.parser.registry)
+        diagnostics.extend(merged.diagnostics)
+        document = merged.document
+        self._ensure_compatible(document, root_format, root_version, document.path)
+        key = (unit.model_dir or unit.paths[0].parent).resolve()
+        state.cache[key] = document
+        state.order.append(key)
+        state.closures[key] = {key}
+        state.aliases[key] = {}
+        state.alias_names[key] = set()
+        return (key,)
 
     def _visit(
         self,
@@ -200,6 +251,8 @@ class Composition:
                 self._register_resource(spec, resolved, aliases_seen, state)
                 continue
             alias = spec.alias or resolved.stem
+            if alias in state.resource_aliases:
+                raise DocumentError("MG032", canonical, f"alias ресурса уже занят: {alias}")
             if alias in aliases_seen:
                 raise DocumentError("MG025", canonical, f"дубликат alias импорта: {alias}")
             aliases_seen.add(alias)
@@ -258,6 +311,8 @@ class Composition:
         alias = spec.alias
         if not alias:
             raise DocumentError("MG025", resolved, "у resource-импорта обязателен alias")
+        if alias in state.resource_aliases:
+            raise DocumentError("MG032", resolved, f"alias ресурса уже занят: {alias}")
         if alias in aliases_seen or alias in state.resources:
             raise DocumentError("MG025", resolved, f"дубликат alias импорта: {alias}")
         aliases_seen.add(alias)
@@ -342,6 +397,21 @@ class Composition:
         if len(candidates) > 1:
             raise DocumentError("MG009", doc_path, f"неоднозначный extends: {extends}")
         return candidates[0]
+
+
+def _unit_refs(
+    sources: list[Path],
+    groups: list[SourceGroup] | None,
+) -> list[tuple[SourceGroup | None, ModelUnit]]:
+    if groups is None:
+        return [(None, ModelUnit(paths=(source.resolve(),))) for source in sources]
+    result: list[tuple[SourceGroup | None, ModelUnit]] = []
+    for group in groups:
+        units = group.units or (ModelUnit(paths=group.paths),)
+        for unit in units:
+            if unit.paths:
+                result.append((group, unit))
+    return result
 
 
 __all__ = ["Composition", "CompositionResult"]

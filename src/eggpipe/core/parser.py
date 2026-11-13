@@ -80,6 +80,9 @@ class Parser:
                         "source": path,
                         "format": format_name,
                         "format_version": version,
+                        "fields": tuple(
+                            field.model_copy(update={"source": path}) for field in entity.fields
+                        ),
                     }
                 )
                 for entity in document.model.entities

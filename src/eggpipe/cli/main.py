@@ -290,16 +290,32 @@ def generate(
 def init(
     path: Annotated[Path, typer.Argument()] = Path(".eggpipe.yaml"),
     force: Annotated[bool, typer.Option("--force")] = False,
+    layout: Annotated[str, typer.Option("--layout")] = "monolith",
 ) -> None:
     """Создать минимальный .eggpipe.yaml."""
     if path.exists() and not force:
         typer.echo(f"error: {path} уже существует; используйте --force", err=True)
         raise typer.Exit(code=2)
-    path.write_text(
-        'version: "1.0"\nsources:\n  - path: ./model.yaml\ngenerators: []\n',
-        encoding="utf-8",
-    )
+    if layout not in {"monolith", "file-per-model", "directory-per-model"}:
+        typer.echo(f"error: неизвестный layout: {layout}", err=True)
+        raise typer.Exit(code=2)
+    path.write_text(_default_config(layout), encoding="utf-8")
     typer.echo(f"created {path}")
+
+
+def _default_config(layout: str) -> str:
+    if layout == "monolith":
+        source = "  - path: ./model.yaml\n    layout: monolith\n"
+    elif layout == "file-per-model":
+        source = '  - path: ./models\n    layout: file-per-model\n    files: ["*.yaml"]\n'
+    else:
+        source = (
+            "  - path: ./models\n"
+            "    layout: directory-per-model\n"
+            '    model_dirs: ["*"]\n'
+            '    files: ["*.yaml"]\n'
+        )
+    return f'version: "1.0"\nsources:\n{source}generators: []\n'
 
 
 @app.command()
@@ -339,6 +355,12 @@ def watch(
             item if item.is_absolute() else (config_dir / item).resolve()
             for item in (models or [source.path for source in rules.sources])
         ]
+        discovered = discover_sources(
+            rules,
+            config_dir,
+            allow_outside=allow_outside_imports,
+        )
+        resource_paths = [item.path for item in discovered.resources.values()]
         ignored_dirs = {(output_root / item.output_dir).resolve() for item in rules.generators}
 
         def run_once() -> int:
@@ -376,7 +398,7 @@ def watch(
 
         run_watch(
             config_path=path,
-            source_paths=source_paths,
+            source_paths=[*source_paths, *resource_paths],
             ignored_dirs=ignored_dirs,
             debounce_ms=debounce,
             run_once=run_once,
@@ -401,7 +423,7 @@ def config_show(
     except EggpipeError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
-    data = rules.model_dump(mode="json")
+    data = rules.model_dump(mode="json", by_alias=True)
     if not show_secrets:
         data["variables"] = _redact(data.get("variables", {}))
     discovered = discover_sources(rules, config_dir)

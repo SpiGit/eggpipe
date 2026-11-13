@@ -1,6 +1,9 @@
 version: "1.0"
 sources:
   - path: ./model
+    layout: directory-per-model
+    model_dirs: ["*"]
+    files: ["*.yaml"]
 generators:
   - id: tpch-ddl
     output_dir: ./generated

@@ -73,7 +73,7 @@ def test_tpch_custom_templates(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
-    document = Parser().parse_document(EXAMPLE / "model" / "region.yaml")
+    document = Parser().parse_document(EXAMPLE / "model" / "region" / "base.yaml")
 
     assert render_ddl(document.model, templates_dir=templates) == "-- custom\nTABLE region\n"
 

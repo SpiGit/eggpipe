@@ -61,7 +61,7 @@ class CaptureGenerator(GeneratorPlugin):
 def make_engine(tmp_path: Path, *, allow_outside: bool = False) -> Engine:
     rules = GeneratorRules(
         version="1.0",
-        sources=(SourceConfig(path=Path("models")),),
+        sources=(SourceConfig(path=Path("models"), layout="file-per-model", files=("*.yaml",)),),
         generators=(GeneratorConfig(id="capture", output_dir=Path("out")),),
     )
     return Engine(
@@ -119,6 +119,8 @@ def test_source_input_through_engine(tmp_path: Path) -> None:
         sources=(
             SourceConfig(
                 path=Path("models"),
+                layout="file-per-model",
+                files=("*.yaml",),
                 input=InputSlice(entities=("Post",)),
             ),
         ),
@@ -147,7 +149,7 @@ def test_stale_dates_opt_in(tmp_path: Path) -> None:
     rules = GeneratorRules(
         version="1.0",
         diagnostics=DiagnosticsConfig(stale_dates=True),
-        sources=(SourceConfig(path=Path("model.yaml")),),
+        sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id="capture", output_dir=Path("out")),),
     )
     engine = Engine(
@@ -170,7 +172,7 @@ def test_stale_dates_disabled_by_default(tmp_path: Path) -> None:
     )
     rules = GeneratorRules(
         version="1.0",
-        sources=(SourceConfig(path=Path("model.yaml")),),
+        sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id="capture", output_dir=Path("out")),),
     )
     engine = Engine(

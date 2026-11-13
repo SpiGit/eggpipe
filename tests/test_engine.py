@@ -65,7 +65,7 @@ class ContextGenerator(GeneratorPlugin):
 def make_rules(generator_id: str = "demo") -> GeneratorRules:
     return GeneratorRules(
         version="1.0",
-        sources=(SourceConfig(path=Path("model.yaml")),),
+        sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id=generator_id, output_dir=Path("out")),),
     )
 

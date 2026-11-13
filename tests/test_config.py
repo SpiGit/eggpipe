@@ -19,6 +19,7 @@ defaults:
   naming_convention: snake_case
 sources:
   - path: ./model.yaml
+    layout: monolith
 generators:
   - id: demo
     output_dir: ./out
@@ -55,3 +56,29 @@ def test_discover(tmp_path: Path) -> None:
     nested = tmp_path / "a" / "b"
     nested.mkdir(parents=True)
     assert GeneratorRulesLoader.discover(nested) == path
+
+
+def test_source_layout_rules() -> None:
+    from pydantic import ValidationError
+
+    from eggpipe import SourceConfig
+
+    with pytest.raises(ValidationError):
+        SourceConfig.model_validate({"path": "model.yaml"})
+    with pytest.raises(ValidationError):
+        SourceConfig.model_validate(
+            {"path": "model.yaml", "layout": "monolith", "files": ["*.yaml"]}
+        )
+    with pytest.raises(ValidationError):
+        SourceConfig.model_validate({"path": "models", "layout": "file-per-model"})
+    with pytest.raises(ValidationError):
+        SourceConfig.model_validate(
+            {"path": "models", "layout": "directory-per-model", "files": ["*.yaml"]}
+        )
+    config = SourceConfig(
+        path=Path("models"),
+        layout="directory-per-model",
+        model_dirs=("*",),
+        files=("*.yaml",),
+    )
+    assert config.model_dirs == ("*",)

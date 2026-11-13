@@ -3,18 +3,59 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from eggpipe.core.model import InputSelection
 from eggpipe.core.naming import NamingStyle
 from eggpipe.utils.exceptions import ConfigValidationError
 from eggpipe.utils.yaml import YamlLoadError, load_yaml
 
+Layout = Literal["monolith", "file-per-model", "directory-per-model"]
+
+
+class ResourceConfig(BaseModel):
+    path: Path
+    as_: str | None = Field(default=None, alias="as")
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        populate_by_name=True,
+    )
+
+    @property
+    def alias(self) -> str | None:
+        return self.as_
+
+
+def _coerce_resource(value: object) -> object:
+    if isinstance(value, str):
+        return {"path": value}
+    return value
+
+
+ResourceInput = Annotated[ResourceConfig, BeforeValidator(_coerce_resource)]
+
 
 class InputSlice(InputSelection):
     """Совместимое имя выбора input из System Design."""
+
+
+class ModelOverride(BaseModel):
+    files: tuple[str, ...] | None = None
+    resources: tuple[ResourceInput, ...] | None = None
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
 
 class GeneratorConfig(BaseModel):
@@ -44,9 +85,29 @@ class DefaultsConfig(BaseModel):
 
 class SourceConfig(BaseModel):
     path: Path
+    layout: Layout
+    files: tuple[str, ...] | None = None
+    model_dirs: tuple[str, ...] | None = None
+    models: dict[str, ModelOverride] = Field(default_factory=dict)
     input: InputSlice = Field(default_factory=InputSlice)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def _validate_layout(self) -> SourceConfig:
+        if self.layout == "monolith":
+            if self.files is not None or self.model_dirs is not None or self.models:
+                raise ValueError("monolith не поддерживает files/model_dirs/models")
+            return self
+        if not self.files:
+            raise ValueError(f"{self.layout} требует непустой files")
+        if self.layout == "file-per-model":
+            if self.model_dirs is not None or self.models:
+                raise ValueError("file-per-model не поддерживает model_dirs/models")
+            return self
+        if not self.model_dirs:
+            raise ValueError("directory-per-model требует непустой model_dirs")
+        return self
 
 
 class DiagnosticsConfig(BaseModel):
@@ -61,6 +122,7 @@ class GeneratorRules(BaseModel):
     defaults: DefaultsConfig = Field(default_factory=DefaultsConfig)
     diagnostics: DiagnosticsConfig = Field(default_factory=DiagnosticsConfig)
     variables: dict[str, str] = Field(default_factory=dict)
+    resources: tuple[ResourceInput, ...] = ()
     sources: tuple[SourceConfig, ...] = ()
     generators: tuple[GeneratorConfig, ...] = ()
 
@@ -98,5 +160,8 @@ __all__ = [
     "GeneratorRules",
     "GeneratorRulesLoader",
     "InputSlice",
+    "Layout",
+    "ModelOverride",
+    "ResourceConfig",
     "SourceConfig",
 ]

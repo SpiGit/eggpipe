@@ -18,7 +18,7 @@ def test_watch_rebuilds_after_change(tmp_path: Path) -> None:
     source.write_text("format: entity-model\nversion: '1.0'\nmodel: {}\n", encoding="utf-8")
     config = tmp_path / ".eggpipe.yaml"
     config.write_text(
-        "version: '1.0'\nsources:\n  - path: ./model.yaml\ngenerators: []\n",
+        "version: '1.0'\nsources:\n  - path: ./model.yaml\n    layout: monolith\ngenerators: []\n",
         encoding="utf-8",
     )
     initial = threading.Event()

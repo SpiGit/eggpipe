@@ -160,6 +160,9 @@ class LayerEntity(EntityIdentity):
     """Частичная схема сущности для файла-слоя."""
 
     description: str | None = None
+    version: str | int | None = None
+    updated_at: date | datetime | None = None
+    extends: str | ExtendsRef | None = None
     fields: tuple[FieldDef, ...] = ()
     metadata: dict[str, Any] = Field(default_factory=dict)
 

@@ -44,7 +44,7 @@ model:
     )
     rules = GeneratorRules(
         version="1.0",
-        sources=(SourceConfig(path=Path("model.yaml")),),
+        sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id="stable", output_dir=Path("out")),),
     )
 

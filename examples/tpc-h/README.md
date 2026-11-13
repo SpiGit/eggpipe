@@ -7,7 +7,7 @@
 
 ```text
 examples/tpc-h/
-  model/                 # entity-model, file-per-entity
+  model/                 # entity-model, directory-per-model
   .eggpipe.yaml               # один генератор tpch
   .eggpipe.split.yaml         # tpch-ddl + tpch-pydantic
   expected/              # golden-артефакты

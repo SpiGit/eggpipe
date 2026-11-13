@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** E0–E3 выполнены; следующий этап — E4
+- **Статус:** E0–E4 выполнены; следующий этап — E5
 
 ---
 
@@ -104,13 +104,13 @@
 
 Задачи:
 
-- [ ] `layout`: `monolith`, `file-per-model`, `directory-per-model`; обязателен.
-- [ ] `model_dirs`, `files`, `models` override; glob.
-- [ ] `resources`: top-level + `models.<dir>.resources`; alias/glob/границы.
-- [ ] Discovery: `.eggpipe`, output dirs, hidden, symlink.
-- [ ] Model unit: одна сущность; layer chain; full/delta validation.
-- [ ] Layer merge: KEYED/APPEND/UNION/ERROR; provenance.
-- [ ] Empty dirs/empty delta/glob warnings; MG027/MG035–MG038.
+- [x] `layout`: `monolith`, `file-per-model`, `directory-per-model`; обязателен.
+- [x] `model_dirs`, `files`, `models` override; glob.
+- [x] `resources`: top-level + `models.<dir>.resources`; alias/glob/границы.
+- [x] Discovery: `.eggpipe`, output dirs, hidden, symlink.
+- [x] Model unit: одна сущность; layer chain; full/delta validation.
+- [x] Layer merge: KEYED/APPEND/UNION/ERROR; provenance.
+- [x] Empty dirs/empty delta/glob warnings; MG027/MG035–MG038.
 
 **Критерий:** тесты layout/discovery/resources/merge; TPC-H в directory-per-model.
 
