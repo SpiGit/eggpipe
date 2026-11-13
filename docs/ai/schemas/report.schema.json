@@ -1,0 +1,389 @@
+{
+  "$defs": {
+    "ArtifactReport": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "create",
+            "update",
+            "skip",
+            "delete",
+            "conflict",
+            "error",
+            "drift"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "generator": {
+          "default": "",
+          "title": "Generator",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "path",
+        "action"
+      ],
+      "title": "ArtifactReport",
+      "type": "object"
+    },
+    "Diagnostic": {
+      "additionalProperties": false,
+      "description": "Диагностика валидации; код стабилен и документируется.",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "warning",
+            "error"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DiagnosticLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "code",
+        "message"
+      ],
+      "title": "Diagnostic",
+      "type": "object"
+    },
+    "DiagnosticLocation": {
+      "additionalProperties": false,
+      "description": "Где именно возникла диагностика.",
+      "properties": {
+        "entity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entity"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        }
+      },
+      "title": "DiagnosticLocation",
+      "type": "object"
+    },
+    "FormatReport": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "FormatReport",
+      "type": "object"
+    },
+    "FormatSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "entities": {
+          "default": 0,
+          "title": "Entities",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "FormatSummary",
+      "type": "object"
+    },
+    "GeneratorReport": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "formats": {
+          "items": {
+            "$ref": "#/$defs/FormatReport"
+          },
+          "title": "Formats",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "input_formats": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Formats"
+        },
+        "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "error",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "duration_ms"
+      ],
+      "title": "GeneratorReport",
+      "type": "object"
+    },
+    "ManifestLocationSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "title": "Artifacts",
+          "type": "integer"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "output_dir": {
+          "title": "Output Dir",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "output_dir",
+        "artifacts"
+      ],
+      "title": "ManifestLocationSummary",
+      "type": "object"
+    },
+    "ManifestSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/ManifestLocationSummary"
+          },
+          "title": "Locations",
+          "type": "array"
+        },
+        "manifest_version": {
+          "title": "Manifest Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "manifest_version"
+      ],
+      "title": "ManifestSummary",
+      "type": "object"
+    },
+    "StaleLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "output_dir": {
+          "title": "Output Dir",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "output_dir"
+      ],
+      "title": "StaleLocation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactReport"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    },
+    "exit_code": {
+      "title": "Exit Code",
+      "type": "integer"
+    },
+    "formats": {
+      "items": {
+        "$ref": "#/$defs/FormatSummary"
+      },
+      "title": "Formats",
+      "type": "array"
+    },
+    "generators": {
+      "items": {
+        "$ref": "#/$defs/GeneratorReport"
+      },
+      "title": "Generators",
+      "type": "array"
+    },
+    "manifest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ManifestSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "report_version": {
+      "default": 2,
+      "title": "Report Version",
+      "type": "integer"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "stale_locations": {
+      "items": {
+        "$ref": "#/$defs/StaleLocation"
+      },
+      "title": "Stale Locations",
+      "type": "array"
+    },
+    "success": {
+      "title": "Success",
+      "type": "boolean"
+    },
+    "timings": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Timings",
+      "type": "object"
+    }
+  },
+  "required": [
+    "success",
+    "exit_code",
+    "run_id"
+  ],
+  "title": "EngineReport",
+  "type": "object"
+}

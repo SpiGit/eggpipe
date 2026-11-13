@@ -4,19 +4,28 @@
 
 ## User
 
-- [Quick start](quickstart.md): install, init, generate.
-- [Plugins](plugins.md): generator and format contracts.
-- [Diagnostics](reference/diagnostics.md): MGxxx codes.
+- [Quick start](../user/quickstart.md)
+- [Tutorial](../user/tutorial.md)
+- [Concepts](../user/concepts.md)
+- [Configuration](../user/configuration.md)
+- [CLI](../user/cli.md)
+- [API](../user/api/index.md)
+- [Cookbook](../user/cookbook/index.md)
+- [Plugins](../user/plugins.md)
+- [Diagnostics](../user/reference/diagnostics.md)
+- [Troubleshooting](../user/troubleshooting.md)
+- [Migration](../user/migration-v1-to-v2.md)
 
 ## AI
 
-- [Context](context.md): identity, API, commands, invariants.
-- [Tasks](tasks.md): common workflows.
-- [Invariants](invariants.md): mandatory rules.
+- [Context](context.md)
+- [Tasks](tasks.md)
+- [Invariants](invariants.md)
+- [Manifest](manifest.json)
+- [llms-full](llms-full.txt)
 
 ## Engineering
 
-- [Engineering home](../engineering/index.md)
 - [Requirements v2.1](../engineering/requirements/v2.1.md)
 - [System Design](../engineering/system-design/index.md)
 - [ADR index](../engineering/adr/index.md)

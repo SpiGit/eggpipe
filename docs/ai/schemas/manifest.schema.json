@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "ManifestArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "skipped": {
+          "default": false,
+          "title": "Skipped",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "ManifestArtifact",
+      "type": "object"
+    },
+    "ManifestFormat": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ManifestFormat",
+      "type": "object"
+    },
+    "ManifestLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/ManifestArtifact"
+          },
+          "title": "Artifacts",
+          "type": "array"
+        },
+        "eggpipe_version": {
+          "title": "Eggpipe Version",
+          "type": "string"
+        },
+        "formats": {
+          "items": {
+            "$ref": "#/$defs/ManifestFormat"
+          },
+          "title": "Formats",
+          "type": "array"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "output_dir": {
+          "title": "Output Dir",
+          "type": "string"
+        },
+        "plugin_version": {
+          "title": "Plugin Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "output_dir",
+        "eggpipe_version",
+        "plugin_version",
+        "generated_at"
+      ],
+      "title": "ManifestLocation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "locations": {
+      "items": {
+        "$ref": "#/$defs/ManifestLocation"
+      },
+      "title": "Locations",
+      "type": "array"
+    },
+    "manifest_version": {
+      "title": "Manifest Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "manifest_version"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

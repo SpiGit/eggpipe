@@ -1,0 +1,902 @@
+# Eggpipe — full AI context
+
+---
+
+<!-- source: docs/ai/context.md -->
+
+# AI context
+
+Компактный контекст для AI-агентов, работающих с Eggpipe.
+
+## Идентичность
+
+- Проект: **Eggpipe**.
+- Package/import/CLI: `eggpipe`.
+- Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
+- Актуальное ТЗ: `docs/engineering/requirements/v2.1.md`.
+- Версия пакета: `0.1.0`; версия ТЗ: `2.1`.
+
+## Установка и проверки
+
+```bash
+uv sync --extra dev
+uv run pytest --cov
+uv run ruff check .
+uv run ruff format --check src tests tools examples
+uv run pyrefly check
+uv run python tools/check_docs.py --strict
+uv build
+uv run python tools/check_wheel.py dist
+```
+
+## Публичный API
+
+```text
+GeneratorPlugin, GeneratorInput, GenerationResult, Artifact, GenerationContext,
+FormatInfo, FormatSchema, ImportedFile, SourceModel, ModelSlice, Entity,
+EntityIdentity, FieldIdentity, FieldDef, EnumDef, CustomType, GeneratorConfig,
+NamingStyle, transform, Diagnostic, EngineReport, Engine, AppConfig,
+GeneratorRules, GeneratorRulesLoader, FormatRegistry, FormatPlugin,
+EntityModelFormat, MergePolicy, generator, Provenance, git_provenance,
+UNSET, PRIMITIVE_TYPES, Constraints
+```
+
+Всё из `core.*` и `engine.*` — внутреннее.
+
+## Команды CLI
+
+```text
+eggpipe generate [MODELS] [-g ID] [--plan|--check] [--output-format json]
+eggpipe watch [MODELS] [-g ID] [--debounce-ms N]
+eggpipe init [PATH] --layout monolith|file-per-model|directory-per-model
+eggpipe config show|validate|schema
+eggpipe model validate|schema [--format NAME] [--version V]
+eggpipe gen list [--all]|info
+eggpipe format list|info
+eggpipe clean [--dry-run] [--yes] [--root PATH]
+```
+
+## Документация
+
+- Пользователям: `docs/user/`.
+- AI: `docs/ai/`.
+- Разработка: `docs/engineering/`.
+- Harness: `AGENTS.md`, `.opencode/`, `.session-context.md`.
+
+## Главные инварианты
+
+- Не редактировать исторические ТЗ и ADR.
+- Не коммитить и не push без разрешения пользователя.
+- Плагин не пишет файлы сам; только возвращает `Artifact`.
+- `GenerationContext` и входы плагина immutable/read-only.
+- Ownership только через `.eggpipe/manifest.json`.
+- MG033/MG034/MG301/MG302 — config/plugin errors, exit 2.
+- `--plan`/`--check` не пишут файлы и не берут lock.
+
+---
+
+<!-- source: docs/ai/tasks.md -->
+
+# AI tasks
+
+Типовые задачи агента в Eggpipe и порядок действий.
+
+## Добавить генератор
+
+1. Прочитать `docs/engineering/requirements/v2.1.md` §6.1 и `docs/user/plugins.md`.
+2. Создать функцию с `@generator(id=..., input_formats=...)`.
+3. Аннотировать аргументы только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
+4. Вернуть `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]` или `GenerationResult`.
+5. Добавить entry point `[project.entry-points."eggpipe.generators"]`.
+6. Добавить contract/golden-тест.
+7. Прогнать `pytest`, `ruff`, `pyrefly`, `check_docs`.
+
+## Добавить формат
+
+1. Прочитать §3.4 и §6.2 ТЗ, ADR-0007.
+2. Унаследовать `EntityModelFormat`.
+3. Задать `format_names`, `supported_versions`, `extends`, `base_versions`,
+   `primitive_types`, `schemas`.
+4. Реализовать `parse_extensions`/`validate_extensions`, если нужны дополнительные поля.
+5. Добавить тесты наследования, версий, latest-версии и MG034.
+6. Проверить mixed formats и `input_formats` генератора (MG033).
+
+## Разобрать диагностику
+
+1. Найти код в `docs/user/reference/diagnostics.md`.
+2. Найти место эмиссии: `rg "MG0xx"`.
+3. Исправить причину, а не подавлять ошибку.
+4. `ignore` применять только к warnings; errors не игнорируются.
+5. Добавить регрессионный тест.
+
+## Изменить поведение
+
+1. Проверить, не описано ли оно в актуальном ТЗ.
+2. Если поведение меняется — выпустить новую версию ТЗ, а не править текущую.
+3. Обновить System Design/ADR при необходимости.
+4. Обновить код и тесты.
+5. Синхронизировать user/AI docs, README и session context.
+
+## Перед завершением
+
+```bash
+uv run pytest --cov
+uv run ruff check .
+uv run ruff format --check src tests tools examples
+uv run pyrefly check
+uv run python tools/check_docs.py --strict
+uv run mkdocs build --strict
+uv build
+uv run python tools/check_wheel.py dist
+```
+
+---
+
+<!-- source: docs/ai/invariants.md -->
+
+# AI invariants
+
+Жёсткие правила для агентов. При конфликте с просьбой пользователя — уточнить, а не нарушать
+молча.
+
+## Документация
+
+- Актуальное ТЗ — только файл со статусом **Актуальная** в
+  `docs/engineering/requirements/index.md` (сейчас `v2.1.md`).
+- Исторические ТЗ (`v1.0`–`v2.0`) и старые ADR не редактировать.
+- Новое поведение — новая версия ТЗ; ADR не переписываются задним числом.
+- Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `Entity`, `FieldDef`, `EnumDef`,
+  `UNSET`, `GeneratorPlugin`, `FormatPlugin`, `GenerationResult`.
+- Документация — на русском; код, пути, флаги и идентификаторы — на английском.
+
+## Код
+
+- Ядро не содержит генераторов и шаблонов.
+- Плагин не пишет файлы; только возвращает `Artifact`.
+- `GenerationContext` и входы плагина не мутировать.
+- Ошибки плагинов не должны ломать другие генераторы.
+- Ownership — только глобальный `.eggpipe/manifest.json`.
+- Не ослаблять path/symlink/casefold-проверки.
+- Не логировать секреты; `config show` редактирует `*token*`, `*secret*`, `*password*`.
+
+## Процесс
+
+- Не коммитить, не push и не публиковать без явного разрешения.
+- Не добавлять зависимости без согласования.
+- Не удалять чужие незакоммиченные изменения.
+- Перед завершением — полный набор проверок из `docs/ai/tasks.md`.
+
+---
+
+<!-- source: docs/user/quickstart.md -->
+
+# Быстрый старт
+
+## 1. Установка
+
+```bash
+pip install eggpipe
+```
+
+Опционально:
+
+```bash
+pip install "eggpipe[watch]"   # eggpipe watch
+pip install "eggpipe[jinja]"   # хелпер для Jinja2-плагинов
+```
+
+## 2. Создание конфигурации
+
+```bash
+eggpipe init --layout monolith
+```
+
+Будут созданы `.eggpipe.yaml` и пример `model.yaml`. Для других раскладок:
+
+```bash
+eggpipe init --layout file-per-model
+eggpipe init --layout directory-per-model
+```
+
+## 3. Проверка модели
+
+```bash
+eggpipe model validate ./model.yaml
+```
+
+## 4. Генерация
+
+```bash
+eggpipe generate --plan      # показать план без записи
+eggpipe generate             # сгенерировать артефакты
+eggpipe generate --check     # проверить актуальность для CI
+```
+
+## 5. Просмотр результата
+
+Артефакты пишутся в `output_dir` генератора. Ownership, хэши и locations хранятся в
+`.eggpipe/manifest.json`.
+
+```bash
+eggpipe clean --dry-run
+eggpipe clean --yes
+```
+
+## Минимальная модель
+
+```yaml
+format: entity-model
+version: "1.0"
+model:
+  entities:
+    - name: User
+      fields:
+        - name: id
+          type: integer
+          required: true
+          description: Identifier
+        - name: email
+          type: string
+          required: true
+          description: Email
+```
+
+## Минимальный конфиг
+
+```yaml
+version: "1.0"
+sources:
+  - path: ./model.yaml
+    layout: monolith
+generators:
+  - id: my-generator
+    output_dir: ./generated
+```
+
+Без установленного генератора команда завершится config-ошибкой. Пример работающих
+генераторов — TPC-H example в каталоге `examples/tpc-h` и [плагины](plugins.md).
+
+## Дальше
+
+- [Плагины](plugins.md) — как написать генератор или формат.
+- [Диагностики](reference/diagnostics.md) — что означает код `MGxxx`.
+- [AI context](../ai/context.md) — если документацию читает агент.
+
+---
+
+<!-- source: docs/user/concepts.md -->
+
+# Понятия Eggpipe
+
+## Модель
+
+Модель — YAML-документ с заголовком `format`/`version` и секцией `model`:
+
+```yaml
+format: entity-model
+version: "1.0"
+model:
+  entities: []
+  enums: []
+  types: []
+```
+
+`entity-model` — встроенный формат. Другие форматы подключаются плагинами.
+
+## Документ, SourceModel, ModelSlice
+
+```text
+ModelDocument  →  SourceModel  →  ModelSlice
+```
+
+- `ModelDocument` — один YAML-файл: заголовок, imports, model.
+- `SourceModel` — результат композиции: union источников и импортов.
+- `ModelSlice` — замкнутый срез для конкретного генератора: entities + нужные enums/types.
+
+## Format
+
+Формат определяет:
+
+- какие поля и примитивы допустимы;
+- `layer_entity` — схему одного слоя;
+- `full_entity` — схему итоговой сущности;
+- `extends`/`base_versions` — наследование и версии.
+
+## Model unit и раскладки
+
+| Раскладка | Смысл |
+|-----------|-------|
+| `monolith` | один файл, несколько сущностей |
+| `file-per-model` | один YAML на сущность |
+| `directory-per-model` | каталог на модель, несколько слоёв |
+
+В `directory-per-model` файлы-слои образуют цепочку `extends`; базовый слой полный,
+дельты валидируются `layer_entity`, итог — `full_entity` самого производного формата.
+
+## Слой и merge
+
+Merge слоёв аддитивный:
+
+- поля — `KEYED`;
+- enums/types — `APPEND`;
+- metadata — рекурсивно;
+- переопределение существующих значений запрещено.
+
+Дубликат формата, несвязанные форматы, конфликт metadata → MG029.
+
+## Срез и closure
+
+`generators[].input` выбирает entities/enums/types. После выбора ядро транзитивно добавляет
+все enum/type, на которые ссылаются поля и `CustomType.base`. Неизвестное имя → MG018.
+
+## Ownership и manifest
+
+Артефакт принадлежит location `(generator, output_dir)`, если записан в
+`.eggpipe/manifest.json`.
+
+- `--force` перезаписывает только unowned-файл;
+- чужой owned-файл не отбирается;
+- `cleanup` удаляет только unchanged owned-файлы;
+- `skipped: true` не удаляется.
+
+## Плагины
+
+- `@generator` — функция + инъекция `ModelSlice`/`GenerationContext`/`GeneratorConfig`.
+- `GeneratorPlugin` — классовый advanced API.
+- `FormatPlugin`/`EntityModelFormat` — формат и его схемы.
+
+## Диагностики
+
+Все ошибки и предупреждения — структурированные `Diagnostic` с кодом `MGxxx`.
+Warnings можно игнорировать через `diagnostics.ignore` или `--ignore`; errors — нельзя.
+
+---
+
+<!-- source: docs/user/configuration.md -->
+
+# Конфигурация `.eggpipe.yaml`
+
+Конфиг обязателен для CLI-команд, которые работают с sources и generators. Формат модели
+в конфиге не задаётся — он определяется YAML-файлами модели.
+
+## Верхний уровень
+
+```yaml
+version: "1.0"
+defaults:
+  naming_convention: snake_case
+variables:
+  env: dev
+diagnostics:
+  stale_dates: false
+  ignore: [MG015]
+resources:
+  - path: ./shared/templates
+  - path: ./shared/seed.json
+    as: seed
+sources: []
+generators: []
+```
+
+| Поле | Обязательно | Назначение |
+|------|-------------|------------|
+| `version` | да | версия схемы конфига, сейчас `"1.0"` |
+| `defaults.naming_convention` | нет | подсказка плагинам |
+| `variables` | нет | строковые переменные для `GenerationContext` |
+| `diagnostics.stale_dates` | нет | MG014 для `file-per-model` |
+| `diagnostics.ignore` | нет | коды warnings, которые нужно скрыть |
+| `resources` | нет | общие ресурсы относительно каталога конфига |
+| `sources` | да для генерации | модели |
+| `generators` | да для генерации | генераторы и output dirs |
+
+## Sources
+
+```yaml
+sources:
+  - path: ./model.yaml
+    layout: monolith
+
+  - path: ./models
+    layout: file-per-model
+    files: ["*.yaml"]
+
+  - path: ./models-layered
+    layout: directory-per-model
+    model_dirs: ["*"]
+    files: ["*.yaml"]
+    models:
+      customer:
+        files: [base.yaml, postgres.yaml]
+        resources: [templates/card.html, assets/**]
+    input:
+      entities: [Customer]
+      enums: []
+      types: []
+```
+
+| Поле | monolith | file-per-model | directory-per-model |
+|------|----------|----------------|---------------------|
+| `path` | файл | каталог | каталог |
+| `files` | запрещён | обязателен | обязателен |
+| `model_dirs` | запрещён | запрещён | обязателен |
+| `models` | запрещён | запрещён | опционален |
+| `input` | да | да | да |
+
+`files`/`model_dirs` — точные имена или glob (`*`, `**`, `?`, `[...]`).
+
+## Generators
+
+```yaml
+generators:
+  - id: oracle-ddl
+    enabled: true
+    output_dir: ./generated/oracle
+    on_conflict: overwrite   # overwrite | skip | error
+    cleanup: off             # off | prompt | enabled
+    input:
+      entities: [User, Post]
+      enums: [PostStatus]
+      types: []
+    options: {}
+```
+
+- `id` — id плагина; должен совпадать с entry point.
+- `output_dir` — относительный путь от каталога конфига (или от `-o`).
+- `input` пустой = все entities/enums/types.
+- `options` валидирует плагин.
+
+## Resources
+
+```yaml
+resources:
+  - path: ./shared/templates
+  - path: ./shared/fixtures/seed.json
+    as: seed
+```
+
+- Путь или glob; каталог разворачивается рекурсивно.
+- `as` допустим только для одного файла.
+- Alias по умолчанию — путь без расширения; для модели — `<model_dir>/<path>`.
+- Коллизия alias → MG032.
+- Ресурсы попадают в `GenerationContext.imports`.
+
+## Input и closure
+
+`input` фильтрует модель после композиции. Пустое значение означает «все». После выбора
+ядро добавляет transitively все enum/type, на которые ссылаются поля. Неизвестное имя →
+MG018.
+
+## Переменные
+
+```bash
+eggpipe generate --var env=prod --var token=secret
+```
+
+CLI имеет приоритет над `variables` в конфиге. Все значения строковые. Секреты
+редактируются в `config show`, если не указан `--show-secrets`.
+
+---
+
+<!-- source: docs/user/cli.md -->
+
+# CLI reference
+
+## Команды
+
+```text
+eggpipe generate [MODELS...] [OPTIONS]
+eggpipe watch [MODELS...] [OPTIONS]
+eggpipe init [PATH] --layout LAYOUT
+eggpipe config show|validate|schema
+eggpipe model validate MODELS...
+eggpipe model schema [--format NAME] [--version V]
+eggpipe gen list [--all]|info ID
+eggpipe format list|info NAME
+eggpipe clean [--dry-run] [--yes] [--root PATH]
+```
+
+## generate
+
+```bash
+eggpipe generate
+eggpipe generate ./models/blog.yaml
+eggpipe generate ./models/a.yaml ./models/b.yaml -g oracle-ddl
+eggpipe generate -g oracle-ddl
+```
+
+| Флаг | Значение |
+|------|----------|
+| `--config, -c` | путь к `.eggpipe.yaml` |
+| `--generator, -g` | id генераторов: через запятую или повторно |
+| `--plugin PATH` | dev-only локальный плагин |
+| `--output, -o` | корень артефактов вместо каталога конфига |
+| `--var KEY=VALUE` | переменные для плагинов |
+| `--dry-run` | показать план без записи |
+| `--plan` | расширенный план create/update/skip/delete |
+| `--check` | проверить актуальность, exit 1 при drift |
+| `--force` | перезаписать unowned-файлы |
+| `--strict` | warnings → errors |
+| `--ignore` | коды warnings через запятую |
+| `--clean` | cleanup enabled для запуска |
+| `--include-disabled` | включить `enabled: false` |
+| `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |
+| `--output-format` | `text` или `json` |
+| `--quiet, -q` | только ошибки |
+| `--verbose, -v` | подробный вывод |
+
+## watch
+
+```bash
+eggpipe watch
+eggpipe watch ./models/blog.yaml
+```
+
+Флаги как у `generate`, плюс `--debounce-ms` (алиас `--debounce`).
+Первичная генерация выполняется сразу; изменения конфига перезагружают настройки,
+плагины — нет.
+
+## init
+
+```bash
+eggpipe init --layout monolith
+eggpipe init --layout file-per-model
+eggpipe init --layout directory-per-model
+```
+
+Создаёт `.eggpipe.yaml` и пример модели. В non-tty `--layout` обязателен.
+
+## config / model / gen / format
+
+```bash
+eggpipe config show
+eggpipe config validate
+eggpipe config schema
+
+eggpipe model validate ./model.yaml
+eggpipe model schema
+eggpipe model schema --format postgres-model --version 2.0
+
+eggpipe gen list --all
+eggpipe gen info tpch
+
+eggpipe format list
+eggpipe format info entity-model
+```
+
+## clean
+
+```bash
+eggpipe clean --dry-run
+eggpipe clean --yes
+eggpipe clean --root ./project
+```
+
+Работает только по глобальному `.eggpipe/manifest.json`, без загрузки плагинов.
+Удаляет unchanged owned-файлы и пустые locations.
+
+## Exit codes
+
+| Код | Значение |
+|-----|----------|
+| `0` | успех |
+| `1` | errors парсинга/валидации/генерации, drift, `--strict` warnings |
+| `2` | config/usage/plugin errors, MG033/MG034/MG301/MG302 |
+| `130` | Ctrl+C в `generate`; watch завершается штатно с `0` |
+
+## JSON
+
+```bash
+eggpipe generate --output-format json
+```
+
+`report_version: 2`; содержит `formats`, `generators[].input_formats`, плоские
+`artifacts[].action`, `manifest`, `stale_locations`, `timings`.
+
+---
+
+<!-- source: docs/user/api/index.md -->
+
+# API Reference
+
+Публичный API — `eggpipe.__init__`. Всё из `core.*` и `engine.*` считается внутренним.
+
+## Engine
+
+```python
+from eggpipe import AppConfig, Engine, GeneratorRulesLoader
+
+rules = GeneratorRulesLoader().load(".eggpipe.yaml")
+engine = Engine(AppConfig(), rules)
+
+plan = engine.build()       # без записи
+report = engine.generate()  # build + запись
+report = engine.check()     # проверка drift без записи
+```
+
+`Engine` не вызывает `sys.exit`, не настраивает root-logger и не пишет файлы в `build()`.
+
+Полезные параметры `Engine`:
+
+```python
+Engine(
+    AppConfig(),
+    rules,
+    config_dir=Path("."),
+    generators={"my-generator": MyGenerator()},
+    formats=FormatRegistry(),
+    variables={"env": "dev"},
+)
+```
+
+## EngineReport
+
+```python
+report.success: bool
+report.exit_code: int
+report.diagnostics: list[Diagnostic]
+report.formats: list[FormatSummary]
+report.generators: list[GeneratorReport]
+report.artifacts: list[ArtifactReport]
+report.manifest: ManifestSummary | None
+report.stale_locations: list[StaleLocation]
+report.timings: dict[str, int]
+```
+
+`artifacts[].action`: `create | update | skip | delete | conflict | error | drift`.
+`generators[].status`: `ok | error | skipped`.
+
+## Исключения
+
+- `EggpipeError` — базовая ошибка библиотеки.
+- `DocumentError` — YAML/модель/формат; несёт `code` (`MGxxx`).
+- `ConfigValidationError` — конфиг/usage.
+- `FormatConflictError`, `FormatInheritanceError`, `UnknownFormatError`.
+- `PluginContractError` — MG301/MG302.
+- `ArtifactPathError`, `ManifestError`, `LockError`.
+
+Ошибки генераторов не выбрасываются наружу: они попадают в `GenerationResult.errors`
+или `EngineReport.diagnostics`.
+
+## Плагины
+
+- [Generator API](generator.md) — `@generator` и `GeneratorPlugin`.
+- [Format API](format.md) — `FormatPlugin` и `EntityModelFormat`.
+- [Модели](models.md) — `Entity`, `FieldDef`, `ModelSlice`, `UNSET`, `Diagnostic`.
+
+---
+
+<!-- source: docs/user/api/generator.md -->
+
+# Generator API
+
+## Основной способ: `@generator`
+
+```python
+from eggpipe import Artifact, GenerationContext, GeneratorConfig, ModelSlice, generator
+
+
+@generator(id="my-generator", input_formats={"entity-model"})
+def my_generator(
+    model: ModelSlice,
+    context: GenerationContext,
+    config: GeneratorConfig,
+) -> list[Artifact]:
+    return [Artifact(path="user.py", content="...")]
+```
+
+Правила:
+
+- `input_formats` обязателен: `None` — любой формат, `set()` — ни один, набор — форматы
+  и их наследники.
+- `id` опционален; по умолчанию имя функции с `_` → `-`.
+- `name` опционален.
+- `api_version` по умолчанию `"1"`.
+- Аннотации инжектируются: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
+  Неизвестная аннотация — MG302.
+- Возврат: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`.
+- Entry point указывает на декорированную функцию:
+
+```toml
+[project.entry-points."eggpipe.generators"]
+my-generator = "my_package.plugins:my_generator"
+```
+
+## Классовый API
+
+```python
+from typing import ClassVar, Literal
+
+from eggpipe import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
+
+
+class MyGenerator(GeneratorPlugin):
+    api_version: ClassVar[Literal["1"]] = "1"
+    id: ClassVar[str] = "my-generator"
+    name: ClassVar[str] = "My Generator"
+    input_formats: ClassVar[set[str] | None] = {"entity-model"}
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult(
+            artifacts=[Artifact(path="user.py", content="...")],
+        )
+```
+
+Классовый API удобен для состояния/конфигурации; `validate_config()` можно переопределить.
+
+## Вход
+
+```python
+GeneratorInput(
+    model: ModelSlice,              # замкнутый срез
+    config: GeneratorConfig,        # блок generators[] из .eggpipe.yaml
+    context: GenerationContext,     # variables, imports, sources, formats, run_id
+)
+```
+
+`GenerationContext.formats` — `frozenset[FormatInfo]`; формат конкретной сущности —
+`entity.format` / `entity.format_version`.
+
+## Выход
+
+- `Artifact.path` — относительный POSIX-путь.
+- `Artifact.content` — `str`, UTF-8, LF, без BOM.
+- Ошибки/warnings — `Diagnostic`.
+- Если `errors` непустой, артефакты этого генератора отбрасываются.
+- Исключение ловится ядром и превращается в MG300; остальные генераторы продолжаются.
+
+## Совместимость форматов
+
+Ядро проверяет каждую сущность среза против `input_formats` до `validate_config()` и
+`generate()`. Несовместимость — MG033, exit 2, pre-flight ошибка всего запуска.
+
+`{"entity-model"}` принимает сам `entity-model` и всех его наследников.
+
+---
+
+<!-- source: docs/user/api/format.md -->
+
+# Format API
+
+## FormatPlugin
+
+```python
+from typing import ClassVar, Literal
+
+from eggpipe import EntityModelFormat, FormatSchema
+
+
+class MyFormat(EntityModelFormat):
+    api_version: ClassVar[Literal["1"]] = "1"
+    format_names: ClassVar[list[str]] = ["sql-model"]
+    supported_versions: ClassVar[list[str]] = ["1.0"]
+    extends: ClassVar[str | None] = "entity-model"
+    base_versions: ClassVar[dict[str, str]] = {"1.0": "1.0"}
+    primitive_types: ClassVar[set[str]] = {...}
+    schemas: ClassVar[dict[str, FormatSchema]] = {...}
+
+    def parse_extensions(self, document, raw) -> None: ...
+    def validate_extensions(self, document) -> list[Diagnostic]: ...
+```
+
+`EntityModelFormat` — база для форматов, расширяющих `entity-model`. Она предоставляет
+`parse`/`validate`; расширение переопределяет `parse_extensions`/`validate_extensions`.
+
+## FormatSchema
+
+```python
+class FormatSchema:
+    layer_entity: type[BaseModel]   # один слой
+    full_entity: type[BaseModel]    # итоговая сущность
+```
+
+- `layer_entity` может быть partial.
+- `full_entity` расширения наследует `full_entity` базовой версии.
+- `schemas` содержит запись для каждой версии из `supported_versions`.
+
+## Версии и наследование
+
+```python
+class PostgresFormat(EntityModelFormat):
+    format_names = ["postgres-model"]
+    supported_versions = ["2.0"]
+    extends = "entity-model"
+    base_versions = {"2.0": "1.0"}
+```
+
+- Версии форматов независимы.
+- `base_versions[B_version] = A_version`.
+- Нет `version` в YAML — берётся последняя из `supported_versions`.
+- Цикл/глубина > 10, неверная база, конфликт схем/примитивов — MG034.
+- Неизвестная версия — MG008.
+- `entity-model` зарезервирован.
+
+## Entry point
+
+```toml
+[project.entry-points."eggpipe.formats"]
+postgres-model = "my_package.formats:PostgresFormat"
+```
+
+## Совместимость генератора
+
+Генератор с `input_formats={"entity-model"}` принимает `postgres-model`, если тот
+транзитивно наследует `entity-model`. Exact-only режима нет.
+
+---
+
+<!-- source: docs/user/api/models.md -->
+
+# Модели данных
+
+## ModelDocument
+
+Один YAML-файл: `format`, `version`, `path`, `imports`, `model`, `metadata`.
+
+## SourceModel
+
+Результат композиции источников и импортов. Содержит `entities`, `enums`, `types`,
+`name`, `description`, `metadata`.
+
+## ModelSlice
+
+Замкнутый срез для генератора. Те же коллекции, что у `SourceModel`, плюс:
+
+```python
+slice.formats -> frozenset[FormatInfo]
+```
+
+## Entity
+
+```python
+Entity(
+    name: str,
+    description: str | None,
+    version: str | int | None,
+    updated_at: date | datetime | None,
+    extends: str | ExtendsRef | None,
+    fields: tuple[FieldDef, ...],
+    metadata: dict[str, Any],
+    source: Path | None,          # исключён из сериализации
+    format: str | None,           # исключён из сериализации
+    format_version: str | None,   # исключён из сериализации
+    layer_sources: tuple[Path, ...],
+)
+```
+
+## FieldDef
+
+```python
+FieldDef(
+    name: str,
+    type: str,
+    description: str | None,
+    required: bool = False,
+    nullable: bool = False,
+    default: DefaultValue | UNSET = UNSET,
+    constraints: Constraints | None,
+    metadata: dict[str, Any],
+    source: Path | None,
+)
+```
+
+`UNSET` отличается от `default: null`. `constraints`: `min`, `max`, `min_length`,
+`max_length`, `pattern`.
+
+## EnumDef / CustomType
+
+`EnumDef` содержит `values: tuple[EnumValue, ...]`.
+`CustomType` содержит `base` и опциональные `constraints`.
+
+## Служебные типы
+
+- `FormatInfo(name, version)` — конкретный формат и версия.
+- `FormatSchema(layer_entity, full_entity)`.
+- `MergePolicy`: `KEYED`, `APPEND`, `UNION`, `ERROR`.
+- `Diagnostic(level, code, message, location)`.
+- `EntityIdentity(name)`, `FieldIdentity(name)` — identity для дельта-моделей.
+- `Provenance(path, commit, date)`.
+
+## Инъекция
+
+В `@generator` можно принимать только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
+Другие типы дают MG302.

@@ -12,8 +12,21 @@ nav:
   - Пользователям:
       - Обзор: user/index.md
       - Быстрый старт: user/quickstart.md
+      - Tutorial: user/tutorial.md
+      - Понятия: user/concepts.md
+      - Конфигурация: user/configuration.md
+      - CLI: user/cli.md
+      - API:
+          - Обзор: user/api/index.md
+          - Generator: user/api/generator.md
+          - Format: user/api/format.md
+          - Модели: user/api/models.md
+      - Cookbook: user/cookbook/index.md
       - Плагины: user/plugins.md
       - Диагностики: user/reference/diagnostics.md
+      - Troubleshooting: user/troubleshooting.md
+      - Migration v1 → v2: user/migration-v1-to-v2.md
+      - FAQ: user/faq.md
   - AI:
       - Обзор: ai/index.md
       - Context: ai/context.md

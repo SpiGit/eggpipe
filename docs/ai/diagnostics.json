@@ -1,0 +1,345 @@
+[
+  {
+    "code": "MG000",
+    "level": "error",
+    "message": "Синтаксис YAML, duplicate keys, multi-document, не-dict корень",
+    "phase": "parse",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG001",
+    "level": "—",
+    "message": "Зарезервирован; не эмитируется",
+    "phase": "validate",
+    "status": "неизвестный тип даёт MG004"
+  },
+  {
+    "code": "MG002",
+    "level": "error",
+    "message": "Дубликаты имён entity/enum/type после композиции",
+    "phase": "composition",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG003",
+    "level": "error",
+    "message": "Дубликат имени поля в entity",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG004",
+    "level": "error",
+    "message": "Тип не входит в primitive_types и не является enum/type",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG005",
+    "level": "error",
+    "message": "Некорректный regex в `constraints.pattern`",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG006",
+    "level": "error",
+    "message": "Циклические импорты / глубина > 10",
+    "phase": "composition",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG007",
+    "level": "error",
+    "message": "`format` отсутствует / неизвестен",
+    "phase": "parse",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG008",
+    "level": "error",
+    "message": "`version` не поддерживается",
+    "phase": "parse",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG009",
+    "level": "error",
+    "message": "`extends` не найден / неоднозначен / цикл / глубина > 10",
+    "phase": "composition",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG010",
+    "level": "error",
+    "message": "`nullable=false` + `default=null`",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG011",
+    "level": "warning",
+    "message": "`required=true` + `nullable=true`",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG012",
+    "level": "warning",
+    "message": "Entity.name не в PascalCase",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG013",
+    "level": "warning",
+    "message": "Неиспользуемый enum/type",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG014",
+    "level": "warning",
+    "message": "`updated_at` старше mtime файла (opt-in; file-per-model)",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG015",
+    "level": "warning",
+    "message": "Пустой description у required-поля",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG016",
+    "level": "error",
+    "message": "`default` не приводится к итоговому типу",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG017",
+    "level": "error",
+    "message": "`default` нарушает constraints/enum",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG018",
+    "level": "error",
+    "message": "Неизвестное имя в `input`",
+    "phase": "slice",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG019",
+    "level": "error",
+    "message": "Пустой enum / дубликат имени или значения",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG020",
+    "level": "error",
+    "message": "Цикл `CustomType.base` / глубина > 10",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG021",
+    "level": "error",
+    "message": "Неприменимый или противоречивый constraint",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG022",
+    "level": "error",
+    "message": "Импорт вне project root",
+    "phase": "composition",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG023",
+    "level": "error",
+    "message": "YAML в `sources` не является документом модели",
+    "phase": "discovery",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG024",
+    "level": "warning",
+    "message": "Дубликат resolved-пути",
+    "phase": "discovery",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG025",
+    "level": "error",
+    "message": "Дубликат alias `as` / отсутствует alias у resource",
+    "phase": "composition",
+    "status": "реализовано (parse)"
+  },
+  {
+    "code": "MG026",
+    "level": "warning",
+    "message": "Case-insensitive коллизия имён",
+    "phase": "validate",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG027",
+    "level": "warning",
+    "message": "Пустой каталог модели в `directory-per-model`",
+    "phase": "discovery",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG028",
+    "level": "error",
+    "message": "Имя не соответствует pattern",
+    "phase": "parse/validate",
+    "status": "реализовано (Pydantic)"
+  },
+  {
+    "code": "MG029",
+    "level": "error",
+    "message": "Некорректная цепочка слоёв / конфликт layer merge",
+    "phase": "layers",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG030",
+    "level": "warning",
+    "message": "Неподдерживаемый в текущем окружении режим; проигнорирован",
+    "phase": "engine",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG031",
+    "level": "error",
+    "message": "Файл-слой содержит не одну сущность",
+    "phase": "layers",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG032",
+    "level": "error",
+    "message": "Дубликат alias ресурса",
+    "phase": "resources",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG033",
+    "level": "error",
+    "message": "Генератор не поддерживает формат сущности",
+    "phase": "engine",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG034",
+    "level": "error",
+    "message": "Цикл/глубина наследования, неверный `base_versions`, конфликт схем/примитивов",
+    "phase": "formats",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG035",
+    "level": "warning",
+    "message": "Дельта не добавляет ничего",
+    "phase": "layers",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG036",
+    "level": "warning",
+    "message": "Glob не нашёл ни одного файла/каталога",
+    "phase": "discovery",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG037",
+    "level": "error",
+    "message": "`models.<dir>` указывает на неизвестный каталог",
+    "phase": "discovery",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG038",
+    "level": "error",
+    "message": "Путь одновременно в `files` и `resources`",
+    "phase": "discovery",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG300",
+    "level": "error",
+    "message": "Генератор/запись/check упали или обнаружен drift",
+    "phase": "engine",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG301",
+    "level": "error",
+    "message": "Нарушен контракт генератора: нет `input_formats`, неверная сигнатура/return type",
+    "phase": "plugin",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG302",
+    "level": "error",
+    "message": "Неизвестный инжектируемый параметр декоратора",
+    "phase": "plugin",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG040",
+    "level": "error",
+    "message": "Некорректный artifact path / content",
+    "phase": "write",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG041",
+    "level": "error",
+    "message": "Ownership-конфликт / `on_conflict: error`",
+    "phase": "write",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG042",
+    "level": "error",
+    "message": "Дубликат artifact path / case-collision / prefix-конфликт",
+    "phase": "planning",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG043",
+    "level": "warning",
+    "message": "`skip` для не-owned файла",
+    "phase": "planning",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG050",
+    "level": "warning",
+    "message": "Changed owned-файл не удалён",
+    "phase": "cleanup",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG051",
+    "level": "warning",
+    "message": "Stale generated location в глобальном manifest",
+    "phase": "cleanup",
+    "status": "реализовано"
+  },
+  {
+    "code": "MG052",
+    "level": "error",
+    "message": "Manifest повреждён или версия не поддерживается",
+    "phase": "manifest",
+    "status": "реализовано"
+  }
+]

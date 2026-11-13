@@ -5,8 +5,23 @@ Eggpipe читает YAML-описание модели данных и гене
 ## С чего начать
 
 1. [Быстрый старт](quickstart.md) — установка и первый запуск.
-2. [Плагины](plugins.md) — генераторы и форматы.
-3. [Диагностики](reference/diagnostics.md) — коды ошибок и предупреждений.
+2. [Tutorial: TPC-H](tutorial.md) — полный пример от модели до артефактов.
+3. [Понятия](concepts.md) — model unit, формат, слой, срез, ownership.
+
+## Справочники
+
+- [Конфигурация](configuration.md) — все поля `.eggpipe.yaml`.
+- [CLI](cli.md) — команды, флаги и exit codes.
+- [API](api/index.md) — библиотечный API и плагины.
+- [Плагины](plugins.md) — генераторы и форматы.
+- [Диагностики](reference/diagnostics.md) — коды MGxxx.
+
+## Практика
+
+- [Cookbook](cookbook/index.md) — типовые рецепты.
+- [Troubleshooting](troubleshooting.md) — что делать при ошибке.
+- [Migration v1 → v2](migration-v1-to-v2.md).
+- [FAQ](faq.md).
 
 ## Базовые понятия
 
@@ -16,5 +31,3 @@ Eggpipe читает YAML-описание модели данных и гене
 - **Срез** — подмножество модели для конкретного генератора.
 - **Location** — пара `(generator, output_dir)`, которой принадлежат записанные файлы.
 - **Manifest** — `.eggpipe/manifest.json`; хранит ownership и хэши.
-
-Разделы Tutorial, API Reference и Cookbook будут добавлены отдельными страницами.

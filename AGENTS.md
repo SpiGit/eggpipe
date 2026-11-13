@@ -78,6 +78,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
       прежняя актуальная версия добавлена в `deny`-список.
 - [ ] Термины, коды `MGxxx`, флаги CLI и exit codes совпадают во всех документах.
 - [ ] `uv run python tools/check_docs.py --strict` проходит без ошибок.
+- [ ] При изменении публичного API/CLI пересобран `docs/ai` (`tools/build_ai_docs.py`).
 - [ ] `uv run ruff check .`, `uv run ruff format --check src tests tools examples`, `uv run pyrefly check`
       и `uv run pytest` проходят.
 - [ ] `uv build` и `uv run python tools/check_wheel.py dist` проходят.
@@ -89,6 +90,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 - Dev/CI используют `uv` и закоммиченный `uv.lock`; для пользователей — `pip`.
 - `uv sync --extra dev` — установка dev-окружения.
 - `uv run python tools/check_docs.py --strict` — проверка ссылок, версий, harness и терминов.
+- `uv run python tools/build_ai_docs.py` — пересборка `docs/ai` (llms, manifest, schemas, diagnostics).
 - `uv run ruff check .` / `uv run ruff format --check src tests tools examples` — линтер и форматирование.
 - `uv run pyrefly check` — строгая проверка типов (Pydantic v2 поддерживается нативно).
 - `basedpyright`/Pyright читают `pyrightconfig.json`; основной CI-чекер — Pyrefly.

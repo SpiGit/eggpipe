@@ -18,6 +18,8 @@
 - [AI tasks](ai/tasks.md) — типовые задачи и последовательности действий.
 - [AI invariants](ai/invariants.md) — что нельзя делать.
 - [llms.txt](ai/llms.txt) — индекс для LLM.
+- [llms-full.txt](ai/llms-full.txt) — полный контекст.
+- [manifest.json](ai/manifest.json) и [schemas](ai/schemas/model.schema.json).
 
 ### Для разработки
 

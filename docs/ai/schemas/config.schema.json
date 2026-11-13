@@ -1,0 +1,339 @@
+{
+  "$defs": {
+    "DefaultsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "naming_convention": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NamingStyle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "DefaultsConfig",
+      "type": "object"
+    },
+    "DiagnosticsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "ignore": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignore",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "stale_dates": {
+          "default": false,
+          "title": "Stale Dates",
+          "type": "boolean"
+        }
+      },
+      "title": "DiagnosticsConfig",
+      "type": "object"
+    },
+    "GeneratorConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "cleanup": {
+          "default": "off",
+          "enum": [
+            "off",
+            "prompt",
+            "enabled"
+          ],
+          "title": "Cleanup",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "input": {
+          "$ref": "#/$defs/InputSlice"
+        },
+        "on_conflict": {
+          "default": "overwrite",
+          "enum": [
+            "overwrite",
+            "skip",
+            "error"
+          ],
+          "title": "On Conflict",
+          "type": "string"
+        },
+        "options": {
+          "additionalProperties": true,
+          "title": "Options",
+          "type": "object"
+        },
+        "output_dir": {
+          "format": "path",
+          "title": "Output Dir",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "output_dir"
+      ],
+      "title": "GeneratorConfig",
+      "type": "object"
+    },
+    "InputSlice": {
+      "additionalProperties": false,
+      "description": "Совместимое имя выбора input из System Design.",
+      "properties": {
+        "entities": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entities"
+        },
+        "enums": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Enums"
+        },
+        "types": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Types"
+        }
+      },
+      "title": "InputSlice",
+      "type": "object"
+    },
+    "ModelOverride": {
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Files"
+        },
+        "resources": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ResourceConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resources"
+        }
+      },
+      "title": "ModelOverride",
+      "type": "object"
+    },
+    "NamingStyle": {
+      "enum": [
+        "snake_case",
+        "camelCase",
+        "pascal_case",
+        "kebab-case"
+      ],
+      "title": "NamingStyle",
+      "type": "string"
+    },
+    "ResourceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "path": {
+          "format": "path",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "ResourceConfig",
+      "type": "object"
+    },
+    "SourceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Files"
+        },
+        "input": {
+          "$ref": "#/$defs/InputSlice"
+        },
+        "layout": {
+          "enum": [
+            "monolith",
+            "file-per-model",
+            "directory-per-model"
+          ],
+          "title": "Layout",
+          "type": "string"
+        },
+        "model_dirs": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Dirs"
+        },
+        "models": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ModelOverride"
+          },
+          "title": "Models",
+          "type": "object"
+        },
+        "path": {
+          "format": "path",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "layout"
+      ],
+      "title": "SourceConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "defaults": {
+      "$ref": "#/$defs/DefaultsConfig"
+    },
+    "diagnostics": {
+      "$ref": "#/$defs/DiagnosticsConfig"
+    },
+    "generators": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/GeneratorConfig"
+      },
+      "title": "Generators",
+      "type": "array"
+    },
+    "resources": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ResourceConfig"
+      },
+      "title": "Resources",
+      "type": "array"
+    },
+    "sources": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SourceConfig"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "variables": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Variables",
+      "type": "object"
+    },
+    "version": {
+      "const": "1.0",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "title": "GeneratorRules",
+  "type": "object"
+}

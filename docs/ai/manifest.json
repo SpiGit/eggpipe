@@ -1,0 +1,168 @@
+{
+  "artifacts": {
+    "diagnostics": "docs/ai/diagnostics.json",
+    "llms": "docs/ai/llms.txt",
+    "llms_full": "docs/ai/llms-full.txt",
+    "schemas": [
+      "docs/ai/schemas/model.schema.json",
+      "docs/ai/schemas/config.schema.json",
+      "docs/ai/schemas/report.schema.json",
+      "docs/ai/schemas/manifest.schema.json"
+    ]
+  },
+  "commands": [
+    "eggpipe generate [MODELS] [-g ID] [--plan|--check] [--output-format json]",
+    "eggpipe watch [MODELS] [-g ID] [--debounce-ms N]",
+    "eggpipe init [PATH] --layout monolith|file-per-model|directory-per-model",
+    "eggpipe config show|validate|schema",
+    "eggpipe model validate|schema [--format NAME] [--version V]",
+    "eggpipe gen list|info",
+    "eggpipe format list|info",
+    "eggpipe clean [--dry-run] [--yes] [--root PATH]"
+  ],
+  "documents": [
+    {
+      "exists": true,
+      "path": "docs/user/quickstart.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/tutorial.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/concepts.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/configuration.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/cli.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/api/index.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/api/generator.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/api/format.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/api/models.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/plugins.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/reference/diagnostics.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/troubleshooting.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/migration-v1-to-v2.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/user/faq.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/ai/context.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/ai/tasks.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/ai/invariants.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/engineering/requirements/v2.1.md"
+    },
+    {
+      "exists": true,
+      "path": "docs/engineering/system-design/index.md"
+    }
+  ],
+  "package_version": "0.1.0",
+  "project": "eggpipe",
+  "public_api": [
+    "AppConfig",
+    "Artifact",
+    "ArtifactPathError",
+    "ArtifactReport",
+    "Composition",
+    "CompositionResult",
+    "ConfigValidationError",
+    "Constraints",
+    "CustomType",
+    "Diagnostic",
+    "DiagnosticLocation",
+    "DocumentError",
+    "EggpipeError",
+    "Engine",
+    "EngineReport",
+    "Entity",
+    "EntityIdentity",
+    "EntityModelFormat",
+    "EnumDef",
+    "EnumValue",
+    "ExtendsRef",
+    "FieldDef",
+    "FieldIdentity",
+    "FormatConflictError",
+    "FormatInfo",
+    "FormatInheritanceError",
+    "FormatPlugin",
+    "FormatRegistry",
+    "FormatSchema",
+    "GenerationContext",
+    "GenerationResult",
+    "GeneratorConfig",
+    "GeneratorInput",
+    "GeneratorPlugin",
+    "GeneratorReport",
+    "GeneratorRules",
+    "GeneratorRulesLoader",
+    "ImportSpec",
+    "ImportedFile",
+    "InputSelection",
+    "LockError",
+    "ManifestError",
+    "MergePolicy",
+    "ModelDocument",
+    "ModelSlice",
+    "NamingStyle",
+    "PRIMITIVE_TYPES",
+    "Parser",
+    "PluginContractError",
+    "Provenance",
+    "SourceConfig",
+    "SourceModel",
+    "UNSET",
+    "UnknownFormatError",
+    "__version__",
+    "generator",
+    "git_provenance",
+    "normalize_version",
+    "select_slice",
+    "transform",
+    "validate_document",
+    "validate_entity_model"
+  ],
+  "spec_version": "2.1"
+}
