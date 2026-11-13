@@ -43,8 +43,8 @@ MANIFEST
 .ruff_cache/
 .pyright/
 
-# metadata-generator runtime (lock, manifests)
-.mg/
+# Eggpipe runtime (lock, manifest, staging)
+.eggpipe/
 
 # Logs
 *.log

@@ -101,7 +101,7 @@ def test_generate_writes_and_check(tmp_path: Path) -> None:
     report = engine.generate()
     assert report.success is True
     assert (tmp_path / "out" / "user.txt").read_text(encoding="utf-8") == "ok\n"
-    assert (tmp_path / "out" / ".eggpipe" / "manifests" / "demo.json").is_file()
+    assert (tmp_path / ".eggpipe" / "manifest.json").is_file()
     assert engine.check().success is True
     (tmp_path / "out" / "user.txt").write_text("drift", encoding="utf-8")
     assert engine.check().success is False

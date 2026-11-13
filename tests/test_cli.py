@@ -163,7 +163,7 @@ def test_generate_with_reference_plugin(tmp_path: Path, monkeypatch: pytest.Monk
     result = CliRunner().invoke(app, ["generate", "-c", str(rules)])
     assert result.exit_code == 0
     assert (tmp_path / "out" / "model.json").is_file()
-    assert (tmp_path / "out" / ".eggpipe" / "manifests" / "reference.json").is_file()
+    assert (tmp_path / ".eggpipe" / "manifest.json").is_file()
 
 
 def test_generate_json(tmp_path: Path) -> None:
@@ -245,3 +245,34 @@ class NoFormats(GeneratorPlugin):
     assert result.exit_code == 2
     assert "MG033" in result.stderr
     assert not (tmp_path / "out").exists()
+
+
+def test_clean_removes_all_global_locations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, rules = project(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    entries = [EntryPoint("reference", ReferenceGenerator)]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    first = CliRunner().invoke(app, ["generate", "-c", str(rules)])
+    assert first.exit_code == 0
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out2"),
+        encoding="utf-8",
+    )
+    second = CliRunner().invoke(app, ["generate", "-c", str(rules)])
+    assert second.exit_code == 0
+    assert "MG051" in second.stderr
+    cleaned = CliRunner().invoke(app, ["clean", "--yes", "-c", str(rules)])
+    assert cleaned.exit_code == 0
+    assert not (tmp_path / "out" / "model.json").exists()
+    assert not (tmp_path / "out2" / "model.json").exists()
+    assert not (tmp_path / ".eggpipe" / "manifest.json").exists()

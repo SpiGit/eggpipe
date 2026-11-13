@@ -575,40 +575,42 @@ def format_list() -> None:
 @app.command()
 def clean(
     config: ConfigOption = None,
-    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
+    root: Annotated[Path | None, typer.Option("--root")] = None,
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     yes: Annotated[bool, typer.Option("--yes")] = False,
 ) -> None:
-    """Удалить unchanged owned-артефакты из manifest."""
-    try:
-        rules, config_dir = _load_rules(config)
-    except EggpipeError as exc:
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(code=2) from exc
+    """Удалить unchanged owned-артефакты по глобальному manifest."""
+    if root is not None:
+        config_dir = root.resolve()
+    elif config is not None:
+        config_dir = config.resolve().parent
+    else:
+        config_dir = Path.cwd()
     if not dry_run and not yes:
         if not sys.stdin.isatty():
             typer.echo("error: в non-tty нужен --yes", err=True)
             raise typer.Exit(code=2)
         if not typer.confirm("Удалить unchanged owned-артефакты?"):
             return
-    writer = ArtifactWriter(eggpipe_version=__version__)
-    base = (output or config_dir).resolve()
-    removed = 0
-    for generator in rules.generators:
-        output_dir = (base / generator.output_dir).resolve()
-        manifest = output_dir / ".eggpipe" / "manifests" / f"{generator.id}.json"
-        if not manifest.is_file():
-            continue
-        with writer.write_lock(output_dir):
-            diagnostics = writer.clean_manifest(
-                output_dir=output_dir,
-                generator_id=generator.id,
-                dry_run=dry_run,
-            )
-        for item in diagnostics:
-            typer.echo(f"{item.level}: {item.code}: {item.message}", err=True)
-        removed += 1
-    typer.echo(f"{'planned' if dry_run else 'cleaned'} manifests: {removed}")
+    writer = ArtifactWriter(eggpipe_version=__version__, config_dir=config_dir)
+    if not writer.manifest_path.is_file():
+        typer.echo("no manifest")
+        return
+    try:
+        if dry_run:
+            result = writer.clean(dry_run=True)
+        else:
+            with writer.write_lock():
+                result = writer.clean(dry_run=False)
+    except EggpipeError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    for item in result.diagnostics:
+        typer.echo(f"{item.level}: {item.code}: {item.message}", err=True)
+    action = "planned" if dry_run else "cleaned"
+    typer.echo(
+        f"{action} artifacts: {result.removed_artifacts}, locations: {result.removed_locations}"
+    )
 
 
 if __name__ == "__main__":

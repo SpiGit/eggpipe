@@ -1,4 +1,4 @@
-"""Планирование и запись артефактов с ownership и manifest."""
+"""Планирование и запись артефактов с глобальным manifest."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from eggpipe.core.model import FormatInfo
 from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
 from eggpipe.interfaces.generator import Artifact
 from eggpipe.utils.exceptions import (
@@ -25,6 +26,7 @@ from eggpipe.utils.exceptions import (
     ManifestError,
 )
 
+MANIFEST_VERSION = 2
 WIN_RESERVED = {
     *(f"COM{i}" for i in range(1, 10)),
     *(f"LPT{i}" for i in range(1, 10)),
@@ -35,6 +37,13 @@ WIN_RESERVED = {
 }
 
 
+class ManifestFormat(BaseModel):
+    name: str
+    version: str
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
 class ManifestArtifact(BaseModel):
     path: str
     sha256: str
@@ -43,14 +52,21 @@ class ManifestArtifact(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class Manifest(BaseModel):
-    manifest_version: int = 1
+class ManifestLocation(BaseModel):
     generator: str
+    output_dir: str
     eggpipe_version: str
     plugin_version: str
-    format: dict[str, str]
+    formats: list[ManifestFormat] = Field(default_factory=list)
     generated_at: datetime
     artifacts: list[ManifestArtifact] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class Manifest(BaseModel):
+    manifest_version: int
+    locations: list[ManifestLocation] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -70,15 +86,26 @@ class PlannedArtifact:
 class ExecutionPlan:
     artifacts: list[PlannedArtifact] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)
+    formats: frozenset[FormatInfo] = frozenset()
 
     @property
     def has_errors(self) -> bool:
         return any(item.level == "error" for item in self.diagnostics)
 
 
+@dataclass(frozen=True)
+class CleanResult:
+    removed_artifacts: int
+    removed_locations: int
+    diagnostics: list[Diagnostic]
+
+
 class ArtifactWriter:
-    def __init__(self, *, eggpipe_version: str) -> None:
+    def __init__(self, *, eggpipe_version: str, config_dir: Path) -> None:
         self.eggpipe_version = eggpipe_version
+        self.config_dir = config_dir.resolve()
+        self.state_dir = self.config_dir / ".eggpipe"
+        self.manifest_path = self.state_dir / "manifest.json"
 
     def plan(
         self,
@@ -88,10 +115,12 @@ class ArtifactWriter:
         artifacts: list[Artifact],
         on_conflict: Literal["overwrite", "skip", "error"] = "overwrite",
         force: bool = False,
+        formats: frozenset[FormatInfo] = frozenset(),
     ) -> ExecutionPlan:
-        plan = ExecutionPlan()
-        manifest = self.load_manifest(output_dir, generator_id)
-        owned = {item.path for item in manifest.artifacts}
+        plan = ExecutionPlan(formats=formats)
+        manifest = self.load_manifest()
+        ownership = self._ownership(manifest)
+        current = (generator_id, self._output_rel(output_dir))
         seen: dict[str, str] = {}
         output_resolved = output_dir.resolve()
 
@@ -102,7 +131,7 @@ class ArtifactWriter:
                 plan.diagnostics.append(error("MG040", str(exc), path=artifact.path))
                 continue
             normalized = target.relative_to(output_resolved).as_posix()
-            collision = seen.get(normalized.casefold())
+            collision = _collision(seen, normalized)
             if collision is not None:
                 plan.diagnostics.append(
                     error(
@@ -116,6 +145,26 @@ class ArtifactWriter:
             if target.is_dir():
                 plan.diagnostics.append(
                     error("MG041", "artifact path указывает на каталог", path=normalized)
+                )
+                continue
+            owner = ownership.get(target)
+            if owner is not None and owner != current:
+                plan.diagnostics.append(
+                    error(
+                        "MG041",
+                        f"файл принадлежит другому location: {owner[0]}:{owner[1]}",
+                        path=normalized,
+                    )
+                )
+                continue
+            prefix = _owned_prefix(target, ownership, current)
+            if prefix is not None:
+                plan.diagnostics.append(
+                    error(
+                        "MG042",
+                        f"конфликт пути с другим location: {prefix}",
+                        path=normalized,
+                    )
                 )
                 continue
             digest = hashlib.sha256(artifact.content.encode("utf-8")).hexdigest()
@@ -135,15 +184,11 @@ class ArtifactWriter:
 
             if on_conflict == "error":
                 plan.diagnostics.append(
-                    error(
-                        "MG041",
-                        "on_conflict: error — файл уже существует",
-                        path=normalized,
-                    )
+                    error("MG041", "on_conflict: error — файл уже существует", path=normalized)
                 )
                 continue
 
-            if normalized in owned:
+            if owner == current:
                 skipped = on_conflict == "skip"
                 plan.artifacts.append(
                     self._planned(
@@ -217,16 +262,13 @@ class ArtifactWriter:
         output_dir: Path,
         plan: ExecutionPlan,
         plugin_version: str,
-        format_name: str,
-        format_version: str,
         cleanup: Literal["off", "prompt", "enabled"] = "off",
     ) -> list[Diagnostic]:
         if plan.has_errors:
             raise ManifestError("нельзя записывать план с ошибками")
+        if not plan.artifacts:
+            return []
         output_dir.mkdir(parents=True, exist_ok=True)
-        eggpipe_dir = output_dir / ".eggpipe"
-        manifests_dir = eggpipe_dir / "manifests"
-        manifests_dir.mkdir(parents=True, exist_ok=True)
         staging = output_dir / f".eggpipe-staging-{os.getpid()}-{uuid.uuid4().hex}"
         staging.mkdir()
         diagnostics: list[Diagnostic] = []
@@ -240,65 +282,41 @@ class ArtifactWriter:
                 item.target.parent.mkdir(parents=True, exist_ok=True)
                 os.replace(source, item.target)
 
-            entries: list[ManifestArtifact] = []
-            for item in plan.artifacts:
-                if item.action == "skip":
-                    current = item.target.exists()
-                    digest = _sha256_file(item.target) if current else item.sha256
-                    entries.append(
-                        ManifestArtifact(path=str(item.path), sha256=digest, skipped=True)
-                    )
-                else:
-                    entries.append(
-                        ManifestArtifact(
-                            path=str(item.path),
-                            sha256=item.sha256,
-                            skipped=False,
-                        )
-                    )
+            entries = self._current_entries(plan)
             current_paths = {str(item.path) for item in plan.artifacts}
-            old = self.load_manifest(output_dir, generator_id)
-            for item in old.artifacts:
-                if item.path in current_paths or item.skipped:
-                    if item.path not in current_paths:
-                        entries.append(item)
-                    continue
-                target = output_dir / item.path
-                if not target.exists():
-                    continue
-                if _sha256_file(target) != item.sha256:
-                    diagnostics.append(
-                        warning(
-                            "MG050",
-                            "изменённый owned-файл не удалён при cleanup",
-                            path=item.path,
-                        )
-                    )
-                    entries.append(item)
-                    continue
-                if cleanup == "enabled":
-                    target.unlink()
-                else:
-                    entries.append(item)
-            manifest = Manifest(
+            manifest = self.load_manifest()
+            old = self._find_location(manifest, generator_id, output_dir)
+            if old is not None:
+                kept = self._cleanup_location(
+                    old,
+                    output_dir,
+                    current_paths,
+                    cleanup,
+                    diagnostics,
+                )
+                entries.extend(kept)
+            location = ManifestLocation(
                 generator=generator_id,
+                output_dir=self._output_rel(output_dir),
                 eggpipe_version=self.eggpipe_version,
                 plugin_version=plugin_version,
-                format={"name": format_name, "version": format_version},
+                formats=_manifest_formats(plan.formats),
                 generated_at=datetime.now(UTC),
                 artifacts=entries,
             )
-            _write_json_atomic(manifests_dir / f"{generator_id}.json", manifest)
+            locations = [
+                item
+                for item in manifest.locations
+                if (item.generator, item.output_dir) != (generator_id, self._output_rel(output_dir))
+            ]
+            if entries:
+                locations.append(location)
+            self.save_manifest(Manifest(manifest_version=MANIFEST_VERSION, locations=locations))
         finally:
             shutil.rmtree(staging, ignore_errors=True)
         return diagnostics
 
-    def check(
-        self,
-        *,
-        output_dir: Path,
-        plan: ExecutionPlan,
-    ) -> list[Diagnostic]:
+    def check(self, *, plan: ExecutionPlan) -> list[Diagnostic]:
         diagnostics: list[Diagnostic] = []
         for item in plan.artifacts:
             if item.action == "skip":
@@ -308,25 +326,112 @@ class ArtifactWriter:
                     error("MG300", "ожидаемый артефакт отсутствует", path=str(item.path))
                 )
                 continue
-            actual = _sha256_file(item.target)
-            if actual != item.sha256:
+            if _sha256_file(item.target) != item.sha256:
                 diagnostics.append(error("MG300", "артефакт устарел (drift)", path=str(item.path)))
         return diagnostics
 
-    def clean_manifest(
-        self,
-        *,
-        output_dir: Path,
-        generator_id: str,
-        dry_run: bool = False,
-    ) -> list[Diagnostic]:
-        manifest_path = output_dir / ".eggpipe" / "manifests" / f"{generator_id}.json"
-        if not manifest_path.is_file():
-            return []
-        manifest = self.load_manifest(output_dir, generator_id)
-        kept: list[ManifestArtifact] = []
+    def clean(self, *, dry_run: bool = False) -> CleanResult:
+        manifest = self.load_manifest()
         diagnostics: list[Diagnostic] = []
-        for item in manifest.artifacts:
+        removed_artifacts = 0
+        kept_locations: list[ManifestLocation] = []
+        for location in manifest.locations:
+            output_dir = self._location_output(location)
+            kept = self._cleanup_location(
+                location,
+                output_dir,
+                current_paths=set(),
+                cleanup="enabled",
+                diagnostics=diagnostics,
+                dry_run=dry_run,
+            )
+            removed_artifacts += len(location.artifacts) - len(kept)
+            if kept:
+                kept_locations.append(
+                    location.model_copy(
+                        update={
+                            "generated_at": datetime.now(UTC),
+                            "artifacts": kept,
+                        }
+                    )
+                )
+        removed_locations = len(manifest.locations) - len(kept_locations)
+        if not dry_run:
+            if kept_locations:
+                self.save_manifest(
+                    Manifest(manifest_version=MANIFEST_VERSION, locations=kept_locations)
+                )
+            else:
+                self.manifest_path.unlink(missing_ok=True)
+        return CleanResult(
+            removed_artifacts=removed_artifacts,
+            removed_locations=removed_locations,
+            diagnostics=diagnostics,
+        )
+
+    def load_manifest(self) -> Manifest:
+        if not self.manifest_path.is_file():
+            return Manifest(manifest_version=MANIFEST_VERSION)
+        try:
+            data = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+            manifest = Manifest.model_validate(data)
+        except (OSError, json.JSONDecodeError, ValidationError) as exc:
+            raise ManifestError(
+                f"MG052: не удалось прочитать manifest {self.manifest_path}: {exc}"
+            ) from exc
+        if manifest.manifest_version != MANIFEST_VERSION:
+            raise ManifestError(
+                f"MG052: manifest_version {manifest.manifest_version} не поддерживается"
+            )
+        return manifest
+
+    def save_manifest(self, manifest: Manifest) -> None:
+        _write_json_atomic(self.manifest_path, manifest)
+
+    def location_key(self, generator_id: str, output_dir: Path) -> tuple[str, str]:
+        return (generator_id, self._output_rel(output_dir))
+
+    @contextmanager
+    def write_lock(self) -> Generator[None, None, None]:
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        lock = self.state_dir / "lock"
+        try:
+            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError as exc:
+            raise LockError(f"manifest уже используется: {lock}") from exc
+        try:
+            os.write(descriptor, f"{os.getpid()}\n".encode())
+            yield
+        finally:
+            os.close(descriptor)
+            lock.unlink(missing_ok=True)
+
+    def _current_entries(self, plan: ExecutionPlan) -> list[ManifestArtifact]:
+        entries: list[ManifestArtifact] = []
+        for item in plan.artifacts:
+            if item.action == "skip":
+                digest = _sha256_file(item.target) if item.target.exists() else item.sha256
+                entries.append(ManifestArtifact(path=str(item.path), sha256=digest, skipped=True))
+            else:
+                entries.append(
+                    ManifestArtifact(path=str(item.path), sha256=item.sha256, skipped=False)
+                )
+        return entries
+
+    def _cleanup_location(
+        self,
+        location: ManifestLocation,
+        output_dir: Path,
+        current_paths: set[str],
+        cleanup: Literal["off", "prompt", "enabled"],
+        diagnostics: list[Diagnostic],
+        *,
+        dry_run: bool = False,
+    ) -> list[ManifestArtifact]:
+        kept: list[ManifestArtifact] = []
+        for item in location.artifacts:
+            if item.path in current_paths:
+                continue
             if item.skipped:
                 kept.append(item)
                 continue
@@ -335,60 +440,90 @@ class ArtifactWriter:
                 continue
             if _sha256_file(target) != item.sha256:
                 diagnostics.append(
-                    warning(
-                        "MG050",
-                        "изменённый owned-файл не удалён при cleanup",
-                        path=item.path,
-                    )
+                    warning("MG050", "изменённый owned-файл не удалён при cleanup", path=item.path)
                 )
                 kept.append(item)
                 continue
-            if dry_run:
+            if cleanup == "enabled":
+                if not dry_run:
+                    target.unlink()
+            else:
                 kept.append(item)
-                continue
-            target.unlink()
-        if not dry_run:
-            updated = manifest.model_copy(
-                update={
-                    "generated_at": datetime.now(UTC),
-                    "artifacts": kept,
-                }
-            )
-            manifests_dir = output_dir / ".eggpipe" / "manifests"
-            _write_json_atomic(manifests_dir / f"{generator_id}.json", updated)
-        return diagnostics
+        return kept
 
-    def load_manifest(self, output_dir: Path, generator_id: str) -> Manifest:
-        path = output_dir / ".eggpipe" / "manifests" / f"{generator_id}.json"
-        if not path.is_file():
-            return Manifest(
-                generator=generator_id,
-                eggpipe_version=self.eggpipe_version,
-                plugin_version="",
-                format={},
-                generated_at=datetime.now(UTC),
-            )
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            return Manifest.model_validate(data)
-        except (OSError, json.JSONDecodeError, ValidationError) as exc:
-            raise ManifestError(f"не удалось прочитать manifest {path}: {exc}") from exc
+    def _find_location(
+        self,
+        manifest: Manifest,
+        generator_id: str,
+        output_dir: Path,
+    ) -> ManifestLocation | None:
+        key = (generator_id, self._output_rel(output_dir))
+        for location in manifest.locations:
+            if (location.generator, location.output_dir) == key:
+                return location
+        return None
 
-    @contextmanager
-    def write_lock(self, output_dir: Path) -> Generator[None, None, None]:
-        eggpipe_dir = output_dir / ".eggpipe"
-        eggpipe_dir.mkdir(parents=True, exist_ok=True)
-        lock = eggpipe_dir / "lock"
+    def _prune_missing(self, location: ManifestLocation) -> ManifestLocation:
+        output_dir = self._location_output(location)
+        kept = [
+            item for item in location.artifacts if item.skipped or (output_dir / item.path).exists()
+        ]
+        if len(kept) == len(location.artifacts):
+            return location
+        return location.model_copy(update={"artifacts": kept})
+
+    def _ownership(self, manifest: Manifest) -> dict[Path, tuple[str, str]]:
+        result: dict[Path, tuple[str, str]] = {}
+        for location in manifest.locations:
+            output_dir = self._location_output(location)
+            for artifact in location.artifacts:
+                target = (output_dir / artifact.path).resolve()
+                if target.exists():
+                    result[target] = (location.generator, location.output_dir)
+        return result
+
+    def _location_output(self, location: ManifestLocation) -> Path:
+        path = Path(location.output_dir)
+        return path if path.is_absolute() else (self.config_dir / path).resolve()
+
+    def _output_rel(self, output_dir: Path) -> str:
+        resolved = output_dir.resolve()
         try:
-            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError as exc:
-            raise LockError(f"output_dir уже используется: {lock}") from exc
-        try:
-            os.write(descriptor, f"{os.getpid()}\n".encode())
-            yield
-        finally:
-            os.close(descriptor)
-            lock.unlink(missing_ok=True)
+            return resolved.relative_to(self.config_dir).as_posix()
+        except ValueError:
+            return resolved.as_posix()
+
+
+def _collision(seen: dict[str, str], normalized: str) -> str | None:
+    key = normalized.casefold()
+    if key in seen:
+        return seen[key]
+    for other in seen:
+        if key.startswith(f"{other}/") or other.startswith(f"{key}/"):
+            return seen[other]
+    return None
+
+
+def _owned_prefix(
+    target: Path,
+    ownership: dict[Path, tuple[str, str]],
+    current: tuple[str, str],
+) -> str | None:
+    name = target.as_posix().casefold()
+    for other, owner in ownership.items():
+        if owner == current:
+            continue
+        other_name = other.as_posix().casefold()
+        if name.startswith(f"{other_name}/") or other_name.startswith(f"{name}/"):
+            return f"{owner[0]}:{owner[1]}"
+    return None
+
+
+def _manifest_formats(formats: frozenset[FormatInfo]) -> list[ManifestFormat]:
+    return [
+        ManifestFormat(name=item.name, version=item.version)
+        for item in sorted(formats, key=lambda item: (item.name, item.version))
+    ]
 
 
 def validate_artifact_path(output_dir: Path, artifact: Artifact) -> Path:
@@ -442,9 +577,12 @@ def _write_json_atomic(path: Path, value: BaseModel) -> None:
 
 __all__ = [
     "ArtifactWriter",
+    "CleanResult",
     "ExecutionPlan",
     "Manifest",
     "ManifestArtifact",
+    "ManifestFormat",
+    "ManifestLocation",
     "PlannedArtifact",
     "validate_artifact_path",
 ]

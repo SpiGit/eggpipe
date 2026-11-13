@@ -51,8 +51,6 @@ class _Pending:
     result: GenerationResult
     plan: ExecutionPlan
     output_dir: Path
-    format_name: str
-    format_version: str
 
 
 @dataclass
@@ -83,7 +81,7 @@ class Engine:
         self.generators = dict(generators) if generators is not None else load_generators()
         self.source_paths = source_paths
         self.variables = {**rules.variables, **(variables or {})}
-        self.writer = ArtifactWriter(eggpipe_version=__version__)
+        self.writer = ArtifactWriter(eggpipe_version=__version__, config_dir=self.config_dir)
         self.run_id = uuid.uuid4().hex
         self._pending: list[_Pending] = []
 
@@ -107,6 +105,8 @@ class Engine:
         run = self._run_generators(composition)
         diagnostics.extend(run.diagnostics)
         self._pending = run.pending
+        if not any(item.code == "MG052" for item in diagnostics):
+            diagnostics.extend(self._stale_locations())
         success = not _has_errors(diagnostics)
         return self._report(
             success,
@@ -163,6 +163,7 @@ class Engine:
 
     def _run_generators(self, composition: CompositionResult) -> _GeneratorRun:
         run = _GeneratorRun(generators=[], artifacts=[], pending=[], diagnostics=[])
+        claimed: dict[str, tuple[str, str]] = {}
         for generator_config in self.rules.generators:
             if not generator_config.enabled and not self.config.include_disabled:
                 continue
@@ -171,6 +172,17 @@ class Engine:
                 raise ConfigValidationError(f"неизвестный генератор: {generator_config.id}")
             generator_started = time.perf_counter()
             result, plan = self._run_generator(composition, generator_config, plugin)
+            plan.diagnostics.extend(
+                _claim_paths(
+                    plan,
+                    generator_config.id,
+                    self.writer.location_key(
+                        generator_config.id,
+                        self._output_dir(generator_config),
+                    ),
+                    claimed,
+                )
+            )
             run.diagnostics.extend(result.warnings)
             run.diagnostics.extend(result.errors)
             run.diagnostics.extend(plan.diagnostics)
@@ -200,20 +212,31 @@ class Engine:
                         result=result,
                         plan=plan,
                         output_dir=self._output_dir(generator_config),
-                        format_name=composition.format,
-                        format_version=composition.version,
                     )
                 )
         return run
 
     def generate(self) -> EngineReport:
-        report = self.build()
-        if not report.success:
-            return report
+        try:
+            with self.writer.write_lock():
+                report = self.build()
+                if not report.success:
+                    return report
+                return self._write_pending(report)
+        except LockError as exc:
+            return self._report(
+                False,
+                1,
+                [error("MG300", f"не удалось взять lock: {exc}")],
+                [],
+                time.perf_counter(),
+            )
+
+    def _write_pending(self, report: EngineReport) -> EngineReport:
         diagnostics = list(report.diagnostics)
         generators = list(report.generators)
-        for pending in self._pending:
-            try:
+        try:
+            for pending in self._pending:
                 cleanup = "enabled" if self.config.clean else pending.config.cleanup
                 if cleanup == "prompt":
                     diagnostics.append(
@@ -224,30 +247,21 @@ class Engine:
                         )
                     )
                     cleanup = "off"
-                with self.writer.write_lock(pending.output_dir):
-                    diagnostics.extend(
-                        self.writer.write(
-                            generator_id=pending.config.id,
-                            output_dir=pending.output_dir,
-                            plan=pending.plan,
-                            plugin_version=_plugin_version(pending.plugin),
-                            format_name=pending.format_name,
-                            format_version=pending.format_version,
-                            cleanup=cleanup,
-                        )
-                    )
-            except (LockError, ManifestError, OSError) as exc:
-                diagnostics.append(
-                    error(
-                        "MG300",
-                        f"не удалось записать {pending.config.id}: {exc}",
-                        path=str(pending.output_dir),
+                diagnostics.extend(
+                    self.writer.write(
+                        generator_id=pending.config.id,
+                        output_dir=pending.output_dir,
+                        plan=pending.plan,
+                        plugin_version=_plugin_version(pending.plugin),
+                        cleanup=cleanup,
                     )
                 )
+        except (ManifestError, OSError) as exc:
+            diagnostics.append(error("MG300", f"не удалось записать артефакты: {exc}"))
+            if self._pending:
+                failed = {pending.config.id for pending in self._pending}
                 generators = [
-                    item.model_copy(update={"status": "error"})
-                    if item.id == pending.config.id
-                    else item
+                    item.model_copy(update={"status": "error"}) if item.id in failed else item
                     for item in generators
                 ]
         success = not _has_errors(diagnostics)
@@ -264,7 +278,7 @@ class Engine:
         report = self.build()
         diagnostics = list(report.diagnostics)
         for pending in self._pending:
-            diagnostics.extend(self.writer.check(output_dir=pending.output_dir, plan=pending.plan))
+            diagnostics.extend(self.writer.check(plan=pending.plan))
         success = not _has_errors(diagnostics)
         return report.model_copy(
             update={
@@ -273,6 +287,25 @@ class Engine:
                 "diagnostics": diagnostics,
             }
         )
+
+    def _stale_locations(self) -> list[Diagnostic]:
+        try:
+            manifest = self.writer.load_manifest()
+        except ManifestError as exc:
+            return [error("MG052", str(exc))]
+        configured = {
+            self.writer.location_key(item.id, self._output_dir(item))
+            for item in self.rules.generators
+        }
+        return [
+            warning(
+                "MG051",
+                "stale generated location в manifest",
+                path=location.output_dir,
+            )
+            for location in manifest.locations
+            if (location.generator, location.output_dir) not in configured
+        ]
 
     def _source_paths(
         self, diagnostics: list[Diagnostic]
@@ -362,13 +395,23 @@ class Engine:
             result = result.model_copy(update={"warnings": [*warnings, *result.warnings]})
         if not result.success:
             return result, ExecutionPlan()
-        plan = self.writer.plan(
-            generator_id=generator_config.id,
-            output_dir=self._output_dir(generator_config),
-            artifacts=result.artifacts,
-            on_conflict=generator_config.on_conflict,
-            force=self.config.force,
-        )
+        try:
+            plan = self.writer.plan(
+                generator_id=generator_config.id,
+                output_dir=self._output_dir(generator_config),
+                artifacts=result.artifacts,
+                on_conflict=generator_config.on_conflict,
+                force=self.config.force,
+                formats=slice_.formats,
+            )
+        except ManifestError as exc:
+            return (
+                GenerationResult(
+                    warnings=warnings,
+                    errors=[error("MG052", str(exc))],
+                ),
+                ExecutionPlan(),
+            )
         return result, plan
 
     def _output_dir(self, generator_config: GeneratorConfig) -> Path:
@@ -435,6 +478,31 @@ def _composition_sources(composition: CompositionResult) -> list[Path]:
         for entity in document.model.entities:
             paths.update(entity.layer_sources)
     return sorted(paths, key=lambda item: item.as_posix())
+
+
+def _claim_paths(
+    plan: ExecutionPlan,
+    generator_id: str,
+    location: tuple[str, str],
+    claimed: dict[str, tuple[str, str]],
+) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    for item in plan.artifacts:
+        name = item.target.resolve().as_posix().casefold()
+        for other, owner in claimed.items():
+            if owner == location:
+                continue
+            if name == other or name.startswith(f"{other}/") or other.startswith(f"{name}/"):
+                diagnostics.append(
+                    error(
+                        "MG042",
+                        f"path {item.path} уже занят location {owner[0]}:{owner[1]}",
+                        path=str(item.path),
+                    )
+                )
+                break
+        claimed[name] = (generator_id, location[1])
+    return diagnostics
 
 
 def _check_input_formats(

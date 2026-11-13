@@ -2,7 +2,7 @@
 
 - **Дата:** 2026-11-12
 - **Основание:** [ТЗ v2.0](requirements/v2.0.md), [ревью v2.0](reviews/2026-11-12-v2-review.md)
-- **Статус:** E0–E5 выполнены; следующий этап — E6
+- **Статус:** E0–E6 выполнены; следующий этап — E7
 
 ---
 
@@ -136,13 +136,13 @@
 
 Задачи:
 
-- [ ] `.eggpipe/manifest.json`; `manifest_version: 2`; `eggpipe_version`.
-- [ ] Locations `(generator, output_dir)`; `formats`.
-- [ ] Ownership/--force: только unowned; no steal.
-- [ ] Cross-generator exact/casefold/prefix conflicts MG042.
-- [ ] `eggpipe clean`: global manifest, no config/plugins; `--root`.
-- [ ] Stale locations MG051; corrupted/unsupported MG052.
-- [ ] Global lock `.eggpipe/lock`.
+- [x] `.eggpipe/manifest.json`; `manifest_version: 2`; `eggpipe_version`.
+- [x] Locations `(generator, output_dir)`; `formats`.
+- [x] Ownership/--force: только unowned; no steal.
+- [x] Cross-generator exact/casefold/prefix conflicts MG042.
+- [x] `eggpipe clean`: global manifest, no config/plugins; `--root`.
+- [x] Stale locations MG051; corrupted/unsupported MG052.
+- [x] Global lock `.eggpipe/lock`.
 
 **Критерий:** tests ownership/cleanup/concurrency/mixed formats.
 
