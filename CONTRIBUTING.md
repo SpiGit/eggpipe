@@ -23,6 +23,23 @@ uv sync --extra dev
 Для basedpyright/Pyright в корне есть `pyrightconfig.json`: он задаёт src-layout, `extraPaths` и `.venv`.
 Перед проверкой убедитесь, что окружение создано через `uv sync --extra dev`.
 
+## Локальные hooks
+
+В репозитории лежат git-hooks, которые запускают проверки до коммита и push:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+- `pre-commit` — быстрые `ruff check` и `ruff format --check`;
+- `pre-push` — полный `tools/preflight.py`: типы, тесты, docs, сборка.
+
+Полный прогон вручную:
+
+```bash
+uv run python tools/preflight.py
+```
+
 ## Проверки
 
 Перед pull request:
