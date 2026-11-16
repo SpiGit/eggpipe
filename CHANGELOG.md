@@ -10,6 +10,7 @@
 - `examples/plugin-template` — шаблон генератора и формата с contract-тестами.
 - Страница `docs/user/plugin-template.md` и CI-проверка шаблона.
 - `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов.
+- ADR-0016: политика deprecation для публичного API, CLI, конфига и плагинов.
 
 ## [0.3.2] - 2026-11-14
 

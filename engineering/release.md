@@ -32,8 +32,10 @@
    uv run mkdocs build --strict
    ```
 
-5. Убедиться, что `LICENSE`, `README.md` и `CHANGELOG.md` попадают в sdist.
-6. Проверить доступность имени `eggpipe` и команды `eggpipe` на PyPI.
+5. Проверить, что все deprecated-элементы либо остаются в окне поддержки, либо удалены
+   по [ADR-0016](adr/0016-deprecation-policy.md).
+6. Убедиться, что `LICENSE`, `README.md` и `CHANGELOG.md` попадают в sdist.
+7. Проверить доступность имени `eggpipe` и команды `eggpipe` на PyPI.
 
 ## Публикация
 
