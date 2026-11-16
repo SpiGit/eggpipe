@@ -32,6 +32,7 @@ LLMS_FULL_SOURCES = (
     ROOT / "docs" / "user" / "api" / "generator.md",
     ROOT / "docs" / "user" / "api" / "format.md",
     ROOT / "docs" / "user" / "api" / "models.md",
+    ROOT / "docs" / "user" / "plugin-template.md",
 )
 
 DOCUMENTS = (
@@ -46,6 +47,7 @@ DOCUMENTS = (
     "docs/user/api/format.md",
     "docs/user/api/models.md",
     "docs/user/plugins.md",
+    "docs/user/plugin-template.md",
     "docs/user/reference/diagnostics.md",
     "docs/user/troubleshooting.md",
     "docs/user/faq.md",
@@ -123,6 +125,7 @@ def _llms_index() -> str:
 - [API](../user/api/index.md)
 - [Cookbook](../user/cookbook/index.md)
 - [Plugins](../user/plugins.md)
+- [Plugin template](../user/plugin-template.md)
 - [Diagnostics](../user/reference/diagnostics.md)
 - [Troubleshooting](../user/troubleshooting.md)
 

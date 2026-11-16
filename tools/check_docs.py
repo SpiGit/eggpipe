@@ -97,6 +97,7 @@ REQUIRED_FILES = (
     "engineering/reviews/2026-11-13-project-review.md",
     "docs/user/reference/diagnostics.md",
     "docs/user/plugins.md",
+    "docs/user/plugin-template.md",
     "engineering/release.md",
     "engineering/index.md",
     "docs/user/index.md",

@@ -67,6 +67,10 @@
     },
     {
       "exists": true,
+      "path": "docs/user/plugin-template.md"
+    },
+    {
+      "exists": true,
       "path": "docs/user/reference/diagnostics.md"
     },
     {

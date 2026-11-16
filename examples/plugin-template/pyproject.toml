@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eggpipe-plugin-template"
+version = "0.1.0"
+description = "Template generator and format plugin for eggpipe"
+requires-python = ">=3.11"
+dependencies = ["eggpipe>=0.3.2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.entry-points."eggpipe.generators"]
+template-json = "eggpipe_plugin_template:template_generator"
+
+[project.entry-points."eggpipe.formats"]
+template-model = "eggpipe_plugin_template:TemplateFormat"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eggpipe_plugin_template"]

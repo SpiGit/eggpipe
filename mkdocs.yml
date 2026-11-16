@@ -29,6 +29,7 @@ nav:
           - Модели: user/api/models.md
       - Cookbook: user/cookbook/index.md
       - Плагины: user/plugins.md
+      - Шаблон плагина: user/plugin-template.md
       - Диагностики: user/reference/diagnostics.md
       - Troubleshooting: user/troubleshooting.md
       - FAQ: user/faq.md
