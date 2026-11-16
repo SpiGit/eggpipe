@@ -49,6 +49,11 @@ jobs:
       - name: Verify artifacts
         run: uv run python tools/check_wheel.py dist
 
+      - name: Generate SBOM
+        run: |
+          uv export --no-dev --no-hashes --format requirements-txt --no-emit-project > /tmp/requirements.txt
+          uv run --with cyclonedx-bom cyclonedx-py requirements /tmp/requirements.txt --of JSON --pyproject pyproject.toml --output-file dist/sbom.cdx.json --validate
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:

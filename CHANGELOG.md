@@ -18,6 +18,7 @@
 - `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов.
 - ADR-0016: политика deprecation для публичного API, CLI, конфига и плагинов.
 - `tools/benchmark.py` и `engineering/benchmarks.md` — базовые замеры TPC-H.
+- Release workflow генерирует CycloneDX SBOM и прикладывает его к GitHub Release.
 - Версионированная документация: `mike`, версии `major.minor` и alias `latest`.
 - PR-ревью через subagent `pr-reviewer` (Qwen3.8 Flash) и `tools/review_pr.py`.
 

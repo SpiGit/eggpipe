@@ -102,7 +102,7 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 | Per-entity generate | Ядро | Генерация без полного прогона |
 | Улучшение watch | Ядро | Нет параллельных запусков и лишних пересборок |
 | Reference-плагины SQL/Pydantic/TS | Экосистема | Пользователю есть что взять готовым |
-| PyPI attestations / SBOM | Безопасность | Проверяемая цепочка поставки |
+| PyPI attestations / SBOM | Безопасность | Attestations уже есть; SBOM добавлен в release |
 | Метрики и structured logging | Эксплуатация | Проще диагностировать проблемы |
 
 ### P2 — после 1.0 или по запросу

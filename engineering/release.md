@@ -51,10 +51,11 @@ git push origin v0.3.2
 
 Workflow `.github/workflows/release.yml`:
 
-- `build` — проверки, сборка и `check_wheel.py`;
-- `github-release` — GitHub Release с wheel/sdist;
+- `build` — проверки, сборка, `check_wheel.py` и SBOM `dist/sbom.cdx.json`;
+- `github-release` — GitHub Release с wheel/sdist и SBOM;
 - `publish-pypi` — PyPI через trusted publisher, только если repository variable
-  `PYPI_PUBLISH=true`.
+  `PYPI_PUBLISH=true`. Attestations PEP 740 включены по умолчанию в
+  `pypa/gh-action-pypi-publish`.
 
 Для PyPI настроить trusted publisher:
 
