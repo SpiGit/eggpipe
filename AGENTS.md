@@ -64,10 +64,11 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 ## PR review
 
 1. Создать PR и дождаться `ci-success`.
-2. Запустить subagent `pr-reviewer` (Qwen3.8 Flash) с номером PR.
-3. Если verdict `APPROVE`, опубликовать review-комментарий:
+2. Убедиться, что `HEAD` запушен, и передать subagent `pr-reviewer` (Qwen3.8 Flash)
+   diff текущей ветки. Номер PR нужен только для публикации ревью.
+3. Опубликовать verdict и находки:
    ```bash
-   uv run python tools/review_pr.py --pr <N> --body "<verdict>"
+   uv run python tools/review_pr.py --pr <N> --body "<verdict и находки>"
    ```
    Для своего PR используется `event=COMMENT`: GitHub не позволяет формально
    approve собственный PR.
@@ -151,7 +152,8 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 - `/adr-new <название>` — создание нового ADR по шаблону.
 - `uv run python tools/create_pr.py` — создать/обновить PR из текущей ветки (нужен `GH_TOKEN`).
 - `uv run python tools/benchmark.py` — базовый бенчмарк TPC-H.
-- `uv run python tools/review_pr.py` — опубликовать review-комментарий в PR.
+- `uv run python tools/review_pr.py` — опубликовать review-комментарий в PR (нужен `GH_TOKEN`).
+- Subagent `pr-reviewer` — независимое ревью PR на Qwen3.8 Flash.
 - Skill `spec-consistency` — чек-лист кросс-документной проверки.
 - Skill `plugin-contract` — контракты плагинов и публичный API.
 - Skill `clean-code` — принципы чистого кода и чек-лист code review.

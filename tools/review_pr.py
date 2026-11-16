@@ -5,21 +5,18 @@ from __future__ import annotations
 
 import argparse
 import sys
-from urllib.parse import quote
+from pathlib import Path
 
-from tools.create_pr import _api, _run_git, _token, repo_from_remote
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-
-def _find_pr(repo: str, branch: str, token: str) -> int:
-    owner = repo.split("/", 1)[0]
-    data = _api(
-        "GET",
-        f"/repos/{repo}/pulls?head={quote(owner)}:{quote(branch)}&state=open",
-        token,
-    )
-    if not isinstance(data, list) or not data:
-        raise SystemExit(f"no open pull request for branch: {branch}")
-    return int(data[0]["number"])
+from tools.create_pr import (
+    _api,
+    _run_git,
+    _token,
+    find_open_pr,
+    repo_from_remote,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,7 +37,12 @@ def main(argv: list[str] | None = None) -> int:
 
     repo = repo_from_remote(_run_git("remote", "get-url", "origin"))
     token = _token()
-    number = args.pr or _find_pr(repo, _run_git("rev-parse", "--abbrev-ref", "HEAD"), token)
+    if args.pr is not None:
+        number = args.pr
+    else:
+        number = find_open_pr(repo, _run_git("rev-parse", "--abbrev-ref", "HEAD"), token)
+        if number is None:
+            raise SystemExit("no open pull request for the current branch")
     result = _api(
         "POST",
         f"/repos/{repo}/pulls/{number}/reviews",

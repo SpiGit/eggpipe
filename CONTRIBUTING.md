@@ -83,7 +83,7 @@ uv run python tools/create_pr.py --title "feat: short description"
 После зелёного `ci-success` запускается независимый ревьюер `pr-reviewer`
 (Qwen3.8 Flash). Он возвращает `APPROVE` или `CHANGES REQUESTED`.
 
-- при `APPROVE` review публикуется через `tools/review_pr.py`;
+- verdict и находки публикуются через `tools/review_pr.py`;
 - при замечаниях — правки, повторный CI и одно повторное ревью;
 - если второе ревью снова не `APPROVE`, PR остаётся нерешённым, цикл останавливается.
 

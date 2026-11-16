@@ -19,18 +19,15 @@ permissions:
   - action: shell
     resource: "*"
     effect: deny
-  - action: shell
-    resource: "git diff*"
-    effect: allow
-  - action: shell
-    resource: "git log*"
-    effect: allow
-  - action: shell
-    resource: "git show*"
-    effect: allow
-  - action: shell
-    resource: "git status*"
-    effect: allow
+  - action: read
+    resource: "*.env"
+    effect: deny
+  - action: read
+    resource: "**/*.env"
+    effect: deny
+  - action: read
+    resource: "**/.env"
+    effect: deny
 ---
 
 Ты — независимый ревьюер pull request в проекте Eggpipe. Работай только на чтение.
@@ -43,11 +40,8 @@ permissions:
 
 ## Что ревьюить
 
-1. Diff текущей ветки против `origin/main`:
-   ```bash
-   git diff origin/main...HEAD
-   ```
-2. Изменённые файлы и их окружение.
+1. Diff PR передан в задании; отдельно запускать git не нужно.
+2. Изменённые файлы и их окружение — через `read`, `glob`, `grep`.
 3. Корректность: логика, границы, ошибки, совместимость.
 4. Тесты: покрывают ли изменение, нет ли ослабления проверок.
 5. Документацию: обновлены ли ТЗ/ADR/CHANGELOG, если нужно.
@@ -58,8 +52,8 @@ permissions:
 ## Ограничения
 
 - Не редактируй, не создавай и не удаляй файлы.
-- Не запускай subagent'ов, webfetch и websearch.
-- Shell разрешён только для `git diff`, `git log`, `git show`, `git status`.
+- Не запускай subagent'ов, webfetch, websearch и shell.
+- Не читай `.env` и другие файлы с секретами; не включай секреты в находки.
 - Не публикуй ревью в GitHub: это делает основной агент.
 
 ## Формат ответа
