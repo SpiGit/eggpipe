@@ -152,6 +152,7 @@ uv run ruff format --check src tests tools examples
 uv run pyrefly check
 uv run pytest --cov
 uv run python tools/check_docs.py --strict
+uv run python tools/preflight.py
 uv build
 uv run python tools/check_wheel.py dist
 ```
