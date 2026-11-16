@@ -127,10 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     config = _run_config(args.iterations)
     parse = _run_parse(args.iterations)
     build, phase_samples = _run_build(args.iterations)
-    phases = {
-        name: statistics.median(values)
-        for name, values in phase_samples.items()
-    }
+    phases = {name: statistics.median(values) for name, values in phase_samples.items()}
     rows = [
         ("config load", _median_ms(config)),
         ("parse one document", _median_ms(parse)),
