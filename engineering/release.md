@@ -1,5 +1,16 @@
 # Релиз
 
+## Ветвление
+
+Проект использует trunk-based development: постоянная ветка одна — `main`
+(см. [ADR-0015](adr/0015-branching-and-release-policy.md)).
+
+- работа — в `feat/*`, `fix/*`, `docs/*`, `chore/*`;
+- merge в `main` — только через PR и зелёный `ci-success`;
+- релиз — тег `vX.Y.Z` на `main`;
+- для старой линии или стабилизации — временная `release/X.Y`;
+- постоянная `develop` не используется.
+
 ## Подготовка
 
 До 1.0 проект находится в beta-статусе: тег `v0.x` не гарантирует обратную совместимость
@@ -27,6 +38,7 @@
 ## Публикация
 
 Тег ставится только на `main` после merge release PR. Прямой push в `main` запрещён.
+Теги `v*` защищены; опубликованные теги не перемещаются и не удаляются.
 
 Релиз запускается тегом:
 
@@ -52,7 +64,8 @@ Workflow `.github/workflows/release.yml`:
    - workflow name: `release.yml`;
    - environment: `pypi`.
 3. GitHub → **Settings → Environments** → создать environment `pypi`.
-   Секреты не нужны: используется OIDC (`id-token: write`).
+   Секреты не нужны: используется OIDC (`id-token: write`). Рекомендуется включить
+   required reviewers, чтобы публикация не проходила без подтверждения.
 4. GitHub → **Settings → Secrets and variables → Actions → Variables**:
    добавить `PYPI_PUBLISH=true`.
 5. Запушить тег:

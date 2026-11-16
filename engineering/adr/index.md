@@ -16,6 +16,7 @@
 | [0012](./0012-english-only-source.md) | English-only source, docstrings и diagnostics | Принято |
 | [0013](./0013-diagnostic-code-namespace.md) | Пространство диагностических кодов EG | Принято |
 | [0014](./0014-beta-status-and-compatibility.md) | Beta-статус и совместимость до 1.0 | Принято |
+| [0015](./0015-branching-and-release-policy.md) | Ветвление и релизная политика | Принято |
 
 Решения ADR-0007–0010 сформулированы для ТЗ v1.4 и вошли в v2.0 без изменения смысла.
 ADR-0011 фиксирует публичный API и идентичность Eggpipe для v2.1.
