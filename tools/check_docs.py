@@ -556,9 +556,7 @@ class Checker:
             ):
                 self.error("DOC146", path, None, f"{path.name} must deny {action}")
         if path.name == "pr-reviewer.md" and not any(
-            isinstance(rule, dict)
-            and rule.get("action") == "read"
-            and rule.get("effect") == "deny"
+            isinstance(rule, dict) and rule.get("action") == "read" and rule.get("effect") == "deny"
             for rule in permissions
         ):
             self.error("DOC146", path, None, "pr-reviewer must deny secret file reads")
