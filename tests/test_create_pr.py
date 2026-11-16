@@ -11,6 +11,7 @@ from tools.create_pr import (
     parse_numstat,
     repo_from_remote,
     size_warning,
+    with_size_exception,
 )
 
 
@@ -60,3 +61,10 @@ def test_size_warning() -> None:
     assert "Split into stacked PRs" in warning
     assert "hand-written lines" in warning
     assert size_warning(DiffSize(lines=1, files=16)) is not None
+
+
+def test_with_size_exception() -> None:
+    assert with_size_exception("body\n", None) == "body\n"
+    body = with_size_exception("body\n", "large spec update")
+    assert body.endswith("## Size exception\n\nlarge spec update\n")
+    assert with_size_exception(body, "another reason") == body

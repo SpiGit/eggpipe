@@ -105,6 +105,13 @@ def default_title(subjects: list[str], branch: str) -> str:
     return subjects[0] if subjects else branch
 
 
+def with_size_exception(body: str, reason: str | None) -> str:
+    """Append a persistent size-exception section once."""
+    if not reason or "## Size exception" in body:
+        return body
+    return f"{body.rstrip()}\n\n## Size exception\n\n{reason}\n"
+
+
 def find_open_pr(repo: str, branch: str, token: str) -> int | None:
     """Return the open PR number for a head branch, if any."""
     owner = repo.split("/", 1)[0]
@@ -195,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
 
     title = args.title or default_title(subjects, branch)
     body = args.body or build_body(subjects)
+    if warning is not None:
+        body = with_size_exception(body, args.allow_large)
     token = _token()
 
     existing = find_open_pr(repo, branch, token)

@@ -25,7 +25,9 @@
 - ТЗ v2.3: контракт инкрементальной генерации и отчёт cache hit.
 - `examples/plugin-template` — шаблон генератора и формата с contract-тестами.
 - Страница `docs/user/plugin-template.md` и CI-проверка шаблона.
-- `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов.
+- `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов,
+  предупреждение о превышении бюджета и `--allow-large "reason"`.
+- AGENTS/CONTRIBUTING/PR-шаблон: Definition of Ready, бюджет PR, split rule и review freeze.
 - ADR-0016: политика deprecation для публичного API, CLI, конфига и плагинов.
 - `tools/benchmark.py` и `engineering/benchmarks.md` — базовые замеры TPC-H.
 - Release workflow генерирует CycloneDX SBOM и прикладывает его к GitHub Release.
