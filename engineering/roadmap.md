@@ -1,7 +1,7 @@
 # Roadmap Eggpipe
 
 - **Статус:** рабочая версия
-- **Дата:** 2026-11-14
+- **Дата:** 2026-11-16
 - **Текущий релиз:** `0.3.2` (beta)
 - **Связанные документы:** [План v2.0](./plan-v2.md), [ADR-0014](./adr/0014-beta-status-and-compatibility.md), [Релиз](./release.md)
 
@@ -101,22 +101,25 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 | Инкрементальная генерация | Ядро | Повторный запуск быстрее |
 | Per-entity generate | Ядро | Генерация без полного прогона |
 | Улучшение watch | Ядро | Нет параллельных запусков и лишних пересборок |
-| Reference-плагины: SQL/Pydantic/TS и PostgreSQL transform | Экосистема | Пользователю есть что взять готовым |
+| Reference-плагины SQL/Pydantic/TS | Экосистема | Переиспользуемые примеры, не только TPC-H |
+| PostgreSQL transform/upsert example | Экосистема | Пример процедур; кандидат в 0.5.0 |
 | PyPI attestations / SBOM | Безопасность | Attestations уже есть; SBOM добавлен в release |
 | Метрики и structured logging | Эксплуатация | Проще диагностировать проблемы |
 
 ### Reference examples
 
-- SQL/Pydantic — уже есть в TPC-H.
+- SQL/Pydantic — пока только внутри TPC-H как часть бенчмарка; вынос в общий
+  переиспользуемый reference-плагин — отдельная задача.
 - TypeScript/OpenAPI — следующие кандидаты.
-- PostgreSQL transform/upsert — пример генерации процедур:
-  - формат `transform-model` расширяет `entity-model`;
-  - правила в `metadata.transform`;
+- PostgreSQL transform/upsert — кандидат в `0.5.0`:
+  - формат-плагин, наследник `entity-model`; имя формата и namespace выбирает плагин;
+  - в примере используется namespace `metadata.transform`;
   - одна upsert-процедура на сущность;
   - field mapping/cast, без joins между сущностями;
   - явная пометка «example, не поддерживаемый продукт».
 
-Не входит в scope: dbt, ETL-оркестрация, scheduling, lineage и relations в ядре.
+Не входит в scope примеров: dbt, ETL-оркестрация, scheduling, lineage.
+Relations в ядре остаются открытым вопросом 2.
 
 ### P2 — после 1.0 или по запросу
 
