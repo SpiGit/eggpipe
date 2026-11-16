@@ -4,18 +4,14 @@
 
 <!-- Кратко: цель и суть изменений. -->
 
-## Проверки
+## Ручная проверка
 
-- [ ] `uv run ruff check .`
-- [ ] `uv run ruff format --check src tests tools examples`
-- [ ] `uv run pyrefly check`
-- [ ] `uv run pytest --cov`
-- [ ] `uv run python tools/check_docs.py --strict`
-- [ ] `uv build`
-- [ ] `uv run python tools/check_wheel.py dist`
-
-## Документация
-
+- [ ] Просмотрен `git diff`, нет случайных файлов и переформатирования.
 - [ ] Обновлён `CHANGELOG.md`, если изменение заметно пользователю.
 - [ ] Обновлены ТЗ/ADR/System Design, если менялись контракты.
-- [ ] Нет случайных файлов, `dist/`, `.venv/` и сгенерированных артефактов.
+- [ ] Нет `dist/`, `.venv/` и сгенерированных артефактов.
+
+## CI
+
+`ci-success` проверяет `ruff`, форматирование, `pyrefly`, `pytest`, документацию,
+сборку и wheel. Merge только после зелёного `ci-success`.
