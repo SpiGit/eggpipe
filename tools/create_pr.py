@@ -9,12 +9,74 @@ import os
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
+from fnmatch import fnmatch
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 API = "https://api.github.com"
+MAX_PR_LINES = 500
+MAX_PR_FILES = 15
+GENERATED_PREFIXES = ("docs/ai/",)
+GENERATED_PATTERNS = ("engineering/requirements/v*.md", "uv.lock")
+
+
+@dataclass(frozen=True)
+class DiffSize:
+    """Hand-written diff size, excluding generated and full-copy files."""
+
+    lines: int = 0
+    files: int = 0
+    generated_lines: int = 0
+    generated_files: int = 0
+
+    @property
+    def too_large(self) -> bool:
+        return self.lines > MAX_PR_LINES or self.files > MAX_PR_FILES
+
+
+def is_generated(path: str) -> bool:
+    """Return True for files that do not count towards the PR size budget."""
+    return path.startswith(GENERATED_PREFIXES) or any(
+        fnmatch(path, pattern) for pattern in GENERATED_PATTERNS
+    )
+
+
+def parse_numstat(output: str) -> DiffSize:
+    """Parse ``git diff --numstat`` output into a hand-written size summary."""
+    lines = files = generated_lines = generated_files = 0
+    for line in output.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        added, deleted, path = parts[0], parts[1], parts[2]
+        count = _numstat_count(added) + _numstat_count(deleted)
+        if is_generated(path):
+            generated_lines += count
+            generated_files += 1
+        else:
+            lines += count
+            files += 1
+    return DiffSize(lines, files, generated_lines, generated_files)
+
+
+def _numstat_count(value: str) -> int:
+    return int(value) if value.isdigit() else 0
+
+
+def size_warning(size: DiffSize) -> str | None:
+    """Return a warning for oversized PRs, or None when the PR fits the budget."""
+    if not size.too_large:
+        return None
+    return (
+        f"PR is large: {size.lines} hand-written lines across {size.files} files "
+        f"(budget: {MAX_PR_LINES} lines / {MAX_PR_FILES} files).\n"
+        f"Generated/full-copy excluded: {size.generated_lines} lines / "
+        f"{size.generated_files} files.\n"
+        'Split into stacked PRs, or pass --allow-large "reason".'
+    )
 
 
 def _run_git(*args: str) -> str:
@@ -94,6 +156,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--title", help="PR title; defaults to the first commit subject")
     parser.add_argument("--body", help="PR body; defaults to commit subjects")
     parser.add_argument("--no-fetch", action="store_true", help="do not fetch the base branch")
+    parser.add_argument(
+        "--allow-large",
+        metavar="REASON",
+        help="acknowledge a PR above the size budget",
+    )
     args = parser.parse_args(argv)
 
     branch = _run_git("rev-parse", "--abbrev-ref", "HEAD")
@@ -117,6 +184,14 @@ def main(argv: list[str] | None = None) -> int:
     ]
     if not subjects:
         raise SystemExit(f"no commits ahead of origin/{args.base}")
+
+    size = parse_numstat(_run_git("diff", "--numstat", f"origin/{args.base}...HEAD"))
+    warning = size_warning(size)
+    if warning is not None:
+        if args.allow_large:
+            print(f"note: {warning}\nreason: {args.allow_large}", file=sys.stderr)
+        else:
+            print(f"warning: {warning}", file=sys.stderr)
 
     title = args.title or default_title(subjects, branch)
     body = args.body or build_body(subjects)
