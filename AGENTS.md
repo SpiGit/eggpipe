@@ -126,6 +126,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 - `/spec-release <версия>` — подготовка новой версии ТЗ и синхронизация документов.
 - `/adr-new <название>` — создание нового ADR по шаблону.
 - `uv run python tools/create_pr.py` — создать/обновить PR из текущей ветки (нужен `GH_TOKEN`).
+- `uv run python tools/benchmark.py` — базовый бенчмарк TPC-H.
 - Skill `spec-consistency` — чек-лист кросс-документной проверки.
 - Skill `plugin-contract` — контракты плагинов и публичный API.
 - Skill `clean-code` — принципы чистого кода и чек-лист code review.
