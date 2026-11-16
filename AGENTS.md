@@ -33,6 +33,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 | `engineering/system-design/index.md` | System Design |
 | `engineering/adr/` | Принятые архитектурные решения |
 | `engineering/reviews/` | Ревью и backlog P1/P2 |
+| `engineering/roadmap.md` | Направления развития и подготовка к 1.0 |
 | `engineering/decisions/eggpipe.md` | Имя, CLI/конфиг, бренд и идеи лого |
 | `docs/user/plugins.md` | Руководство по плагинам |
 | `engineering/release.md` | Релизный чек-лист |

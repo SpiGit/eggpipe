@@ -90,6 +90,7 @@ REQUIRED_FILES = (
     "engineering/decisions/logo-brief.md",
     "engineering/brand-assets.md",
     "engineering/plan-v2.md",
+    "engineering/roadmap.md",
     "engineering/reviews/2026-11-12-v2-review.md",
     "engineering/reviews/2026-11-13-code-quality-review.md",
     "engineering/reviews/2026-11-13-patterns-review.md",
