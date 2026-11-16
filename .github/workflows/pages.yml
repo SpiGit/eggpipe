@@ -38,13 +38,19 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
-      - name: Build docs
-        run: uv run mkdocs build --strict
+      - name: Deploy versioned docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          uv run mike deploy --branch gh-pages --ignore-remote-status --alias-type redirect --update-aliases 0.3 latest
+          uv run mike set-default --branch gh-pages --ignore-remote-status latest
+          mkdir -p /tmp/pages
+          git archive gh-pages | tar -x -C /tmp/pages
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: site
+          path: /tmp/pages
 
   deploy:
     name: Deploy documentation
