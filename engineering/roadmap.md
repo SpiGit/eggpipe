@@ -101,9 +101,22 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 | Инкрементальная генерация | Ядро | Повторный запуск быстрее |
 | Per-entity generate | Ядро | Генерация без полного прогона |
 | Улучшение watch | Ядро | Нет параллельных запусков и лишних пересборок |
-| Reference-плагины SQL/Pydantic/TS | Экосистема | Пользователю есть что взять готовым |
+| Reference-плагины: SQL/Pydantic/TS и PostgreSQL transform | Экосистема | Пользователю есть что взять готовым |
 | PyPI attestations / SBOM | Безопасность | Attestations уже есть; SBOM добавлен в release |
 | Метрики и structured logging | Эксплуатация | Проще диагностировать проблемы |
+
+### Reference examples
+
+- SQL/Pydantic — уже есть в TPC-H.
+- TypeScript/OpenAPI — следующие кандидаты.
+- PostgreSQL transform/upsert — пример генерации процедур:
+  - формат `transform-model` расширяет `entity-model`;
+  - правила в `metadata.transform`;
+  - одна upsert-процедура на сущность;
+  - field mapping/cast, без joins между сущностями;
+  - явная пометка «example, не поддерживаемый продукт».
+
+Не входит в scope: dbt, ETL-оркестрация, scheduling, lineage и relations в ядре.
 
 ### P2 — после 1.0 или по запросу
 
