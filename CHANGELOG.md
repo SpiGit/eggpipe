@@ -9,6 +9,7 @@
 
 - `examples/plugin-template` — шаблон генератора и формата с contract-тестами.
 - Страница `docs/user/plugin-template.md` и CI-проверка шаблона.
+- `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов.
 
 ## [0.3.2] - 2026-11-14
 
