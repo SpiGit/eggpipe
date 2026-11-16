@@ -128,3 +128,8 @@ source = ["eggpipe"]
 fail_under = 80
 show_missing = true
 skip_covered = true
+
+[dependency-groups]
+dev = [
+    "mike>=2.1.0",
+]

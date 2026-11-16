@@ -136,5 +136,5 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 1. [x] Шаблон плагина и базовые contract-тесты.
 2. [x] Политика deprecation (ADR-0016); migration guide — следующий шаг.
 3. [x] Бенчмарк-набор и первые цифры (`engineering/benchmarks.md`).
-4. [ ] Версионирование документации.
+4. [x] Версионирование документации через `mike` и alias `latest`.
 5. [ ] Разбор backlog P1 и выбор темы для `0.5.0`.

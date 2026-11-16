@@ -79,9 +79,16 @@ Workflow `.github/workflows/release.yml`:
 Без `PYPI_PUBLISH=true` артефакты публикуются только в GitHub Release.
 Эти шаги нельзя выполнить из репозитория: нужны доступы к PyPI и настройкам GitHub.
 
+## Документация
+
+Версия документации — `major.minor` (например, `0.3`), alias `latest` указывает на
+последнюю версию. Workflow `pages` собирает версии через `mike` и публикует artifact
+на GitHub Pages; старые версии сохраняются по путям `/0.3/`, `/0.4/` и т.д.
+
 ## После релиза
 
 - Проверить установку из PyPI: `pip install eggpipe`.
+- Проверить версию документации: https://spigit.github.io/eggpipe/latest/.
 - Проверить публикацию документации: https://spigit.github.io/eggpipe/.
 - Проверить `eggpipe --help`, `eggpipe model schema`, `eggpipe format list`.
 - Добавить `[Unreleased]` в CHANGELOG для следующей версии.
