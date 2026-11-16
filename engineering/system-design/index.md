@@ -329,7 +329,8 @@ class Engine:
         variables: Mapping[str, str] | None = None,
     ): ...
 
-    def build(self) -> EngineReport: ...      # парсинг/валидация/генерация без записи
+    def build(self, *, incremental: bool | None = None) -> EngineReport: ...
+        # парсинг/валидация/генерация без записи; incremental=None — из AppConfig
     def generate(self) -> EngineReport: ...   # build + запись артефактов
     def check(self) -> EngineReport: ...      # drift без записи; success=false, exit_code=1
 ```
@@ -1429,7 +1430,7 @@ examples/
 ├── tpc-h-generator/
 └── tpc-h/
 docs/
-├── requirements/                # index, v1.0–v1.4, v2.0, v2.1, v2.2
+├── requirements/                # index, v1.0–v1.4, v2.0, v2.1, v2.2, v2.3
 ├── system-design/
 ├── reviews/
 ├── adr/
@@ -1453,7 +1454,7 @@ cache остаётся future-направлением.
 
 ---
 
-## 11. Тестирование (охват v2.2)
+## 11. Тестирование (охват v2.3)
 
 ### 11.1 Приоритеты
 
@@ -1599,7 +1600,7 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v2.2, сводка)
+## 13. Проектировочные решения (v2.3, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|

@@ -441,7 +441,7 @@ class Engine:
                 continue
             try:
                 data = load_yaml(path)
-            except YamlLoadError:
+            except (YamlLoadError, UnicodeDecodeError):
                 return None
             for raw in _document_import_paths(data):
                 candidate = (path.parent / raw).resolve()
@@ -494,9 +494,10 @@ class Engine:
             output_dir = self._output_dir(generator_config)
             for item in location.artifacts:
                 target = output_dir / item.path
-                if not target.is_file():
+                content = _read_file(target)
+                if content is None:
                     return None
-                if hashlib.sha256(target.read_bytes()).hexdigest() != item.sha256:
+                if hashlib.sha256(content).hexdigest() != item.sha256:
                     return None
                 artifacts.append(
                     ArtifactReport(

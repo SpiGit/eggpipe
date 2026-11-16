@@ -262,3 +262,33 @@ def test_incremental_requires_matching_locations(tmp_path: Path) -> None:
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     make_engine(tmp_path).generate()
     assert CountingGenerator.calls == 2
+
+
+def test_incremental_plan_uses_cache(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    plan = make_engine(tmp_path).build()
+    assert CountingGenerator.calls == 1
+    assert plan.generators[0].status == "skipped"
+    assert plan.artifacts[0].action == "skip"
+
+
+def test_incremental_disables_cache_on_invalid_yaml(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    (tmp_path / "broken.yaml").write_bytes(b"\xff\xfe\x00")
+    make_engine(tmp_path).generate()
+    make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_disables_cache_on_symlink_outside(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    outside = tmp_path.parent / f"{tmp_path.name}-outside.yaml"
+    outside.write_text("key: value\n", encoding="utf-8")
+    (tmp_path / "link.yaml").symlink_to(outside)
+    make_engine(tmp_path).generate()
+    make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 2
