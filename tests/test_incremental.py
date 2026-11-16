@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
+
+from typing_extensions import override
 
 from eggpipe import (
     AppConfig,
     Artifact,
     Engine,
+    EntityModelFormat,
+    FormatRegistry,
     GenerationResult,
     GeneratorConfig,
     GeneratorInput,
@@ -29,6 +33,30 @@ model:
         - name: id
           type: integer
 """
+
+
+class DependencyFormat(EntityModelFormat):
+    format_names: ClassVar[list[str]] = ["dependency-model"]
+
+    @override
+    def input_paths(self, raw: dict[str, Any], base_path: Path) -> list[Path] | None:
+        return [base_path.parent / "extra.txt"]
+
+
+class NoDependencyFormat(EntityModelFormat):
+    format_names: ClassVar[list[str]] = ["no-dependency-model"]
+
+    @override
+    def input_paths(self, raw: dict[str, Any], base_path: Path) -> list[Path] | None:
+        return None
+
+
+class UnsafeDependencyFormat(EntityModelFormat):
+    format_names: ClassVar[list[str]] = ["unsafe-model"]
+
+    @override
+    def input_paths(self, raw: dict[str, Any], base_path: Path) -> list[Path] | None:
+        return [Path("../outside.txt")]
 
 
 class CountingGenerator(GeneratorPlugin):
@@ -52,6 +80,7 @@ def make_engine(
     clean: bool = False,
     allow_outside_imports: bool = False,
     stale_dates: bool = False,
+    formats: FormatRegistry | None = None,
 ) -> Engine:
     rules = ProjectConfig(
         version="1.0",
@@ -69,6 +98,7 @@ def make_engine(
         rules,
         config_dir=tmp_path,
         generators={"counting": CountingGenerator()},
+        formats=formats,
     )
 
 
@@ -228,13 +258,13 @@ def test_incremental_ignores_manifest_without_fingerprint(tmp_path: Path) -> Non
     assert CountingGenerator.calls == 2
 
 
-def test_incremental_invalidates_on_unrelated_yaml(tmp_path: Path) -> None:
+def test_incremental_ignores_unrelated_yaml(tmp_path: Path) -> None:
     CountingGenerator.calls = 0
     (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
     make_engine(tmp_path).generate()
     (tmp_path / "notes.yaml").write_text("key: value\n", encoding="utf-8")
     make_engine(tmp_path).generate()
-    assert CountingGenerator.calls == 2
+    assert CountingGenerator.calls == 1
 
 
 def test_incremental_invalidates_on_resource_import(tmp_path: Path) -> None:
@@ -274,21 +304,67 @@ def test_incremental_plan_uses_cache(tmp_path: Path) -> None:
     assert plan.artifacts[0].action == "skip"
 
 
-def test_incremental_disables_cache_on_invalid_yaml(tmp_path: Path) -> None:
+def test_incremental_ignores_invalid_unrelated_yaml(tmp_path: Path) -> None:
     CountingGenerator.calls = 0
     (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
     (tmp_path / "broken.yaml").write_bytes(b"\xff\xfe\x00")
     make_engine(tmp_path).generate()
     make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 1
+
+
+def test_incremental_disables_cache_on_unsafe_input_path(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(
+        MODEL.replace("format: entity-model", "format: unsafe-model"),
+        encoding="utf-8",
+    )
+    registry = FormatRegistry()
+    registry.register(UnsafeDependencyFormat())
+    make_engine(tmp_path, formats=registry).generate()
+    make_engine(tmp_path, formats=registry).generate()
     assert CountingGenerator.calls == 2
 
 
-def test_incremental_disables_cache_on_symlink_outside(tmp_path: Path) -> None:
+def test_incremental_invalidates_on_format_input_paths(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    extra = tmp_path / "extra.txt"
+    extra.write_text("one\n", encoding="utf-8")
+    (tmp_path / "model.yaml").write_text(
+        MODEL.replace("format: entity-model", "format: dependency-model"),
+        encoding="utf-8",
+    )
+    registry = FormatRegistry()
+    registry.register(DependencyFormat())
+    make_engine(tmp_path, formats=registry).generate()
+    extra.write_text("two\n", encoding="utf-8")
+    make_engine(tmp_path, formats=registry).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_disabled_when_format_has_no_dependency_contract(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(
+        MODEL.replace("format: entity-model", "format: no-dependency-model"),
+        encoding="utf-8",
+    )
+    registry = FormatRegistry()
+    registry.register(NoDependencyFormat())
+    make_engine(tmp_path, formats=registry).generate()
+    make_engine(tmp_path, formats=registry).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_requires_exact_locations(tmp_path: Path) -> None:
     CountingGenerator.calls = 0
     (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
-    outside = tmp_path.parent / f"{tmp_path.name}-outside.yaml"
-    outside.write_text("key: value\n", encoding="utf-8")
-    (tmp_path / "link.yaml").symlink_to(outside)
     make_engine(tmp_path).generate()
+    manifest_path = tmp_path / ".eggpipe" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    ghost = dict(manifest["locations"][0])
+    ghost["generator"] = "ghost"
+    ghost["output_dir"] = "out-ghost"
+    manifest["locations"].append(ghost)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     make_engine(tmp_path).generate()
     assert CountingGenerator.calls == 2

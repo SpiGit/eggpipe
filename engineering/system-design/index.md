@@ -904,7 +904,7 @@ class AppConfig(BaseSettings):
 ```
 
 - Приоритет: CLI-флаги → env → `.env` → defaults. Отдельного app-config-файла нет; `.eggpipe.yaml` — это `ProjectConfig`.
-- `plugins_dir` и `cache_dir` **удалены**: плагины из директорий с ручным `sys.path` не поддерживаются (§6.3); кэш — future.
+- `plugins_dir` и `cache_dir` **удалены**: плагины из директорий с ручным `sys.path` не поддерживаются (§6.3); L1-кэш incremental реализован в `engine.py`, L2/L3 — future.
 - `config_file` переименован в `rules_file`, чтобы не путать с app config.
 - CLI собирает `AppConfig` после парсинга аргументов и передаёт override'ы в `Engine`.
 
@@ -1147,6 +1147,7 @@ class JsonFormatter(OutputFormatter): ...    # только JSON в stdout
   "stale_locations": [],
   "timings": {
     "discovery_ms": 1,
+    "fingerprint_ms": 0,
     "parse_ms": 12,
     "validate_ms": 2,
     "generate_ms": 55,
@@ -1160,7 +1161,7 @@ class JsonFormatter(OutputFormatter): ...    # только JSON в stdout
 - `report_version: 2`; `artifacts` — плоский список с `generator`, без дублирования в `generators[]`.
 - `artifacts[].action` — `create|update|skip|delete|conflict|error|drift`;
   `generators[].status` — `ok|error|skipped`.
-- `timings` содержит обязательные `discovery_ms`, `parse_ms`, `validate_ms`, `generate_ms`,
+- `timings` содержит обязательные `discovery_ms`, `fingerprint_ms`, `parse_ms`, `validate_ms`, `generate_ms`,
   `write_ms`, `total_ms`.
 - `formats` — глобальная сводка; `manifest` — только locations; `stale_locations` — для EG051.
 - JSON-отчёт печатается только в stdout; логи — stderr/file.
@@ -1322,19 +1323,23 @@ Fingerprint — SHA-256 с length-prefixed полями:
 
 - версия Eggpipe;
 - `ProjectConfig` (JSON, `sort_keys`) и variables после CLI-override;
-- содержимое YAML под project root, кроме ignored/output;
-- import-closure моделей: YAML-импорты и resource-импорты, рекурсивно;
+- содержимое source-документов и их input-closure;
+- import-closure моделей через `FormatPlugin.input_paths`, рекурсивно;
 - config-ресурсы: alias и содержимое;
 - `plugin_version`, `api_version` и `input_formats` включённых генераторов;
 - имена, версии и primitive types форматов из реестра.
 
 Кэш отключается при `--check`, `--force`, `--clean`, `stale_dates`,
 `allow_outside_imports`, source/import вне project root, отсутствующем или повреждённом
-manifest, несовпадении набора locations, ошибках чтения или YAML-парсинга.
+manifest, несовпадении набора locations, `input_paths=None`, ошибках чтения или
+YAML-парсинга. Причина отключения пишется в debug-лог и видна с `--verbose`.
 
 Cache-hit отчёт: `status=skipped`, `action=skip`, `parse/validate/generate/write_ms=0`,
-глобальная `formats=[]`; discovery diagnostics сохраняются. `--plan` с включённым
-incremental показывает `skip`, потому что реальный generate тоже пропустил бы работу.
+`fingerprint_ms` отражает сбор fingerprint, глобальная `formats=[]`; discovery diagnostics
+сохраняются. `cleanup` на hit не запускается: owned-артефакты location уже совпадают.
+`--plan` с включённым incremental показывает `skip`, потому что реальный generate тоже
+пропустил бы работу. Полный прогон без incremental пишет `input_fingerprint: null`;
+следующий incremental-прогон будет промахом.
 
 ---
 
@@ -1370,7 +1375,9 @@ class Watcher:
 - **Завершение:** Ctrl+C — корректная остановка Observer, удаление lock/staging, exit 0; прерывание по сигналу — 130.
 - **`--output-format json` в watch:** каждая итерация печатает отдельный JSON-объект (JSON Lines), без цветов и человекочитаемого текста.
 
-### 9.3 Интерфейс для будущего кэширования
+### 9.3 Интерфейс для L2/L3 кэширования (future, не реализован)
+
+Интерфейс ниже зарезервирован для L2/L3 и в текущем коде не используется.
 
 ```python
 class CacheStrategy(ABC):
@@ -1449,8 +1456,8 @@ LICENSE
 ```
 
 Отдельных `cli/*_cmds.py`, `engine/planning.py`, `engine/locking.py`, `watch/cache.py`
-в v2.2 нет: команды находятся в `cli/main.py`, planning/lock — в `artifact_writer.py`,
-cache остаётся future-направлением.
+нет: команды находятся в `cli/main.py`, planning/lock — в `artifact_writer.py`,
+L1-кэш incremental — в `engine.py`; `watch/cache.py` и L2/L3 — future.
 
 ---
 

@@ -835,6 +835,25 @@ class MyFormat(EntityModelFormat):
 `EntityModelFormat` — база для форматов, расширяющих `entity-model`. Она предоставляет
 `parse`/`validate`; расширение переопределяет `parse_extensions`/`validate_extensions`.
 
+## Incremental dependencies
+
+Если формат читает дополнительные файлы при парсинге, он обязан объявить их:
+
+```python
+from collections.abc import Iterable
+from pathlib import Path
+
+class MyFormat(EntityModelFormat):
+    def input_paths(self, raw: dict, base_path: Path) -> Iterable[Path] | None:
+        return [base_path.parent / "includes" / "common.yaml"]
+```
+
+- Пути абсолютные или относительно `base_path`; выходить за project root нельзя.
+- `EntityModelFormat` уже возвращает `model.imports`; при добавлении своих файлов
+  вызывайте `super().input_paths(...)` и объединяйте результаты.
+- `None` означает «зависимости не объявлены» и отключает `--incremental` для запуска.
+- Без этого контракта правка внешнего файла не инвалидирует кэш.
+
 ## FormatSchema
 
 ```python

@@ -4,6 +4,8 @@
 
 - Добавлена opt-in инкрементальная генерация (`--incremental`).
 - Manifest location хранит `input_fingerprint` (hex SHA-256).
+- `FormatPlugin.input_paths` объявляет файлы, влияющие на парсинг; `None` отключает incremental.
+- `timings.fingerprint_ms` отражает сбор fingerprint.
 - `--check`, `--force`, `--clean` и внешние импорты отключают incremental.
 - `generators[].status` может быть `skipped`; глобальная `formats` пуста.
 

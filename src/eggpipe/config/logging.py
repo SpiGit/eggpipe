@@ -20,7 +20,12 @@ def get_logger(name: str = LOGGER_NAME) -> logging.Logger:
 
 def setup_logging(config: AppConfig) -> logging.Logger:
     logger = logging.getLogger(LOGGER_NAME)
-    logger.setLevel(getattr(logging, config.log_level.upper(), logging.INFO))
+    level = (
+        logging.DEBUG
+        if config.verbose
+        else getattr(logging, config.log_level.upper(), logging.INFO)
+    )
+    logger.setLevel(level)
     logger.handlers.clear()
     logger.propagate = False
 

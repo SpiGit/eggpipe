@@ -400,6 +400,7 @@ def test_json_report_v2_action_and_timings(
     assert report["artifacts"][0]["action"] == "create"
     assert set(report["timings"]) == {
         "discovery_ms",
+        "fingerprint_ms",
         "parse_ms",
         "validate_ms",
         "generate_ms",

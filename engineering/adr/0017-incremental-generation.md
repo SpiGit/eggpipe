@@ -45,8 +45,8 @@ Fingerprint — SHA-256 от:
 - версии Eggpipe;
 - `ProjectConfig` (sources, generators, variables, defaults, diagnostics);
 - variables после CLI-override;
-- содержимого всех YAML-документов под project root (кроме ignored/output);
-- import-closure моделей: YAML-импорты и resource-импорты, рекурсивно;
+- содержимого source-документов и их input-closure;
+- import-closure моделей через `FormatPlugin.input_paths`, рекурсивно;
 - ресурсов: alias + содержимое;
 - `plugin_version`, `api_version` и `input_formats` включённых генераторов;
 - списка форматов и их версий из реестра.
@@ -54,10 +54,12 @@ Fingerprint — SHA-256 от:
 Fingerprint не учитывает:
 
 - код плагина, если `plugin_version` не изменился;
-- внешние шаблоны, которые плагин читает вне `resources`;
 - переменные окружения и другие внешние источники, влияющие на генератор.
 
-Плагин обязан быть детерминированным либо не использовать incremental-режим.
+`FormatPlugin.input_paths(raw, base_path)` объявляет файлы, которые плагин читает при
+парсинге. `EntityModelFormat` возвращает `model.imports`. Возврат `None` означает, что
+формат не поддерживает контракт зависимостей, и incremental отключается. Плагин обязан
+быть детерминированным либо объявить все входные файлы.
 
 ## 4. Когда incremental отключается
 
@@ -71,7 +73,10 @@ Engine не использует кэш, если:
 - source- или import-пути выходят за project root;
 - manifest отсутствует или повреждён;
 - набор locations в manifest не совпадает с конфигом;
-- файл нельзя прочитать или YAML не парсится.
+- формат вернул `input_paths=None`;
+- файл нельзя прочитать, YAML не парсится или путь небезопасен.
+
+Причина отключения пишется в debug-лог и видна с `--verbose`.
 
 `--plan` кэш использует: план тогда состоит из `skip`, потому что реальный `generate`
 пропустил бы ту же работу.
@@ -88,6 +93,9 @@ Fingerprint хранится как hex-строка SHA-256 без префик
 `sha256` артефактов в manifest. Поле optional: старые manifest v2 читаются без него.
 Manifest v1 по-прежнему не поддерживается.
 
+Полный прогон без incremental записывает `input_fingerprint: null`: следующий
+incremental-запуск будет промахом и заполнит поле заново.
+
 ## 6. Отчёт
 
 При попадании в кэш:
@@ -95,8 +103,9 @@ Manifest v1 по-прежнему не поддерживается.
 - `generators[].status = "skipped"`;
 - `artifacts[].action = "skip"`;
 - `timings.parse_ms`, `validate_ms`, `generate_ms`, `write_ms` равны `0`;
-- `timings.discovery_ms` отражает реальное discovery;
-- глобальная сводка `formats` пуста: без парсинга модели число сущностей неизвестно.
+- `timings.discovery_ms` и `timings.fingerprint_ms` отражают реальную работу;
+- глобальная сводка `formats` пуста: без парсинга модели число сущностей неизвестно;
+- `cleanup` не запускается: все owned-артефакты текущего location совпадают.
 
 ## 7. Последствия
 

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from eggpipe.config.app_config import AppConfig
+from eggpipe.config.logging import get_logger
 from eggpipe.config.project_config import GeneratorConfig, ProjectConfig
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
@@ -20,7 +21,6 @@ from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.core.model import PRIMITIVE_TYPES, FormatInfo, ModelSlice
 from eggpipe.core.parser import Parser
-from eggpipe.core.paths import is_ignored_part
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
 from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan, LocationKey
@@ -51,8 +51,10 @@ from eggpipe.utils.exceptions import (
     LockError,
     ManifestError,
 )
-from eggpipe.utils.yaml import YamlLoadError, load_yaml
+from eggpipe.utils.yaml import YamlLoadError, parse_yaml
 from eggpipe.version import __version__
+
+_LOG = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -103,6 +105,7 @@ class Engine:
         self._timings: dict[str, int] = {}
         self._started = 0.0
         self._fingerprint: str | None = None
+        self._incremental_reason: str | None = None
 
     def build(self, *, incremental: bool | None = None) -> EngineReport:
         started = time.perf_counter()
@@ -113,6 +116,7 @@ class Engine:
         self._stale = []
         self._stale_paths = set()
         self._fingerprint = None
+        self._incremental_reason = None
         diagnostics: list[Diagnostic] = []
         phase = time.perf_counter()
         sources, source_groups, resources = self._source_paths(diagnostics)
@@ -122,11 +126,18 @@ class Engine:
 
         use_incremental = self.config.incremental if incremental is None else incremental
         if use_incremental:
+            phase = time.perf_counter()
             self._fingerprint = self._input_fingerprint(sources, resources)
+            self._timings["fingerprint_ms"] = _elapsed(phase)
             if self._fingerprint is not None:
                 cached = self._cached_report(self._fingerprint, started, diagnostics)
                 if cached is not None:
+                    _LOG.debug("incremental cache hit")
                     return cached
+            _LOG.debug(
+                "incremental cache disabled: %s",
+                self._incremental_reason or "input fingerprint changed or artifacts drifted",
+            )
 
         phase = time.perf_counter()
         composition = self._load_composition(sources, source_groups, resources, diagnostics)
@@ -358,16 +369,18 @@ class Engine:
         sources: list[Path],
         resources: dict[str, ImportedFile],
     ) -> str | None:
-        if self.config.allow_outside_imports or self.rules.diagnostics.stale_dates:
-            return None
+        if self.config.allow_outside_imports:
+            return self._disable_incremental("allow_outside_imports is enabled")
+        if self.rules.diagnostics.stale_dates:
+            return self._disable_incremental("diagnostics.stale_dates is enabled")
         if self.config.force or self.config.clean:
-            return None
+            return self._disable_incremental("force or clean is enabled")
         if not self._enabled_generators():
-            return None
+            return self._disable_incremental("no enabled generators")
 
         resolved_sources = [path.resolve() for path in sources]
         if any(not path.is_relative_to(self.config_dir) for path in resolved_sources):
-            return None
+            return self._disable_incremental("a source path is outside the project root")
 
         digest = hashlib.sha256()
         _digest_text(digest, __version__)
@@ -399,7 +412,9 @@ class Engine:
         for generator_config in self._enabled_generators():
             plugin = self.generators.get(generator_config.id)
             if plugin is None:
-                return None
+                return self._disable_incremental(
+                    f"generator plugin is not loaded: {generator_config.id}"
+                )
             _digest_text(digest, generator_config.id)
             _digest_text(digest, _plugin_version(plugin))
             _digest_text(digest, str(plugin.api_version))
@@ -407,54 +422,65 @@ class Engine:
         return digest.hexdigest()
 
     def _fingerprint_files(self, sources: list[Path]) -> dict[Path, bytes] | None:
-        """Collect model files and their import closure, or disable the cache."""
-        output_dirs = {self._output_dir(item).resolve() for item in self.rules.generators}
+        """Collect source documents and their input closure, or disable the cache."""
         files: dict[Path, bytes] = {}
         for source in sources:
             content = _read_file(source)
             if content is None:
-                return None
+                return self._disable_incremental(f"cannot read source: {source}")
             files[source] = content
-
-        for path in self.config_dir.rglob("*"):
-            if not path.is_file() or path.suffix.lower() not in {".yaml", ".yml"}:
-                continue
-            relative = path.relative_to(self.config_dir)
-            if any(is_ignored_part(part) for part in relative.parts):
-                continue
-            resolved = path.resolve()
-            if not resolved.is_relative_to(self.config_dir):
-                return None
-            if any(resolved.is_relative_to(output) for output in output_dirs):
-                continue
-            if resolved in files:
-                continue
-            content = _read_file(resolved)
-            if content is None:
-                return None
-            files[resolved] = content
 
         pending = list(files)
         while pending:
             path = pending.pop()
             if path.suffix.lower() not in {".yaml", ".yml"}:
                 continue
-            try:
-                data = load_yaml(path)
-            except (YamlLoadError, UnicodeDecodeError):
+            data = self._parse_fingerprint_document(path, files[path])
+            if data is None:
                 return None
-            for raw in _document_import_paths(data):
-                candidate = (path.parent / raw).resolve()
+            format_name = data.get("format")
+            if not isinstance(format_name, str) or not format_name:
+                continue
+            try:
+                plugin = self.registry.get(format_name)
+            except ConfigValidationError:
+                return self._disable_incremental(f"unknown or invalid format: {format_name}")
+            try:
+                inputs = plugin.input_paths(data, path)
+            except DocumentError as exc:
+                return self._disable_incremental(
+                    f"format {format_name} cannot resolve inputs: {exc.message}"
+                )
+            if inputs is None:
+                return self._disable_incremental(
+                    f"format {format_name} does not declare input dependencies"
+                )
+            for raw_path in inputs:
+                candidate = Path(raw_path)
+                if not candidate.is_absolute():
+                    candidate = path.parent / candidate
+                candidate = candidate.resolve()
                 if not candidate.is_relative_to(self.config_dir) or not candidate.is_file():
-                    return None
+                    return self._disable_incremental(f"unsafe input path: {raw_path}")
                 if candidate in files:
                     continue
                 content = _read_file(candidate)
                 if content is None:
-                    return None
+                    return self._disable_incremental(f"cannot read input: {candidate}")
                 files[candidate] = content
                 pending.append(candidate)
         return files
+
+    def _parse_fingerprint_document(self, path: Path, content: bytes) -> dict[str, Any] | None:
+        try:
+            return parse_yaml(content.decode("utf-8"))
+        except (UnicodeDecodeError, YamlLoadError) as exc:
+            self._disable_incremental(f"invalid YAML: {path}: {exc}")
+            return None
+
+    def _disable_incremental(self, reason: str) -> None:
+        self._incremental_reason = reason
+        return None
 
     def _cached_report(
         self,
@@ -465,24 +491,31 @@ class Engine:
         try:
             manifest = self.writer.load_manifest()
         except ManifestError:
-            return None
+            return self._disable_incremental("manifest is missing or corrupt")
         diagnostics = self._filter_ignored(list(discovery))
         if _has_errors(diagnostics):
-            return None
+            return self._disable_incremental("discovery diagnostics contain errors")
         enabled = self._enabled_generators()
         if not enabled:
-            return None
+            return self._disable_incremental("no enabled generators")
         locations = {location.key: location for location in manifest.locations}
         expected = {self.writer.location_key(item.id, self._output_dir(item)) for item in enabled}
         if set(locations) != expected:
-            return None
+            extra = sorted(key.generator for key in set(locations) - expected)
+            missing = sorted(key.generator for key in expected - set(locations))
+            return self._disable_incremental(
+                f"manifest locations do not match enabled generators"
+                f" (extra={extra}, missing={missing})"
+            )
 
         generators: list[GeneratorReport] = []
         artifacts: list[ArtifactReport] = []
         for generator_config in enabled:
             plugin = self.generators.get(generator_config.id)
             if plugin is None:
-                return None
+                return self._disable_incremental(
+                    f"generator plugin is not loaded: {generator_config.id}"
+                )
             key = self.writer.location_key(generator_config.id, self._output_dir(generator_config))
             location = locations[key]
             if (
@@ -490,15 +523,22 @@ class Engine:
                 or location.eggpipe_version != __version__
                 or location.plugin_version != _plugin_version(plugin)
             ):
-                return None
+                return self._disable_incremental(
+                    f"input fingerprint or versions changed for {generator_config.id}"
+                )
             output_dir = self._output_dir(generator_config)
+            output_root = output_dir.resolve()
             for item in location.artifacts:
-                target = output_dir / item.path
+                target = (output_dir / item.path).resolve()
+                if not target.is_relative_to(output_root):
+                    return self._disable_incremental(
+                        f"artifact path escapes output dir: {item.path}"
+                    )
                 content = _read_file(target)
                 if content is None:
-                    return None
+                    return self._disable_incremental(f"cannot read artifact: {item.path}")
                 if hashlib.sha256(content).hexdigest() != item.sha256:
-                    return None
+                    return self._disable_incremental(f"artifact is missing or changed: {item.path}")
                 artifacts.append(
                     ArtifactReport(
                         generator=generator_config.id,
@@ -526,6 +566,7 @@ class Engine:
         self._pending = []
         self._timings = {
             "discovery_ms": self._timings.get("discovery_ms", 0),
+            "fingerprint_ms": self._timings.get("fingerprint_ms", 0),
             "parse_ms": 0,
             "validate_ms": 0,
             "generate_ms": 0,
@@ -715,6 +756,7 @@ class Engine:
 def _empty_timings() -> dict[str, int]:
     return {
         "discovery_ms": 0,
+        "fingerprint_ms": 0,
         "parse_ms": 0,
         "validate_ms": 0,
         "generate_ms": 0,
@@ -811,22 +853,6 @@ def _read_file(path: Path) -> bytes | None:
         return path.read_bytes()
     except OSError:
         return None
-
-
-def _document_import_paths(data: dict[str, Any]) -> list[str]:
-    model = data.get("model")
-    if not isinstance(model, dict):
-        return []
-    imports = model.get("imports")
-    if not isinstance(imports, list):
-        return []
-    result: list[str] = []
-    for item in imports:
-        if isinstance(item, dict):
-            raw = item.get("path")
-            if isinstance(raw, str) and raw:
-                result.append(raw)
-    return result
 
 
 def _stale_diagnostics(stale: list[StaleLocation]) -> list[Diagnostic]:

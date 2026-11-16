@@ -133,7 +133,8 @@ class MyFormat(EntityModelFormat):
 - EG033/EG034/EG301/EG302 — config/plugin errors, exit 2.
 - Политика deprecation применяется после первого публичного релиза.
 - При `--incremental` меняйте `__version__` при изменении вывода: ядро сравнивает
-  `plugin_version`; внешние шаблоны объявляйте через `resources` или импорты модели.
+  `plugin_version`; генераторные шаблоны объявляйте через `resources`, форматные файлы —
+  через `FormatPlugin.input_paths` (`None` отключает кэш).
 
 ## Чек-лист ревью
 
@@ -165,4 +166,5 @@ class MyFormat(EntityModelFormat):
 
 - [ ] Добавлены contract- и golden-тесты для детерминированного вывода.
 - [ ] Вывод детерминирован; при изменении вывода повышен `__version__`.
+- [ ] Формат объявляет читаемые файлы через `input_paths`; `None` — осознанный отказ от incremental.
 - [ ] `eggpipe gen list`/`format list` показывают плагин без ошибок.

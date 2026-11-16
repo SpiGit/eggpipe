@@ -21,9 +21,13 @@ def load_yaml(path: Path) -> dict[str, Any]:
     """Read a single YAML mapping document; duplicate keys are an error."""
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         raise YamlLoadError("EG000", f"failed to read file: {exc}") from exc
+    return parse_yaml(text)
 
+
+def parse_yaml(text: str) -> dict[str, Any]:
+    """Parse a single YAML mapping document; duplicate keys are an error."""
     yaml = YAML(typ="safe")
     yaml.allow_duplicate_keys = False
     try:
