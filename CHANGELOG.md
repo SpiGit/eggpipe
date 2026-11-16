@@ -11,6 +11,7 @@
 - Страница `docs/user/plugin-template.md` и CI-проверка шаблона.
 - `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов.
 - ADR-0016: политика deprecation для публичного API, CLI, конфига и плагинов.
+- `tools/benchmark.py` и `engineering/benchmarks.md` — базовые замеры TPC-H.
 
 ## [0.3.2] - 2026-11-14
 
