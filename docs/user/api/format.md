@@ -10,6 +10,7 @@ from eggpipe import EntityModelFormat, FormatSchema
 
 class MyFormat(EntityModelFormat):
     api_version: ClassVar[Literal["1"]] = "1"
+    __version__: ClassVar[str] = "1"
     format_names: ClassVar[list[str]] = ["sql-model"]
     supported_versions: ClassVar[list[str]] = ["1.0"]
     extends: ClassVar[str | None] = "entity-model"
@@ -72,6 +73,7 @@ class PostgresFormat(EntityModelFormat):
 - Цикл/глубина > 10, неверная база, конфликт схем/примитивов — EG034.
 - Неизвестная версия — EG008.
 - `entity-model` зарезервирован.
+- `__version__` — версия реализации формата; меняйте её при изменении парсера.
 
 ## Entry point
 

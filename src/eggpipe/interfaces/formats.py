@@ -20,6 +20,7 @@ class FormatPlugin(ABC):
     """Document format: parser and validator."""
 
     api_version: ClassVar[Literal["1"]] = "1"
+    __version__: ClassVar[str] = "unknown"
     format_names: ClassVar[list[str]]
     supported_versions: ClassVar[list[str]]
     extends: ClassVar[str | None] = None

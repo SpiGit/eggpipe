@@ -239,6 +239,8 @@ def _run_engine(options: RunOptions) -> None:
     )
     if options.incremental:
         app_config = app_config.model_copy(update={"incremental": True})
+    if options.strict:
+        app_config = app_config.model_copy(update={"incremental": False})
     setup_logging(app_config)
     engine = Engine(
         app_config,
@@ -444,6 +446,8 @@ def watch(
         )
         if incremental:
             app_config = app_config.model_copy(update={"incremental": True})
+        if strict:
+            app_config = app_config.model_copy(update={"incremental": False})
         setup_logging(app_config)
         engine = Engine(
             app_config,

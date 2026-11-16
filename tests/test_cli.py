@@ -218,6 +218,28 @@ def test_generate_incremental_from_env(tmp_path: Path, monkeypatch: pytest.Monke
     assert report["artifacts"][0]["action"] == "skip"
 
 
+def test_generate_strict_disables_incremental(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model, rules = project(tmp_path)
+    model.write_text(MODEL.replace("name: User", "name: user"), encoding="utf-8")
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    entries = [EntryPoint("reference", ReferenceGenerator)]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    runner = CliRunner()
+    first = runner.invoke(app, ["generate", "-c", str(rules), "--incremental", "--strict"])
+    assert first.exit_code == 1
+    second = runner.invoke(app, ["generate", "-c", str(rules), "--incremental", "--strict"])
+    assert second.exit_code == 1
+
+
 def test_generate_json(tmp_path: Path) -> None:
     _, rules = project(tmp_path)
     result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--output-format", "json"])

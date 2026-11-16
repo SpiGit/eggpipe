@@ -22,6 +22,10 @@ class FormatRegistryInfo:
     name: str
     versions: tuple[str, ...]
     primitive_types: frozenset[str]
+    extends: str | None = None
+    base_versions: tuple[tuple[str, str], ...] = ()
+    api_version: str = "1"
+    plugin_version: str = "unknown"
 
 
 @dataclass(frozen=True)
@@ -92,6 +96,10 @@ class FormatRegistry:
                 name=name,
                 versions=contract.versions,
                 primitive_types=contract.primitives,
+                extends=contract.extends,
+                base_versions=tuple(sorted(contract.base_versions.items())),
+                api_version=str(contract.plugin.api_version),
+                plugin_version=str(getattr(contract.plugin, "__version__", "unknown")),
             )
             for name, contract in sorted(self._formats.items())
         ]

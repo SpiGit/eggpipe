@@ -45,23 +45,25 @@ Fingerprint — SHA-256 от:
 - версии Eggpipe;
 - `ProjectConfig` (sources, generators, variables, defaults, diagnostics);
 - variables после CLI-override;
-- содержимого source-документов и их input-closure;
-- import-closure моделей через `FormatPlugin.input_paths`, рекурсивно;
+- содержимого source-документов и их input-closure через `FormatPlugin.input_paths`, рекурсивно;
 - ресурсов: alias + содержимое;
 - `plugin_version`, `api_version` и `input_formats` включённых генераторов;
-- списка форматов и их версий из реестра.
+- `__version__`, `api_version`, `extends`, `base_versions`, версий и primitive types форматов.
 
 Fingerprint не учитывает:
 
-- код плагина, если `plugin_version` не изменился; код format-плагина не входит в
-  fingerprint, поэтому после изменения парсера нужно обновить `supported_versions`
-  или удалить manifest;
+- код плагина, если версия плагина не изменилась; для форматов версия — `__version__`,
+  для генераторов — `plugin_version`.
 - переменные окружения и другие внешние источники, влияющие на генератор.
 
-`FormatPlugin.input_paths(raw, base_path)` объявляет файлы, которые плагин читает при
-парсинге; `base_path` — каталог документа, как в `parse`. `EntityModelFormat` возвращает `model.imports`. Возврат `None` означает, что
-формат не поддерживает контракт зависимостей, и incremental отключается. Плагин обязан
-быть детерминированным либо объявить все входные файлы.
+Контракт зависимостей формата:
+
+- `FormatPlugin.input_paths(raw, base_path)` объявляет файлы, которые плагин читает при парсинге.
+- `base_path` — каталог документа, как в `parse`.
+- `EntityModelFormat` возвращает `model.imports`.
+- Возврат `None` означает, что формат не поддерживает контракт, и incremental отключается.
+
+Плагин обязан быть детерминированным либо объявить все входные файлы.
 
 ## 4. Когда incremental отключается
 
@@ -69,7 +71,7 @@ Engine не использует кэш, если:
 
 - `--incremental` не задан;
 - `--check` (нужна реальная проверка drift);
-- `--force` или `--clean`;
+- `--force`, `--clean` или CLI `--strict`;
 - `diagnostics.stale_dates: true`;
 - `allow_outside_imports: true`;
 - source- или import-пути выходят за project root;

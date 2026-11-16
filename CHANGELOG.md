@@ -12,11 +12,13 @@
   `engineering/session-log.md`.
 - Manifest state: `ManifestLocation.input_fingerprint` — необязательный hex SHA-256 входа
   (ADR-0017). Старые manifest v2 читаются; более старая Eggpipe новый manifest не прочитает.
+- `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
 
 ### Added
 
 - `--incremental` / `EGGPIPE_INCREMENTAL=true` — opt-in кэш на уровне location:
-  пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов.
+  пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов;
+  отключается при `--check`, `--force`, `--clean`, `--strict` и внешних импортах.
 - `FormatPlugin.input_paths` — декларация файлов, влияющих на парсинг формата;
   `None` отключает incremental.
 - `timings.fingerprint_ms` — время сбора входного fingerprint.

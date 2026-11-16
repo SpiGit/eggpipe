@@ -39,6 +39,7 @@ model:
 
 class DependencyFormat(EntityModelFormat):
     format_names: ClassVar[list[str]] = ["dependency-model"]
+    __version__ = "1"
 
     @override
     def input_paths(self, raw: dict[str, Any], base_path: Path) -> list[Path] | None:
@@ -83,10 +84,11 @@ def make_engine(
     allow_outside_imports: bool = False,
     stale_dates: bool = False,
     formats: FormatRegistry | None = None,
+    source: Path = Path("model.yaml"),
 ) -> Engine:
     rules = ProjectConfig(
         version="1.0",
-        sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
+        sources=(SourceConfig(path=source, layout="monolith"),),
         generators=(GeneratorConfig(id="counting", output_dir=Path("out")),),
         diagnostics=DiagnosticsConfig(stale_dates=stale_dates),
     )
@@ -401,3 +403,56 @@ def test_incremental_logs_disable_reason(tmp_path: Path, caplog: pytest.LogCaptu
     with caplog.at_level(logging.DEBUG, logger="eggpipe.engine.engine"):
         make_engine(tmp_path, force=True).generate()
     assert any("incremental cache disabled" in item.getMessage() for item in caplog.records)
+
+
+def test_incremental_hits_for_format_inputs_in_nested_dir(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    models = tmp_path / "models"
+    models.mkdir()
+    (models / "model.yaml").write_text(
+        MODEL.replace("format: entity-model", "format: dependency-model"),
+        encoding="utf-8",
+    )
+    (models / "extra.txt").write_text("one\n", encoding="utf-8")
+    registry = FormatRegistry()
+    registry.register(DependencyFormat())
+    make_engine(tmp_path, source=Path("models/model.yaml"), formats=registry).generate()
+    second = make_engine(tmp_path, source=Path("models/model.yaml"), formats=registry).generate()
+    assert CountingGenerator.calls == 1
+    assert second.generators[0].status == "skipped"
+
+
+def test_incremental_hits_with_yaml_import(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "base.yaml").write_text(
+        "format: entity-model\nversion: '1.0'\nmodel: {}\n",
+        encoding="utf-8",
+    )
+    model = MODEL.replace(
+        "model:\n",
+        "model:\n  imports:\n    - path: ./base.yaml\n      as: base\n",
+    )
+    (tmp_path / "model.yaml").write_text(model, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    second = make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 1
+    assert second.generators[0].status == "skipped"
+
+
+def test_incremental_invalidates_on_format_plugin_version(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "extra.txt").write_text("one\n", encoding="utf-8")
+    (tmp_path / "model.yaml").write_text(
+        MODEL.replace("format: entity-model", "format: dependency-model"),
+        encoding="utf-8",
+    )
+    registry = FormatRegistry()
+    registry.register(DependencyFormat())
+    make_engine(tmp_path, formats=registry).generate()
+    original = DependencyFormat.__version__
+    try:
+        DependencyFormat.__version__ = "2"
+        make_engine(tmp_path, formats=registry).generate()
+    finally:
+        DependencyFormat.__version__ = original
+    assert CountingGenerator.calls == 2

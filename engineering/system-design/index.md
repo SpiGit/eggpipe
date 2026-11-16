@@ -208,6 +208,7 @@ class GeneratorPlugin(ABC):
 class FormatPlugin(ABC):
     """Контракт формата: минимальный интерфейс для FormatRegistry."""
     api_version: ClassVar[Literal["1"]]
+    __version__: ClassVar[str] = "unknown"
     format_names: ClassVar[list[str]]          # ["sql-model", ...]
     supported_versions: ClassVar[list[str]]    # упорядоченный; последняя = latest
     extends: ClassVar[str | None] = None       # базовый формат
@@ -1330,13 +1331,12 @@ Fingerprint — SHA-256 с length-prefixed полями:
 
 - версия Eggpipe;
 - `ProjectConfig` (JSON, `sort_keys`) и variables после CLI-override;
-- содержимое source-документов и их input-closure;
-- import-closure моделей через `FormatPlugin.input_paths`, рекурсивно;
+- содержимое source-документов и их input-closure через `FormatPlugin.input_paths`, рекурсивно;
 - config-ресурсы: alias и содержимое;
 - `plugin_version`, `api_version` и `input_formats` включённых генераторов;
-- имена, версии и primitive types форматов из реестра.
+- `__version__`, `api_version`, `extends`, `base_versions`, версии и primitive types форматов.
 
-Кэш отключается при `--check`, `--force`, `--clean`, `stale_dates`,
+Кэш отключается при `--check`, `--force`, `--clean`, `--strict`, `stale_dates`,
 `allow_outside_imports`, source/import вне project root, отсутствующем или повреждённом
 manifest, несовпадении набора locations, `input_paths=None`, ошибках чтения или
 YAML-парсинга. Причина отключения пишется в debug-лог и видна с `--verbose`.

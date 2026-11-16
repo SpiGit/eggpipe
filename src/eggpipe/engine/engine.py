@@ -397,6 +397,10 @@ class Engine:
             _digest_text(digest, info.name)
             _digest_text(digest, "\0".join(info.versions))
             _digest_text(digest, "\0".join(sorted(info.primitive_types)))
+            _digest_text(digest, info.extends or "")
+            _digest_text(digest, json.dumps(info.base_versions, sort_keys=True))
+            _digest_text(digest, info.api_version)
+            _digest_text(digest, info.plugin_version)
 
         files = self._fingerprint_files(resolved_sources)
         if files is None:

@@ -10,12 +10,15 @@ from eggpipe import AppConfig, Engine, ProjectConfigLoader
 rules = ProjectConfigLoader().load(".eggpipe.yaml")
 engine = Engine(AppConfig(), rules)
 
-plan = engine.build()       # без записи
-report = engine.generate()  # build + запись
-report = engine.check()     # проверка drift без записи
+plan = engine.build()                  # без записи
+report = engine.generate()             # build + запись
+report = engine.check()                # проверка drift без записи
+plan = engine.build(incremental=True)  # opt-in кэш на один вызов
 ```
 
 `Engine` не вызывает `sys.exit`, не настраивает root-logger и не пишет файлы в `build()`.
+`AppConfig(incremental=True)` включает кэш, `build(incremental=...)` переопределяет настройку;
+`check()` всегда работает без кэша.
 
 Полезные параметры `Engine`:
 
