@@ -69,6 +69,22 @@ Force-push в `main` и удаление ветки `main` запрещены.
 Для соло-разработки достаточно PR без обязательного внешнего approval: проверки CI
 и самостоятельный review остаются обязательными.
 
+## После merge PR
+
+После подтверждения merge обнови `main` и удали отработавшие ветки:
+
+```bash
+git switch main
+git fetch --prune origin
+git pull --ff-only origin main
+git branch -d <branch>
+git push origin --delete <branch>
+git remote prune origin
+```
+
+Для squash-merge проверяй merged PR через GitHub API, а не только
+`git branch --merged`.
+
 ## Pull request
 
 - Один PR — одна логическая задача.
