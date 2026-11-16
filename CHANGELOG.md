@@ -5,6 +5,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- `examples/plugin-template` — шаблон генератора и формата с contract-тестами.
+- Страница `docs/user/plugin-template.md` и CI-проверка шаблона.
+
 ## [0.3.2] - 2026-11-14
 
 ### Changed

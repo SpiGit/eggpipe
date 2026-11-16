@@ -1,5 +1,7 @@
 # Руководство по плагинам
 
+Готовый шаблон генератора и формата: [plugin-template.md](plugin-template.md).
+
 Плагины подключаются двумя способами:
 
 - установленный пакет с entry point (production/editable install);

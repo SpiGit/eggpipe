@@ -14,6 +14,7 @@
 - [API](../user/api/index.md)
 - [Cookbook](../user/cookbook/index.md)
 - [Plugins](../user/plugins.md)
+- [Plugin template](../user/plugin-template.md)
 - [Diagnostics](../user/reference/diagnostics.md)
 - [Troubleshooting](../user/troubleshooting.md)
 

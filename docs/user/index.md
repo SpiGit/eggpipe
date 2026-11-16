@@ -19,6 +19,7 @@ Eggpipe читает YAML-описание модели данных и гене
 - [CLI](cli.md) — команды, флаги и exit codes.
 - [API](api/index.md) — библиотечный API и плагины.
 - [Плагины](plugins.md) — генераторы и форматы.
+- [Шаблон плагина](plugin-template.md) — готовый генератор и формат.
 - [Диагностики](reference/diagnostics.md) — коды EGxxx.
 
 ## Практика
