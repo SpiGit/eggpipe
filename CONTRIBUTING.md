@@ -66,6 +66,15 @@ git push -u origin type/short-description
 Затем открой PR в `main`. Merge разрешён только после зелёных проверок `ci` и `docs`.
 Force-push в `main` и удаление ветки `main` запрещены.
 
+PR можно создать через GitHub или локальным helper-скриптом:
+
+```bash
+uv run python tools/create_pr.py --title "feat: short description"
+```
+
+Скрипт возьмёт токен из `GH_TOKEN` или `~/.config/eggpipe/github-token`,
+заполнит «Что изменено» из заголовков коммитов и создаст/обновит PR.
+
 Для соло-разработки достаточно PR без обязательного внешнего approval: проверки CI
 и самостоятельный review остаются обязательными.
 
