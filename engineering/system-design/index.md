@@ -1305,6 +1305,36 @@ with global_lock(config_dir):                 # .eggpipe/lock
 - Если `output_dir` изменился, старый location остаётся; при генерации — Warning EG051.
 - Если генератор удалён из конфига, его location остаётся до `eggpipe clean`.
 
+### 8.6 Инкрементальная генерация
+
+`--incremental` / `EGGPIPE_INCREMENTAL=true` включает opt-in кэш на уровне location.
+
+Поток `Engine.build`:
+
+1. discovery;
+2. fingerprint входа;
+3. сверка manifest: fingerprint, `eggpipe_version`, `plugin_version`, наличие и sha256
+   каждого артефакта;
+4. при совпадении — отчёт без parse/validate/generate; иначе полный путь.
+
+Fingerprint — SHA-256 с length-prefixed полями:
+
+- версия Eggpipe;
+- `ProjectConfig` (JSON, `sort_keys`) и variables после CLI-override;
+- содержимое YAML под project root, кроме ignored/output;
+- import-closure моделей: YAML-импорты и resource-импорты, рекурсивно;
+- config-ресурсы: alias и содержимое;
+- `plugin_version`, `api_version` и `input_formats` включённых генераторов;
+- имена, версии и primitive types форматов из реестра.
+
+Кэш отключается при `--check`, `--force`, `--clean`, `stale_dates`,
+`allow_outside_imports`, source/import вне project root, отсутствующем или повреждённом
+manifest, несовпадении набора locations, ошибках чтения или YAML-парсинга.
+
+Cache-hit отчёт: `status=skipped`, `action=skip`, `parse/validate/generate/write_ms=0`,
+глобальная `formats=[]`; discovery diagnostics сохраняются. `--plan` с включённым
+incremental показывает `skip`, потому что реальный generate тоже пропустил бы работу.
+
 ---
 
 ## 9. Watch Mode

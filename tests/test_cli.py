@@ -195,6 +195,29 @@ def test_generate_incremental_reports_skip(tmp_path: Path, monkeypatch: pytest.M
     assert report["formats"] == []
 
 
+def test_generate_incremental_from_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _, rules = project(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    entries = [EntryPoint("reference", ReferenceGenerator)]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    monkeypatch.setenv("EGGPIPE_INCREMENTAL", "true")
+    runner = CliRunner()
+    first = runner.invoke(app, ["generate", "-c", str(rules), "--output-format", "json"])
+    assert first.exit_code == 0
+    second = runner.invoke(app, ["generate", "-c", str(rules), "--output-format", "json"])
+    assert second.exit_code == 0
+    report = json.loads(second.stdout)
+    assert report["generators"][0]["status"] == "skipped"
+    assert report["artifacts"][0]["action"] == "skip"
+
+
 def test_generate_json(tmp_path: Path) -> None:
     _, rules = project(tmp_path)
     result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--output-format", "json"])

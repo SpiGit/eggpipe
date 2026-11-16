@@ -13,6 +13,10 @@
 
 ### Added
 
+- `--incremental` / `EGGPIPE_INCREMENTAL=true` — opt-in кэш на уровне location:
+  пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов.
+- `ManifestLocation.input_fingerprint` — необязательный hex SHA-256 входа (ADR-0017).
+- ТЗ v2.3: контракт инкрементальной генерации и отчёт cache hit.
 - `examples/plugin-template` — шаблон генератора и формата с contract-тестами.
 - Страница `docs/user/plugin-template.md` и CI-проверка шаблона.
 - `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов.

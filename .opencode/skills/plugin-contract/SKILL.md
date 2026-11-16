@@ -5,7 +5,7 @@ description: Контракты generator и FormatPlugin Eggpipe — публи
 
 # Контракты плагинов Eggpipe
 
-Источник истины: актуальное ТЗ v2.0 §6 и System Design §2.
+Источник истины: актуальное ТЗ v2.3 §6 и System Design §2.
 
 ## Публичный API
 
@@ -132,6 +132,8 @@ class MyFormat(EntityModelFormat):
 - Явно выбранный несовместимый плагин — exit 2.
 - EG033/EG034/EG301/EG302 — config/plugin errors, exit 2.
 - Политика deprecation применяется после первого публичного релиза.
+- При `--incremental` меняйте `__version__` при изменении вывода: ядро сравнивает
+  `plugin_version`; внешние шаблоны объявляйте через `resources` или импорты модели.
 
 ## Чек-лист ревью
 
@@ -162,4 +164,5 @@ class MyFormat(EntityModelFormat):
 ### Оба типа
 
 - [ ] Добавлены contract- и golden-тесты для детерминированного вывода.
+- [ ] Вывод детерминирован; при изменении вывода повышен `__version__`.
 - [ ] `eggpipe gen list`/`format list` показывают плагин без ошибок.

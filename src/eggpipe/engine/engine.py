@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
 from eggpipe.config.app_config import AppConfig
 from eggpipe.config.project_config import GeneratorConfig, ProjectConfig
@@ -50,6 +51,7 @@ from eggpipe.utils.exceptions import (
     LockError,
     ManifestError,
 )
+from eggpipe.utils.yaml import YamlLoadError, load_yaml
 from eggpipe.version import __version__
 
 
@@ -122,7 +124,7 @@ class Engine:
         if use_incremental:
             self._fingerprint = self._input_fingerprint(sources, resources)
             if self._fingerprint is not None:
-                cached = self._cached_report(self._fingerprint, started)
+                cached = self._cached_report(self._fingerprint, started, diagnostics)
                 if cached is not None:
                     return cached
 
@@ -318,7 +320,8 @@ class Engine:
                     item.model_copy(update={"status": "error"}) if item.id in failed else item
                     for item in generators
                 ]
-        self._timings["write_ms"] = _elapsed(phase)
+        if self._pending:
+            self._timings["write_ms"] = _elapsed(phase)
         success = not _has_errors(diagnostics)
         return report.model_copy(
             update={
@@ -367,24 +370,52 @@ class Engine:
             return None
 
         digest = hashlib.sha256()
-        digest.update(__version__.encode("utf-8"))
-        digest.update(
+        _digest_text(digest, __version__)
+        _digest_text(
+            digest,
             json.dumps(
                 self.rules.model_dump(mode="json", by_alias=True),
                 ensure_ascii=False,
                 sort_keys=True,
-            ).encode("utf-8")
+            ),
         )
-        digest.update(
-            json.dumps(self.variables, ensure_ascii=False, sort_keys=True).encode("utf-8")
-        )
+        _digest_text(digest, json.dumps(self.variables, ensure_ascii=False, sort_keys=True))
         for info in self.registry.list():
-            digest.update(info.name.encode("utf-8"))
-            digest.update(",".join(info.versions).encode("utf-8"))
-            digest.update(",".join(sorted(info.primitive_types)).encode("utf-8"))
+            _digest_text(digest, info.name)
+            _digest_text(digest, "\0".join(info.versions))
+            _digest_text(digest, "\0".join(sorted(info.primitive_types)))
 
+        files = self._fingerprint_files(resolved_sources)
+        if files is None:
+            return None
+
+        for path in sorted(files, key=lambda item: item.as_posix()):
+            _digest_text(digest, path.relative_to(self.config_dir).as_posix())
+            _digest_bytes(digest, files[path])
+        for alias, resource in sorted(resources.items()):
+            _digest_text(digest, alias)
+            _digest_bytes(digest, resource.content)
+
+        for generator_config in self._enabled_generators():
+            plugin = self.generators.get(generator_config.id)
+            if plugin is None:
+                return None
+            _digest_text(digest, generator_config.id)
+            _digest_text(digest, _plugin_version(plugin))
+            _digest_text(digest, str(plugin.api_version))
+            _digest_text(digest, json.dumps(_input_formats(plugin), sort_keys=True))
+        return digest.hexdigest()
+
+    def _fingerprint_files(self, sources: list[Path]) -> dict[Path, bytes] | None:
+        """Collect model files and their import closure, or disable the cache."""
         output_dirs = {self._output_dir(item).resolve() for item in self.rules.generators}
-        files = set(resolved_sources)
+        files: dict[Path, bytes] = {}
+        for source in sources:
+            content = _read_file(source)
+            if content is None:
+                return None
+            files[source] = content
+
         for path in self.config_dir.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in {".yaml", ".yml"}:
                 continue
@@ -392,31 +423,51 @@ class Engine:
             if any(is_ignored_part(part) for part in relative.parts):
                 continue
             resolved = path.resolve()
+            if not resolved.is_relative_to(self.config_dir):
+                return None
             if any(resolved.is_relative_to(output) for output in output_dirs):
                 continue
-            files.add(resolved)
-
-        for path in sorted(files, key=lambda item: item.as_posix()):
-            digest.update(path.relative_to(self.config_dir).as_posix().encode("utf-8"))
-            digest.update(path.read_bytes())
-        for alias, resource in sorted(resources.items()):
-            digest.update(alias.encode("utf-8"))
-            digest.update(resource.content)
-
-        for generator_config in self._enabled_generators():
-            plugin = self.generators.get(generator_config.id)
-            if plugin is None:
+            if resolved in files:
+                continue
+            content = _read_file(resolved)
+            if content is None:
                 return None
-            digest.update(generator_config.id.encode("utf-8"))
-            digest.update(_plugin_version(plugin).encode("utf-8"))
-            digest.update(str(plugin.api_version).encode("utf-8"))
-            digest.update(json.dumps(_input_formats(plugin), sort_keys=True).encode("utf-8"))
-        return digest.hexdigest()
+            files[resolved] = content
 
-    def _cached_report(self, fingerprint: str, started: float) -> EngineReport | None:
+        pending = list(files)
+        while pending:
+            path = pending.pop()
+            if path.suffix.lower() not in {".yaml", ".yml"}:
+                continue
+            try:
+                data = load_yaml(path)
+            except YamlLoadError:
+                return None
+            for raw in _document_import_paths(data):
+                candidate = (path.parent / raw).resolve()
+                if not candidate.is_relative_to(self.config_dir) or not candidate.is_file():
+                    return None
+                if candidate in files:
+                    continue
+                content = _read_file(candidate)
+                if content is None:
+                    return None
+                files[candidate] = content
+                pending.append(candidate)
+        return files
+
+    def _cached_report(
+        self,
+        fingerprint: str,
+        started: float,
+        discovery: list[Diagnostic],
+    ) -> EngineReport | None:
         try:
             manifest = self.writer.load_manifest()
         except ManifestError:
+            return None
+        diagnostics = self._filter_ignored(list(discovery))
+        if _has_errors(diagnostics):
             return None
         enabled = self._enabled_generators()
         if not enabled:
@@ -479,7 +530,7 @@ class Engine:
             "generate_ms": 0,
             "write_ms": 0,
         }
-        return self._report(True, 0, [], generators, started, artifacts)
+        return self._report(True, 0, diagnostics, generators, started, artifacts)
 
     def _stale_location_entries(self) -> list[StaleLocation]:
         try:
@@ -743,6 +794,38 @@ def _format_reports(formats: frozenset[FormatInfo]) -> list[FormatReport]:
 def _input_formats(plugin: GeneratorPlugin) -> list[str] | None:
     formats = getattr(type(plugin), "input_formats", None)
     return None if formats is None else sorted(formats)
+
+
+def _digest_text(digest: Any, value: str) -> None:
+    _digest_bytes(digest, value.encode("utf-8"))
+
+
+def _digest_bytes(digest: Any, value: bytes) -> None:
+    digest.update(len(value).to_bytes(8, "big"))
+    digest.update(value)
+
+
+def _read_file(path: Path) -> bytes | None:
+    try:
+        return path.read_bytes()
+    except OSError:
+        return None
+
+
+def _document_import_paths(data: dict[str, Any]) -> list[str]:
+    model = data.get("model")
+    if not isinstance(model, dict):
+        return []
+    imports = model.get("imports")
+    if not isinstance(imports, list):
+        return []
+    result: list[str] = []
+    for item in imports:
+        if isinstance(item, dict):
+            raw = item.get("path")
+            if isinstance(raw, str) and raw:
+                result.append(raw)
+    return result
 
 
 def _stale_diagnostics(stale: list[StaleLocation]) -> list[Diagnostic]:

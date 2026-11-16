@@ -46,6 +46,7 @@ Fingerprint — SHA-256 от:
 - `ProjectConfig` (sources, generators, variables, defaults, diagnostics);
 - variables после CLI-override;
 - содержимого всех YAML-документов под project root (кроме ignored/output);
+- import-closure моделей: YAML-импорты и resource-импорты, рекурсивно;
 - ресурсов: alias + содержимое;
 - `plugin_version`, `api_version` и `input_formats` включённых генераторов;
 - списка форматов и их версий из реестра.
@@ -67,9 +68,13 @@ Engine не использует кэш, если:
 - `--force` или `--clean`;
 - `diagnostics.stale_dates: true`;
 - `allow_outside_imports: true`;
-- source-пути выходят за project root;
+- source- или import-пути выходят за project root;
 - manifest отсутствует или повреждён;
-- набор locations в manifest не совпадает с конфигом.
+- набор locations в manifest не совпадает с конфигом;
+- файл нельзя прочитать или YAML не парсится.
+
+`--plan` кэш использует: план тогда состоит из `skip`, потому что реальный `generate`
+пропустил бы ту же работу.
 
 ## 5. Manifest
 
@@ -100,4 +105,6 @@ Manifest v1 по-прежнему не поддерживается.
 - Ошибка в fingerprint может привести к устаревшим артефактам, поэтому режим opt-in
   и покрыт тестами инвалидации.
 - Плагины должны bump `plugin_version` при изменении поведения.
+- Manifest с `input_fingerprint` не читается более старой версией Eggpipe: поле новое,
+  а `ManifestLocation` запрещает неизвестные поля. Для beta (ADR-0014) это допустимо.
 - L2/L3 (кэш парсинга, per-entity) остаются future.

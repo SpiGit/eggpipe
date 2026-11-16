@@ -17,6 +17,7 @@ from eggpipe import (
     ProjectConfig,
     SourceConfig,
 )
+from eggpipe.config.project_config import DiagnosticsConfig
 
 MODEL = """\
 format: entity-model
@@ -48,17 +49,21 @@ def make_engine(
     *,
     incremental: bool = True,
     force: bool = False,
+    clean: bool = False,
     allow_outside_imports: bool = False,
+    stale_dates: bool = False,
 ) -> Engine:
     rules = ProjectConfig(
         version="1.0",
         sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id="counting", output_dir=Path("out")),),
+        diagnostics=DiagnosticsConfig(stale_dates=stale_dates),
     )
     return Engine(
         AppConfig(
             incremental=incremental,
             force=force,
+            clean=clean,
             allow_outside_imports=allow_outside_imports,
         ),
         rules,
@@ -80,6 +85,11 @@ def test_incremental_skips_unchanged_generation(tmp_path: Path) -> None:
     assert CountingGenerator.calls == 1
     assert second.generators[0].status == "skipped"
     assert second.artifacts[0].action == "skip"
+    assert second.formats == []
+    assert second.timings["parse_ms"] == 0
+    assert second.timings["validate_ms"] == 0
+    assert second.timings["generate_ms"] == 0
+    assert second.timings["write_ms"] == 0
     manifest = json.loads((tmp_path / ".eggpipe" / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["locations"][0]["input_fingerprint"]
 
@@ -174,4 +184,81 @@ def test_incremental_is_disabled_with_outside_imports(tmp_path: Path) -> None:
     (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
     make_engine(tmp_path).generate()
     make_engine(tmp_path, allow_outside_imports=True).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_is_disabled_with_stale_dates(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path, stale_dates=True).generate()
+    make_engine(tmp_path, stale_dates=True).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_is_disabled_with_clean(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    make_engine(tmp_path, clean=True).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_invalidates_on_plugin_version(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    original = CountingGenerator.__version__
+    try:
+        CountingGenerator.__version__ = "2"
+        make_engine(tmp_path).generate()
+    finally:
+        CountingGenerator.__version__ = original
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_ignores_manifest_without_fingerprint(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    manifest_path = tmp_path / ".eggpipe" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["locations"][0].pop("input_fingerprint")
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_invalidates_on_unrelated_yaml(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    (tmp_path / "notes.yaml").write_text("key: value\n", encoding="utf-8")
+    make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_invalidates_on_resource_import(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    template = tmp_path / "card.html"
+    template.write_text("<p>one</p>\n", encoding="utf-8")
+    model = MODEL.replace(
+        "model:\n",
+        "model:\n  imports:\n    - path: ./card.html\n      as: card\n",
+    )
+    (tmp_path / "model.yaml").write_text(model, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    template.write_text("<p>two</p>\n", encoding="utf-8")
+    make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_requires_matching_locations(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    manifest_path = tmp_path / ".eggpipe" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["locations"] = []
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    make_engine(tmp_path).generate()
     assert CountingGenerator.calls == 2

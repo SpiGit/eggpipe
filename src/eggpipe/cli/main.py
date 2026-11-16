@@ -234,10 +234,11 @@ def _run_engine(options: RunOptions) -> None:
         include_disabled=options.include_disabled,
         allow_outside_imports=options.allow_outside_imports,
         clean=options.clean,
-        incremental=options.incremental,
         quiet=options.quiet,
         verbose=options.verbose,
     )
+    if options.incremental:
+        app_config = app_config.model_copy(update={"incremental": True})
     setup_logging(app_config)
     engine = Engine(
         app_config,
@@ -438,10 +439,11 @@ def watch(
             force=force,
             include_disabled=include_disabled,
             allow_outside_imports=allow_outside_imports,
-            incremental=incremental,
             quiet=quiet,
             verbose=verbose,
         )
+        if incremental:
+            app_config = app_config.model_copy(update={"incremental": True})
         setup_logging(app_config)
         engine = Engine(
             app_config,
