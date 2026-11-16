@@ -85,6 +85,7 @@ REQUIRED_FILES = (
     "engineering/adr/0012-english-only-source.md",
     "engineering/adr/0014-beta-status-and-compatibility.md",
     "engineering/adr/0015-branching-and-release-policy.md",
+    "engineering/adr/0016-deprecation-policy.md",
     "engineering/adr/index.md",
     "docs/index.md",
     "engineering/decisions/eggpipe.md",
