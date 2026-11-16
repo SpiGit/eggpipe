@@ -95,7 +95,7 @@
     },
     {
       "exists": true,
-      "path": "engineering/requirements/v2.2.md"
+      "path": "engineering/requirements/v2.3.md"
     },
     {
       "exists": true,
@@ -168,6 +168,6 @@
     "validate_document",
     "validate_entity_model"
   ],
-  "spec_version": "2.2",
+  "spec_version": "2.3",
   "status": "beta"
 }

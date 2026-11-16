@@ -37,6 +37,7 @@ eggpipe generate -g oracle-ddl
 | `--strict` | warnings → errors |
 | `--ignore` | коды warnings через запятую |
 | `--clean` | cleanup enabled для запуска |
+| `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict` |
 | `--include-disabled` | включить `enabled: false` |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |
 | `--output-format` | `text` или `json` |

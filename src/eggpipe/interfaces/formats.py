@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, ClassVar, Literal
 
@@ -19,6 +20,7 @@ class FormatPlugin(ABC):
     """Document format: parser and validator."""
 
     api_version: ClassVar[Literal["1"]] = "1"
+    __version__: ClassVar[str] = "unknown"
     format_names: ClassVar[list[str]]
     supported_versions: ClassVar[list[str]]
     extends: ClassVar[str | None] = None
@@ -29,6 +31,15 @@ class FormatPlugin(ABC):
     @abstractmethod
     def parse(self, raw: dict[str, Any], base_path: Path) -> ModelDocument:
         """Build a document from a YAML mapping."""
+
+    def input_paths(self, raw: dict[str, Any], base_path: Path) -> Iterable[Path] | None:
+        """Return files that affect parsing; None disables incremental generation.
+
+        ``base_path`` is the directory containing the document, the same value
+        passed to ``parse``. Paths may be absolute or relative to ``base_path``.
+        Plugins that read additional files must override this method.
+        """
+        return None
 
     def validate(self, document: ModelDocument) -> list[Diagnostic]:
         return []
@@ -69,6 +80,14 @@ class EntityModelFormat(FormatPlugin):
 
     def parse_extensions(self, document: ModelDocument, raw: dict[str, Any]) -> None:
         """Hook for format plugins that extend entity-model."""
+
+    @override
+    def input_paths(self, raw: dict[str, Any], base_path: Path) -> Iterable[Path] | None:
+        model_raw = raw.get("model", {})
+        if not isinstance(model_raw, dict):
+            return ()
+        imports = self._parse_imports(model_raw.get("imports", []), base_path)
+        return tuple(base_path / item.path for item in imports)
 
     @override
     def validate(self, document: ModelDocument) -> list[Diagnostic]:

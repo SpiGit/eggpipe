@@ -1,5 +1,14 @@
 # Changelog требований
 
+### v2.3 (2026-11-16)
+
+- Добавлена opt-in инкрементальная генерация (`--incremental`).
+- Manifest location хранит `input_fingerprint` (hex SHA-256).
+- `FormatPlugin.input_paths` объявляет файлы, влияющие на парсинг; `None` отключает incremental.
+- `FormatPlugin.__version__` входит в fingerprint формата.
+- `timings.fingerprint_ms` отражает сбор fingerprint.
+- `--check`, `--force`, `--clean`, `--strict` и внешние импорты отключают incremental.
+- `generators[].status` может быть `skipped`; глобальная `formats` пуста.
 
 ### v2.2 (2026-11-13)
 

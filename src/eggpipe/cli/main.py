@@ -107,6 +107,7 @@ class RunOptions:
     include_disabled: bool
     allow_outside_imports: bool
     clean: bool
+    incremental: bool
     output_format: str
     ignore: str | None
     quiet: bool
@@ -236,6 +237,10 @@ def _run_engine(options: RunOptions) -> None:
         quiet=options.quiet,
         verbose=options.verbose,
     )
+    if options.incremental:
+        app_config = app_config.model_copy(update={"incremental": True})
+    if options.strict:
+        app_config = app_config.model_copy(update={"incremental": False})
     setup_logging(app_config)
     engine = Engine(
         app_config,
@@ -284,6 +289,7 @@ def generate(
     include_disabled: Annotated[bool, typer.Option("--include-disabled")] = False,
     allow_outside_imports: Annotated[bool, typer.Option("--allow-outside-imports")] = False,
     clean: Annotated[bool, typer.Option("--clean")] = False,
+    incremental: Annotated[bool, typer.Option("--incremental")] = False,
     output_format: Annotated[str, typer.Option("--output-format")] = "text",
     ignore: Annotated[str | None, typer.Option("--ignore")] = None,
     quiet: Annotated[bool, typer.Option("--quiet", "-q")] = False,
@@ -307,6 +313,7 @@ def generate(
             include_disabled=include_disabled,
             allow_outside_imports=allow_outside_imports,
             clean=clean,
+            incremental=incremental,
             output_format=output_format,
             ignore=ignore,
             quiet=quiet,
@@ -394,6 +401,7 @@ def watch(
     include_disabled: Annotated[bool, typer.Option("--include-disabled")] = False,
     allow_outside_imports: Annotated[bool, typer.Option("--allow-outside-imports")] = False,
     force: Annotated[bool, typer.Option("--force")] = False,
+    incremental: Annotated[bool, typer.Option("--incremental")] = False,
     output_format: Annotated[str, typer.Option("--output-format")] = "text",
     ignore: Annotated[str | None, typer.Option("--ignore")] = None,
     quiet: Annotated[bool, typer.Option("--quiet", "-q")] = False,
@@ -436,6 +444,10 @@ def watch(
             quiet=quiet,
             verbose=verbose,
         )
+        if incremental:
+            app_config = app_config.model_copy(update={"incremental": True})
+        if strict:
+            app_config = app_config.model_copy(update={"incremental": False})
         setup_logging(app_config)
         engine = Engine(
             app_config,

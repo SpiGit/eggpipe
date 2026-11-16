@@ -10,6 +10,7 @@ from eggpipe import EntityModelFormat, FormatSchema
 
 class MyFormat(EntityModelFormat):
     api_version: ClassVar[Literal["1"]] = "1"
+    __version__: ClassVar[str] = "1"
     format_names: ClassVar[list[str]] = ["sql-model"]
     supported_versions: ClassVar[list[str]] = ["1.0"]
     extends: ClassVar[str | None] = "entity-model"
@@ -23,6 +24,26 @@ class MyFormat(EntityModelFormat):
 
 `EntityModelFormat` — база для форматов, расширяющих `entity-model`. Она предоставляет
 `parse`/`validate`; расширение переопределяет `parse_extensions`/`validate_extensions`.
+
+## Incremental dependencies
+
+Если формат читает дополнительные файлы при парсинге, он обязан объявить их:
+
+```python
+from collections.abc import Iterable
+from pathlib import Path
+
+class MyFormat(EntityModelFormat):
+    def input_paths(self, raw: dict, base_path: Path) -> Iterable[Path] | None:
+        return [base_path / "includes" / "common.yaml"]
+```
+
+- `base_path` — каталог документа, как в `parse`. Пути абсолютные или относительные;
+  выходить за project root нельзя.
+- `EntityModelFormat` уже возвращает `model.imports`; при добавлении своих файлов
+  вызывайте `super().input_paths(...)` и объединяйте результаты.
+- `None` означает «зависимости не объявлены» и отключает `--incremental` для запуска.
+- Без этого контракта правка внешнего файла не инвалидирует кэш.
 
 ## FormatSchema
 
@@ -52,6 +73,7 @@ class PostgresFormat(EntityModelFormat):
 - Цикл/глубина > 10, неверная база, конфликт схем/примитивов — EG034.
 - Неизвестная версия — EG008.
 - `entity-model` зарезервирован.
+- `__version__` — версия реализации формата; меняйте её при изменении парсера.
 
 ## Entry point
 

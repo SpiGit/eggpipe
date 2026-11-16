@@ -13,8 +13,8 @@
 - Проект: **Eggpipe**.
 - Package/import/CLI: `eggpipe`.
 - Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
-- Актуальное ТЗ: `engineering/requirements/v2.2.md`.
-- Версия пакета: `0.3.2`; версия ТЗ: `2.2`.
+- Актуальное ТЗ: `engineering/requirements/v2.3.md`.
+- Версия пакета: `0.3.2`; версия ТЗ: `2.3`.
 - Статус: beta (0.x); до 1.0 breaking changes возможны (ADR-0014).
 - Brand assets: `docs/assets/brand/`.
 
@@ -85,7 +85,7 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 
 ## Добавить генератор
 
-1. Прочитать `engineering/requirements/v2.2.md` §6.1 и `docs/user/plugins.md`.
+1. Прочитать `engineering/requirements/v2.3.md` §6.1 и `docs/user/plugins.md`.
 2. Создать функцию с `@generator(id=..., input_formats=...)`.
 3. Аннотировать аргументы только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
 4. Вернуть `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]` или `GenerationResult`.
@@ -144,7 +144,7 @@ uv run python tools/check_wheel.py dist
 ## Документация
 
 - Актуальное ТЗ — только файл со статусом **Актуальная** в
-  `engineering/requirements/index.md` (сейчас `v2.2.md`).
+  `engineering/requirements/index.md` (сейчас `v2.3.md`).
 - Исторические ТЗ (`v1.0`–`v2.0`) и старые ADR не редактировать.
 - Новое поведение — новая версия ТЗ; ADR не переписываются задним числом.
 - Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `Entity`, `FieldDef`, `EnumDef`,
@@ -286,6 +286,13 @@ generators:
 - Набор кодов может расширяться, а условия срабатывания — уточняться.
 - Сгенерированные файлы не являются публичным API: шаблоны и структура вывода
   могут меняться между версиями.
+
+## Deprecation
+
+Если поле, флаг или API устаревают, они сначала помечаются как deprecated и продолжают
+работать. Предупреждение появляется в `stderr`, `DeprecationWarning` или в диагностике.
+Удаление происходит после окна deprecation: до `1.0` — в следующем minor, после `1.0` —
+только в major.
 
 ## Как обновляться
 
@@ -559,6 +566,7 @@ eggpipe generate -g oracle-ddl
 | `--strict` | warnings → errors |
 | `--ignore` | коды warnings через запятую |
 | `--clean` | cleanup enabled для запуска |
+| `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict` |
 | `--include-disabled` | включить `enabled: false` |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |
 | `--output-format` | `text` или `json` |
@@ -654,12 +662,15 @@ from eggpipe import AppConfig, Engine, ProjectConfigLoader
 rules = ProjectConfigLoader().load(".eggpipe.yaml")
 engine = Engine(AppConfig(), rules)
 
-plan = engine.build()       # без записи
-report = engine.generate()  # build + запись
-report = engine.check()     # проверка drift без записи
+plan = engine.build()                  # без записи
+report = engine.generate()             # build + запись
+report = engine.check()                # проверка drift без записи
+plan = engine.build(incremental=True)  # opt-in кэш на один вызов
 ```
 
 `Engine` не вызывает `sys.exit`, не настраивает root-logger и не пишет файлы в `build()`.
+`AppConfig(incremental=True)` включает кэш, `build(incremental=...)` переопределяет настройку;
+`check()` всегда работает без кэша.
 
 Полезные параметры `Engine`:
 
@@ -813,6 +824,7 @@ from eggpipe import EntityModelFormat, FormatSchema
 
 class MyFormat(EntityModelFormat):
     api_version: ClassVar[Literal["1"]] = "1"
+    __version__: ClassVar[str] = "1"
     format_names: ClassVar[list[str]] = ["sql-model"]
     supported_versions: ClassVar[list[str]] = ["1.0"]
     extends: ClassVar[str | None] = "entity-model"
@@ -826,6 +838,26 @@ class MyFormat(EntityModelFormat):
 
 `EntityModelFormat` — база для форматов, расширяющих `entity-model`. Она предоставляет
 `parse`/`validate`; расширение переопределяет `parse_extensions`/`validate_extensions`.
+
+## Incremental dependencies
+
+Если формат читает дополнительные файлы при парсинге, он обязан объявить их:
+
+```python
+from collections.abc import Iterable
+from pathlib import Path
+
+class MyFormat(EntityModelFormat):
+    def input_paths(self, raw: dict, base_path: Path) -> Iterable[Path] | None:
+        return [base_path / "includes" / "common.yaml"]
+```
+
+- `base_path` — каталог документа, как в `parse`. Пути абсолютные или относительные;
+  выходить за project root нельзя.
+- `EntityModelFormat` уже возвращает `model.imports`; при добавлении своих файлов
+  вызывайте `super().input_paths(...)` и объединяйте результаты.
+- `None` означает «зависимости не объявлены» и отключает `--incremental` для запуска.
+- Без этого контракта правка внешнего файла не инвалидирует кэш.
 
 ## FormatSchema
 
@@ -855,6 +887,7 @@ class PostgresFormat(EntityModelFormat):
 - Цикл/глубина > 10, неверная база, конфликт схем/примитивов — EG034.
 - Неизвестная версия — EG008.
 - `entity-model` зарезервирован.
+- `__version__` — версия реализации формата; меняйте её при изменении парсера.
 
 ## Entry point
 

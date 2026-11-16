@@ -1,6 +1,6 @@
 # Eggpipe documentation index
 
-> Eggpipe generates artifacts from YAML model definitions. Current spec: v2.2.
+> Eggpipe generates artifacts from YAML model definitions. Current spec: v2.3.
 > Project status: beta (0.x); breaking changes are possible before 1.0 (ADR-0014).
 
 ## User
@@ -28,6 +28,6 @@
 
 ## Engineering
 
-- [Requirements v2.2](../../engineering/requirements/v2.2.md)
+- [Requirements v2.3](../../engineering/requirements/v2.3.md)
 - [System Design](../../engineering/system-design/index.md)
 - [ADR index](../../engineering/adr/index.md)

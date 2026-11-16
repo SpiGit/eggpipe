@@ -26,6 +26,7 @@ class AppConfig(BaseSettings):
     include_disabled: bool = False
     allow_outside_imports: bool = False
     clean: bool = False
+    incremental: bool = False
     debug: bool = False
     verbose: bool = False
     quiet: bool = False

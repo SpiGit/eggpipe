@@ -1,8 +1,8 @@
 # System Design — Eggpipe
 
-> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.2](../requirements/v2.2.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
+> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.3](../requirements/v2.3.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 2.2. Дата: 2026-11-13.*
+*Версия документа: 2.3. Дата: 2026-11-16.*
 
 ---
 
@@ -208,6 +208,7 @@ class GeneratorPlugin(ABC):
 class FormatPlugin(ABC):
     """Контракт формата: минимальный интерфейс для FormatRegistry."""
     api_version: ClassVar[Literal["1"]]
+    __version__: ClassVar[str] = "unknown"
     format_names: ClassVar[list[str]]          # ["sql-model", ...]
     supported_versions: ClassVar[list[str]]    # упорядоченный; последняя = latest
     extends: ClassVar[str | None] = None       # базовый формат
@@ -218,9 +219,16 @@ class FormatPlugin(ABC):
     @abstractmethod
     def parse(self, raw: dict, base_path: Path) -> ModelDocument: ...
 
+    def input_paths(self, raw: dict, base_path: Path) -> Iterable[Path] | None:
+        """Файлы, влияющие на парсинг; None отключает incremental."""
+        return None
+
     def validate(self, document: ModelDocument) -> list[Diagnostic]:
         return []
 ```
+
+`base_path` в `parse` и `input_paths` — каталог документа; относительные пути
+`input_paths` разрешаются от него.
 
 `EntityModelFormat` — конкретная база ядра для форматов, которые **расширяют** entity-model:
 
@@ -329,7 +337,8 @@ class Engine:
         variables: Mapping[str, str] | None = None,
     ): ...
 
-    def build(self) -> EngineReport: ...      # парсинг/валидация/генерация без записи
+    def build(self, *, incremental: bool | None = None) -> EngineReport: ...
+        # парсинг/валидация/генерация без записи; incremental=None — из AppConfig
     def generate(self) -> EngineReport: ...   # build + запись артефактов
     def check(self) -> EngineReport: ...      # drift без записи; success=false, exit_code=1
 ```
@@ -903,7 +912,7 @@ class AppConfig(BaseSettings):
 ```
 
 - Приоритет: CLI-флаги → env → `.env` → defaults. Отдельного app-config-файла нет; `.eggpipe.yaml` — это `ProjectConfig`.
-- `plugins_dir` и `cache_dir` **удалены**: плагины из директорий с ручным `sys.path` не поддерживаются (§6.3); кэш — future.
+- `plugins_dir` и `cache_dir` **удалены**: плагины из директорий с ручным `sys.path` не поддерживаются (§6.3); L1-кэш incremental реализован в `engine.py`, L2/L3 — future.
 - `config_file` переименован в `rules_file`, чтобы не путать с app config.
 - CLI собирает `AppConfig` после парсинга аргументов и передаёт override'ы в `Engine`.
 
@@ -1146,6 +1155,7 @@ class JsonFormatter(OutputFormatter): ...    # только JSON в stdout
   "stale_locations": [],
   "timings": {
     "discovery_ms": 1,
+    "fingerprint_ms": 0,
     "parse_ms": 12,
     "validate_ms": 2,
     "generate_ms": 55,
@@ -1159,7 +1169,7 @@ class JsonFormatter(OutputFormatter): ...    # только JSON в stdout
 - `report_version: 2`; `artifacts` — плоский список с `generator`, без дублирования в `generators[]`.
 - `artifacts[].action` — `create|update|skip|delete|conflict|error|drift`;
   `generators[].status` — `ok|error|skipped`.
-- `timings` содержит обязательные `discovery_ms`, `parse_ms`, `validate_ms`, `generate_ms`,
+- `timings` содержит обязательные `discovery_ms`, `fingerprint_ms`, `parse_ms`, `validate_ms`, `generate_ms`,
   `write_ms`, `total_ms`.
 - `formats` — глобальная сводка; `manifest` — только locations; `stale_locations` — для EG051.
 - JSON-отчёт печатается только в stdout; логи — stderr/file.
@@ -1251,6 +1261,7 @@ class ExecutionPlan:
       "output_dir": "output/oracle",
       "eggpipe_version": "0.3.2",
       "plugin_version": "1.2.0",
+      "input_fingerprint": "<sha256 hex>",
       "formats": [{"name": "entity-model", "version": "1.0"}],
       "generated_at": "2026-11-11T12:34:56Z",
       "artifacts": [{"path": "user.sql", "sha256": "...", "skipped": false}]
@@ -1304,6 +1315,39 @@ with global_lock(config_dir):                 # .eggpipe/lock
 - Если `output_dir` изменился, старый location остаётся; при генерации — Warning EG051.
 - Если генератор удалён из конфига, его location остаётся до `eggpipe clean`.
 
+### 8.6 Инкрементальная генерация
+
+`--incremental` / `EGGPIPE_INCREMENTAL=true` включает opt-in кэш на уровне location.
+
+Поток `Engine.build`:
+
+1. discovery;
+2. fingerprint входа;
+3. сверка manifest: fingerprint, `eggpipe_version`, `plugin_version`, наличие и sha256
+   каждого артефакта;
+4. при совпадении — отчёт без parse/validate/generate; иначе полный путь.
+
+Fingerprint — SHA-256 с length-prefixed полями:
+
+- версия Eggpipe;
+- `ProjectConfig` (JSON, `sort_keys`) и variables после CLI-override;
+- содержимое source-документов и их input-closure через `FormatPlugin.input_paths`, рекурсивно;
+- config-ресурсы: alias и содержимое;
+- `plugin_version`, `api_version` и `input_formats` включённых генераторов;
+- `__version__`, `api_version`, `extends`, `base_versions`, версии и primitive types форматов.
+
+Кэш отключается при `--check`, `--force`, `--clean`, `--strict`, `stale_dates`,
+`allow_outside_imports`, source/import вне project root, отсутствующем или повреждённом
+manifest, несовпадении набора locations, `input_paths=None`, ошибках чтения или
+YAML-парсинга. Причина отключения пишется в debug-лог и видна с `--verbose`.
+
+Cache-hit отчёт: `status=skipped`, `action=skip`, `parse/validate/generate/write_ms=0`,
+`fingerprint_ms` отражает сбор fingerprint, глобальная `formats=[]`; discovery diagnostics
+сохраняются. `cleanup` на hit не запускается: owned-артефакты location уже совпадают.
+`--plan` с включённым incremental показывает `skip`, потому что реальный generate тоже
+пропустил бы работу. Полный прогон без incremental пишет `input_fingerprint: null`;
+следующий incremental-прогон будет промахом.
+
 ---
 
 ## 9. Watch Mode
@@ -1338,7 +1382,9 @@ class Watcher:
 - **Завершение:** Ctrl+C — корректная остановка Observer, удаление lock/staging, exit 0; прерывание по сигналу — 130.
 - **`--output-format json` в watch:** каждая итерация печатает отдельный JSON-объект (JSON Lines), без цветов и человекочитаемого текста.
 
-### 9.3 Интерфейс для будущего кэширования
+### 9.3 Интерфейс для L2/L3 кэширования (future, не реализован)
+
+Интерфейс ниже зарезервирован для L2/L3 и в текущем коде не используется.
 
 ```python
 class CacheStrategy(ABC):
@@ -1398,7 +1444,7 @@ examples/
 ├── tpc-h-generator/
 └── tpc-h/
 docs/
-├── requirements/                # index, v1.0–v1.4, v2.0, v2.1, v2.2
+├── requirements/                # index, v1.0–v1.4, v2.0, v2.1, v2.2, v2.3
 ├── system-design/
 ├── reviews/
 ├── adr/
@@ -1417,12 +1463,12 @@ LICENSE
 ```
 
 Отдельных `cli/*_cmds.py`, `engine/planning.py`, `engine/locking.py`, `watch/cache.py`
-в v2.2 нет: команды находятся в `cli/main.py`, planning/lock — в `artifact_writer.py`,
-cache остаётся future-направлением.
+нет: команды находятся в `cli/main.py`, planning/lock — в `artifact_writer.py`,
+L1-кэш incremental — в `engine.py`; `watch/cache.py` и L2/L3 — future.
 
 ---
 
-## 11. Тестирование (охват v2.2)
+## 11. Тестирование (охват v2.3)
 
 ### 11.1 Приоритеты
 
@@ -1568,7 +1614,7 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v2.2, сводка)
+## 13. Проектировочные решения (v2.3, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|

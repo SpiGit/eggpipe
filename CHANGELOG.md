@@ -10,9 +10,19 @@
 - `engineering/requirements/index.md` разделён на реестр версий и `changelog.md`.
 - `.session-context.md` сокращён до текущего состояния; история вынесена в
   `engineering/session-log.md`.
+- Manifest state: `ManifestLocation.input_fingerprint` — необязательный hex SHA-256 входа
+  (ADR-0017). Старые manifest v2 читаются; более старая Eggpipe новый manifest не прочитает.
+- `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
 
 ### Added
 
+- `--incremental` / `EGGPIPE_INCREMENTAL=true` — opt-in кэш на уровне location:
+  пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов;
+  отключается при `--check`, `--force`, `--clean`, `--strict` и внешних импортах.
+- `FormatPlugin.input_paths` — декларация файлов, влияющих на парсинг формата;
+  `None` отключает incremental.
+- `timings.fingerprint_ms` — время сбора входного fingerprint.
+- ТЗ v2.3: контракт инкрементальной генерации и отчёт cache hit.
 - `examples/plugin-template` — шаблон генератора и формата с contract-тестами.
 - Страница `docs/user/plugin-template.md` и CI-проверка шаблона.
 - `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов.

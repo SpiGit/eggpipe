@@ -5,7 +5,7 @@
 
 ## Разделы
 
-- [Требования](requirements/index.md) — реестр версий и актуальное ТЗ v2.2.
+- [Требования](requirements/index.md) — реестр версий и актуальное ТЗ v2.3.
 - [Changelog требований](requirements/changelog.md) — история изменений ТЗ.
 - [История сессий](session-log.md) — архив рабочих сессий.
 - [System Design](system-design/index.md) — проектирование реализации.

@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
 from eggpipe.config.app_config import AppConfig
+from eggpipe.config.logging import get_logger
 from eggpipe.config.project_config import GeneratorConfig, ProjectConfig
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
@@ -47,7 +51,10 @@ from eggpipe.utils.exceptions import (
     LockError,
     ManifestError,
 )
+from eggpipe.utils.yaml import YamlLoadError, parse_yaml
 from eggpipe.version import __version__
+
+_LOG = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,7 @@ class _Pending:
     result: GenerationResult
     plan: ExecutionPlan
     output_dir: Path
+    fingerprint: str | None = None
 
 
 @dataclass(frozen=True)
@@ -96,8 +104,10 @@ class Engine:
         self._stale_paths: set[Path] = set()
         self._timings: dict[str, int] = {}
         self._started = 0.0
+        self._fingerprint: str | None = None
+        self._incremental_reason: str | None = None
 
-    def build(self) -> EngineReport:
+    def build(self, *, incremental: bool | None = None) -> EngineReport:
         started = time.perf_counter()
         self._started = started
         self._timings = _empty_timings()
@@ -105,12 +115,29 @@ class Engine:
         self._formats = []
         self._stale = []
         self._stale_paths = set()
+        self._fingerprint = None
+        self._incremental_reason = None
         diagnostics: list[Diagnostic] = []
         phase = time.perf_counter()
         sources, source_groups, resources = self._source_paths(diagnostics)
         self._timings["discovery_ms"] = _elapsed(phase)
         if not sources:
             return self._report(False, 1, diagnostics, [], started)
+
+        use_incremental = self.config.incremental if incremental is None else incremental
+        if use_incremental:
+            phase = time.perf_counter()
+            self._fingerprint = self._input_fingerprint(sources, resources)
+            self._timings["fingerprint_ms"] = _elapsed(phase)
+            if self._fingerprint is not None:
+                cached = self._cached_report(self._fingerprint, started, diagnostics)
+                if cached is not None:
+                    _LOG.debug("incremental cache hit")
+                    return cached
+            _LOG.debug(
+                "incremental cache disabled: %s",
+                self._incremental_reason or "input fingerprint changed or artifacts drifted",
+            )
 
         phase = time.perf_counter()
         composition = self._load_composition(sources, source_groups, resources, diagnostics)
@@ -244,6 +271,7 @@ class Engine:
                         result=result,
                         plan=plan,
                         output_dir=self._output_dir(generator_config),
+                        fingerprint=self._fingerprint,
                     )
                 )
         return _GeneratorRun(
@@ -291,6 +319,7 @@ class Engine:
                         output_dir=pending.output_dir,
                         plan=pending.plan,
                         plugin_version=_plugin_version(pending.plugin),
+                        input_fingerprint=pending.fingerprint,
                         cleanup=cleanup,
                     )
                 )
@@ -302,7 +331,8 @@ class Engine:
                     item.model_copy(update={"status": "error"}) if item.id in failed else item
                     for item in generators
                 ]
-        self._timings["write_ms"] = _elapsed(phase)
+        if self._pending:
+            self._timings["write_ms"] = _elapsed(phase)
         success = not _has_errors(diagnostics)
         return report.model_copy(
             update={
@@ -316,7 +346,7 @@ class Engine:
         )
 
     def check(self) -> EngineReport:
-        report = self.build()
+        report = self.build(incremental=False)
         diagnostics = list(report.diagnostics)
         for pending in self._pending:
             diagnostics.extend(self.writer.check(plan=pending.plan))
@@ -328,6 +358,225 @@ class Engine:
                 "diagnostics": diagnostics,
             }
         )
+
+    def _enabled_generators(self) -> list[GeneratorConfig]:
+        return [
+            item for item in self.rules.generators if item.enabled or self.config.include_disabled
+        ]
+
+    def _input_fingerprint(
+        self,
+        sources: list[Path],
+        resources: dict[str, ImportedFile],
+    ) -> str | None:
+        if self.config.allow_outside_imports:
+            return self._disable_incremental("allow_outside_imports is enabled")
+        if self.rules.diagnostics.stale_dates:
+            return self._disable_incremental("diagnostics.stale_dates is enabled")
+        if self.config.force or self.config.clean:
+            return self._disable_incremental("force or clean is enabled")
+        if not self._enabled_generators():
+            return self._disable_incremental("no enabled generators")
+
+        resolved_sources = [path.resolve() for path in sources]
+        if any(not path.is_relative_to(self.config_dir) for path in resolved_sources):
+            return self._disable_incremental("a source path is outside the project root")
+
+        digest = hashlib.sha256()
+        _digest_text(digest, __version__)
+        _digest_text(
+            digest,
+            json.dumps(
+                self.rules.model_dump(mode="json", by_alias=True),
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+        )
+        _digest_text(digest, json.dumps(self.variables, ensure_ascii=False, sort_keys=True))
+        for info in self.registry.list():
+            _digest_text(digest, info.name)
+            _digest_text(digest, "\0".join(info.versions))
+            _digest_text(digest, "\0".join(sorted(info.primitive_types)))
+            _digest_text(digest, info.extends or "")
+            _digest_text(digest, json.dumps(info.base_versions, sort_keys=True))
+            _digest_text(digest, info.api_version)
+            _digest_text(digest, info.plugin_version)
+
+        files = self._fingerprint_files(resolved_sources)
+        if files is None:
+            return None
+
+        for path in sorted(files, key=lambda item: item.as_posix()):
+            _digest_text(digest, path.relative_to(self.config_dir).as_posix())
+            _digest_bytes(digest, files[path])
+        for alias, resource in sorted(resources.items()):
+            _digest_text(digest, alias)
+            _digest_bytes(digest, resource.content)
+
+        for generator_config in self._enabled_generators():
+            plugin = self.generators.get(generator_config.id)
+            if plugin is None:
+                return self._disable_incremental(
+                    f"generator plugin is not loaded: {generator_config.id}"
+                )
+            _digest_text(digest, generator_config.id)
+            _digest_text(digest, _plugin_version(plugin))
+            _digest_text(digest, str(plugin.api_version))
+            _digest_text(digest, json.dumps(_input_formats(plugin), sort_keys=True))
+        return digest.hexdigest()
+
+    def _fingerprint_files(self, sources: list[Path]) -> dict[Path, bytes] | None:
+        """Collect source documents and their input closure, or disable the cache."""
+        files: dict[Path, bytes] = {}
+        for source in sources:
+            content = _read_file(source)
+            if content is None:
+                return self._disable_incremental(f"cannot read source: {source}")
+            files[source] = content
+
+        pending = list(files)
+        while pending:
+            path = pending.pop()
+            if path.suffix.lower() not in {".yaml", ".yml"}:
+                continue
+            data = self._parse_fingerprint_document(path, files[path])
+            if data is None:
+                return None
+            format_name = data.get("format")
+            if not isinstance(format_name, str) or not format_name:
+                continue
+            try:
+                plugin = self.registry.get(format_name)
+            except ConfigValidationError:
+                return self._disable_incremental(f"unknown or invalid format: {format_name}")
+            try:
+                inputs = plugin.input_paths(data, path.parent)
+            except DocumentError as exc:
+                return self._disable_incremental(
+                    f"format {format_name} cannot resolve inputs: {exc.message}"
+                )
+            if inputs is None:
+                return self._disable_incremental(
+                    f"format {format_name} does not declare input dependencies"
+                )
+            for raw_path in inputs:
+                candidate = Path(raw_path)
+                if not candidate.is_absolute():
+                    candidate = path.parent / candidate
+                candidate = candidate.resolve()
+                if not candidate.is_relative_to(self.config_dir) or not candidate.is_file():
+                    return self._disable_incremental(f"unsafe input path: {raw_path}")
+                if candidate in files:
+                    continue
+                content = _read_file(candidate)
+                if content is None:
+                    return self._disable_incremental(f"cannot read input: {candidate}")
+                files[candidate] = content
+                pending.append(candidate)
+        return files
+
+    def _parse_fingerprint_document(self, path: Path, content: bytes) -> dict[str, Any] | None:
+        try:
+            return parse_yaml(content.decode("utf-8"))
+        except (UnicodeDecodeError, YamlLoadError) as exc:
+            self._disable_incremental(f"invalid YAML: {path}: {exc}")
+            return None
+
+    def _disable_incremental(self, reason: str) -> None:
+        self._incremental_reason = reason
+        return None
+
+    def _cached_report(
+        self,
+        fingerprint: str,
+        started: float,
+        discovery: list[Diagnostic],
+    ) -> EngineReport | None:
+        try:
+            manifest = self.writer.load_manifest()
+        except ManifestError:
+            return self._disable_incremental("manifest is missing or corrupt")
+        diagnostics = self._filter_ignored(list(discovery))
+        if _has_errors(diagnostics):
+            return self._disable_incremental("discovery diagnostics contain errors")
+        enabled = self._enabled_generators()
+        if not enabled:
+            return self._disable_incremental("no enabled generators")
+        locations = {location.key: location for location in manifest.locations}
+        expected = {self.writer.location_key(item.id, self._output_dir(item)) for item in enabled}
+        if set(locations) != expected:
+            extra = sorted(key.generator for key in set(locations) - expected)
+            missing = sorted(key.generator for key in expected - set(locations))
+            return self._disable_incremental(
+                f"manifest locations do not match enabled generators"
+                f" (extra={extra}, missing={missing})"
+            )
+
+        generators: list[GeneratorReport] = []
+        artifacts: list[ArtifactReport] = []
+        for generator_config in enabled:
+            plugin = self.generators.get(generator_config.id)
+            if plugin is None:
+                return self._disable_incremental(
+                    f"generator plugin is not loaded: {generator_config.id}"
+                )
+            key = self.writer.location_key(generator_config.id, self._output_dir(generator_config))
+            location = locations[key]
+            if (
+                location.input_fingerprint != fingerprint
+                or location.eggpipe_version != __version__
+                or location.plugin_version != _plugin_version(plugin)
+            ):
+                return self._disable_incremental(
+                    f"input fingerprint or versions changed for {generator_config.id}"
+                )
+            output_dir = self._output_dir(generator_config)
+            output_root = output_dir.resolve()
+            for item in location.artifacts:
+                target = (output_dir / item.path).resolve()
+                if not target.is_relative_to(output_root):
+                    return self._disable_incremental(
+                        f"artifact path escapes output dir: {item.path}"
+                    )
+                content = _read_file(target)
+                if content is None:
+                    return self._disable_incremental(f"cannot read artifact: {item.path}")
+                if hashlib.sha256(content).hexdigest() != item.sha256:
+                    return self._disable_incremental(f"artifact is missing or changed: {item.path}")
+                artifacts.append(
+                    ArtifactReport(
+                        generator=generator_config.id,
+                        path=item.path,
+                        action="skip",
+                        sha256=item.sha256,
+                    )
+                )
+            generators.append(
+                GeneratorReport(
+                    id=generator_config.id,
+                    name=plugin.name or generator_config.id,
+                    status="skipped",
+                    input_formats=_input_formats(plugin),
+                    formats=[
+                        FormatReport(name=item.name, version=item.version)
+                        for item in location.formats
+                    ],
+                    duration_ms=0,
+                )
+            )
+
+        # Без парсинга модели глобальная сводка форматов недоступна: не подменяем её нулями.
+        self._formats = []
+        self._pending = []
+        self._timings = {
+            "discovery_ms": self._timings.get("discovery_ms", 0),
+            "fingerprint_ms": self._timings.get("fingerprint_ms", 0),
+            "parse_ms": 0,
+            "validate_ms": 0,
+            "generate_ms": 0,
+            "write_ms": 0,
+        }
+        return self._report(True, 0, diagnostics, generators, started, artifacts)
 
     def _stale_location_entries(self) -> list[StaleLocation]:
         try:
@@ -511,6 +760,7 @@ class Engine:
 def _empty_timings() -> dict[str, int]:
     return {
         "discovery_ms": 0,
+        "fingerprint_ms": 0,
         "parse_ms": 0,
         "validate_ms": 0,
         "generate_ms": 0,
@@ -591,6 +841,22 @@ def _format_reports(formats: frozenset[FormatInfo]) -> list[FormatReport]:
 def _input_formats(plugin: GeneratorPlugin) -> list[str] | None:
     formats = getattr(type(plugin), "input_formats", None)
     return None if formats is None else sorted(formats)
+
+
+def _digest_text(digest: Any, value: str) -> None:
+    _digest_bytes(digest, value.encode("utf-8"))
+
+
+def _digest_bytes(digest: Any, value: bytes) -> None:
+    digest.update(len(value).to_bytes(8, "big"))
+    digest.update(value)
+
+
+def _read_file(path: Path) -> bytes | None:
+    try:
+        return path.read_bytes()
+    except OSError:
+        return None
 
 
 def _stale_diagnostics(stale: list[StaleLocation]) -> list[Diagnostic]:
