@@ -43,6 +43,19 @@ def default_title(subjects: list[str], branch: str) -> str:
     return subjects[0] if subjects else branch
 
 
+def find_open_pr(repo: str, branch: str, token: str) -> int | None:
+    """Return the open PR number for a head branch, if any."""
+    owner = repo.split("/", 1)[0]
+    data = _api(
+        "GET",
+        f"/repos/{repo}/pulls?head={quote(owner)}:{quote(branch)}&state=open",
+        token,
+    )
+    if isinstance(data, list) and data:
+        return int(data[0]["number"])
+    return None
+
+
 def _token() -> str:
     token = os.environ.get("GH_TOKEN")
     if token:
@@ -92,7 +105,6 @@ def main(argv: list[str] | None = None) -> int:
 
     remote = _run_git("remote", "get-url", "origin")
     repo = repo_from_remote(remote)
-    owner = repo.split("/", 1)[0]
 
     heads = _run_git("ls-remote", "--heads", "origin", branch)
     if not heads:
@@ -110,13 +122,9 @@ def main(argv: list[str] | None = None) -> int:
     body = args.body or build_body(subjects)
     token = _token()
 
-    existing = _api(
-        "GET",
-        f"/repos/{repo}/pulls?head={quote(owner)}:{quote(branch)}&state=open",
-        token,
-    )
-    if isinstance(existing, list) and existing:
-        number = existing[0]["number"]
+    existing = find_open_pr(repo, branch, token)
+    if existing is not None:
+        number = existing
         result = _api(
             "PATCH",
             f"/repos/{repo}/pulls/{number}",

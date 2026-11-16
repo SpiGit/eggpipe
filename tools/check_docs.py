@@ -134,6 +134,7 @@ REQUIRED_FILES = (
     "docs/ai/llms.txt",
     "mkdocs.yml",
     ".opencode/agents/spec-reviewer.md",
+    ".opencode/agents/pr-reviewer.md",
     ".opencode/commands/spec-check.md",
     ".opencode/commands/spec-release.md",
     ".opencode/commands/adr-new.md",
@@ -539,13 +540,13 @@ class Checker:
     def check_agent(self, path: Path, data: Frontmatter) -> None:
         if data.get("mode") not in {"primary", "subagent", "all"}:
             self.error("DOC144", path, None, "agent mode must be primary/subagent/all")
-        if path.name != "spec-reviewer.md":
+        if path.name not in {"spec-reviewer.md", "pr-reviewer.md"}:
             return
         permissions = data.get("permissions")
         if not isinstance(permissions, list):
-            self.error("DOC145", path, None, "spec-reviewer has no permissions")
+            self.error("DOC145", path, None, f"{path.name} has no permissions")
             return
-        required = ("edit", "shell", "webfetch", "websearch")
+        required = ("edit", "subagent", "shell", "webfetch", "websearch")
         for action in required:
             if not any(
                 isinstance(rule, dict)
@@ -553,7 +554,12 @@ class Checker:
                 and rule.get("effect") == "deny"
                 for rule in permissions
             ):
-                self.error("DOC146", path, None, f"spec-reviewer must deny {action}")
+                self.error("DOC146", path, None, f"{path.name} must deny {action}")
+        if path.name == "pr-reviewer.md" and not any(
+            isinstance(rule, dict) and rule.get("action") == "read" and rule.get("effect") == "deny"
+            for rule in permissions
+        ):
+            self.error("DOC146", path, None, "pr-reviewer must deny secret file reads")
 
     def check_command(self, path: Path, data: Frontmatter) -> None:
         if path.name == "spec-check.md" and data.get("agent") != "spec-reviewer":
