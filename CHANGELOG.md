@@ -5,6 +5,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `engineering/requirements/index.md` разделён на реестр версий и `changelog.md`.
+- `.session-context.md` сокращён до текущего состояния; история вынесена в
+  `engineering/session-log.md`.
+
 ### Added
 
 - `examples/plugin-template` — шаблон генератора и формата с contract-тестами.

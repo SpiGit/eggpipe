@@ -85,6 +85,15 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 Удалять только ветки, которые принадлежат merged PR. Незавершённые и чужие ветки
 не трогать.
 
+## Контекст
+
+- Не читай весь `engineering/` без необходимости: начинай с `engineering/index.md`.
+- ADR открывай по теме, исторические ТЗ — только если задача про историю.
+- `.session-context.md` содержит только текущее состояние; история сессий — в
+  `engineering/session-log.md`.
+- Полный changelog требований — `engineering/requirements/changelog.md`, реестр версий —
+  `engineering/requirements/index.md`.
+
 ## Язык и стиль
 
 - Документация и ответы — на русском.
