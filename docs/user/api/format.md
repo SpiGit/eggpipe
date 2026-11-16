@@ -34,10 +34,11 @@ from pathlib import Path
 
 class MyFormat(EntityModelFormat):
     def input_paths(self, raw: dict, base_path: Path) -> Iterable[Path] | None:
-        return [base_path.parent / "includes" / "common.yaml"]
+        return [base_path / "includes" / "common.yaml"]
 ```
 
-- Пути абсолютные или относительно `base_path`; выходить за project root нельзя.
+- `base_path` — каталог документа, как в `parse`. Пути абсолютные или относительные;
+  выходить за project root нельзя.
 - `EntityModelFormat` уже возвращает `model.imports`; при добавлении своих файлов
   вызывайте `super().input_paths(...)` и объединяйте результаты.
 - `None` означает «зависимости не объявлены» и отключает `--incremental` для запуска.

@@ -134,7 +134,7 @@ class MyFormat(EntityModelFormat):
 - Политика deprecation применяется после первого публичного релиза.
 - При `--incremental` меняйте `__version__` при изменении вывода: ядро сравнивает
   `plugin_version`; генераторные шаблоны объявляйте через `resources`, форматные файлы —
-  через `FormatPlugin.input_paths` (`None` отключает кэш).
+  через `FormatPlugin.input_paths` (`base_path` — каталог документа; `None` отключает кэш).
 
 ## Чек-лист ревью
 

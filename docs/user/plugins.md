@@ -214,6 +214,8 @@ provenance = git_provenance(entity.source) if entity.source else None
 - генераторы: внешние шаблоны объявляйте через `resources` или импорты модели;
 - форматы: файлы, читаемые в `parse`, объявляйте через `FormatPlugin.input_paths`;
   `None` отключает incremental;
+- код парсера формата не входит в fingerprint: после его изменения обновите
+  `supported_versions`/схему или удалите `.eggpipe/manifest.json`.
 - недетерминированные генераторы (время, случайность, внешние сервисы) не должны
   полагаться на incremental.
 

@@ -446,7 +446,7 @@ class Engine:
             except ConfigValidationError:
                 return self._disable_incremental(f"unknown or invalid format: {format_name}")
             try:
-                inputs = plugin.input_paths(data, path)
+                inputs = plugin.input_paths(data, path.parent)
             except DocumentError as exc:
                 return self._disable_incremental(
                     f"format {format_name} cannot resolve inputs: {exc.message}"

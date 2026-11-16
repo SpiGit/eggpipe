@@ -34,8 +34,9 @@ class FormatPlugin(ABC):
     def input_paths(self, raw: dict[str, Any], base_path: Path) -> Iterable[Path] | None:
         """Return files that affect parsing; None disables incremental generation.
 
-        Paths may be absolute or relative to ``base_path``. Plugins that read
-        additional files must override this method.
+        ``base_path`` is the directory containing the document, the same value
+        passed to ``parse``. Paths may be absolute or relative to ``base_path``.
+        Plugins that read additional files must override this method.
         """
         return None
 
@@ -85,7 +86,7 @@ class EntityModelFormat(FormatPlugin):
         if not isinstance(model_raw, dict):
             return ()
         imports = self._parse_imports(model_raw.get("imports", []), base_path)
-        return tuple(base_path.parent / item.path for item in imports)
+        return tuple(base_path / item.path for item in imports)
 
     @override
     def validate(self, document: ModelDocument) -> list[Diagnostic]:

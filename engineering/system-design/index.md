@@ -218,9 +218,16 @@ class FormatPlugin(ABC):
     @abstractmethod
     def parse(self, raw: dict, base_path: Path) -> ModelDocument: ...
 
+    def input_paths(self, raw: dict, base_path: Path) -> Iterable[Path] | None:
+        """Файлы, влияющие на парсинг; None отключает incremental."""
+        return None
+
     def validate(self, document: ModelDocument) -> list[Diagnostic]:
         return []
 ```
+
+`base_path` в `parse` и `input_paths` — каталог документа; относительные пути
+`input_paths` разрешаются от него.
 
 `EntityModelFormat` — конкретная база ядра для форматов, которые **расширяют** entity-model:
 

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, ClassVar
 
+import pytest
 from typing_extensions import override
 
 from eggpipe import (
@@ -40,7 +42,7 @@ class DependencyFormat(EntityModelFormat):
 
     @override
     def input_paths(self, raw: dict[str, Any], base_path: Path) -> list[Path] | None:
-        return [base_path.parent / "extra.txt"]
+        return [base_path / "extra.txt"]
 
 
 class NoDependencyFormat(EntityModelFormat):
@@ -368,3 +370,34 @@ def test_incremental_requires_exact_locations(tmp_path: Path) -> None:
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     make_engine(tmp_path).generate()
     assert CountingGenerator.calls == 2
+
+
+def test_incremental_ignores_escaping_manifest_path(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    manifest_path = tmp_path / ".eggpipe" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["locations"][0]["artifacts"][0]["path"] = "../escape.txt"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 2
+    assert not (tmp_path / "escape.txt").exists()
+
+
+def test_incremental_disables_cache_on_corrupt_manifest(tmp_path: Path) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    (tmp_path / ".eggpipe" / "manifest.json").write_text("{broken", encoding="utf-8")
+    make_engine(tmp_path).generate()
+    assert CountingGenerator.calls == 2
+
+
+def test_incremental_logs_disable_reason(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    CountingGenerator.calls = 0
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+    with caplog.at_level(logging.DEBUG, logger="eggpipe.engine.engine"):
+        make_engine(tmp_path, force=True).generate()
+    assert any("incremental cache disabled" in item.getMessage() for item in caplog.records)
