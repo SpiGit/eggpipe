@@ -50,7 +50,12 @@ uv run python tools/check_wheel.py dist
 ## Ветки и main
 
 `main` защищён: прямые коммиты и push запрещены. Любое изменение идёт через отдельную
-ветку и pull request.
+ветку и pull request. Модель ветвления зафиксирована в
+[ADR-0015](./engineering/adr/0015-branching-and-release-policy.md): trunk-based,
+без постоянной `develop`.
+
+Используй префиксы `feat/`, `fix/`, `docs/`, `chore/`. Для стабилизации или патчей
+старой линии допускается временная `release/X.Y`.
 
 ```bash
 git switch -c type/short-description
