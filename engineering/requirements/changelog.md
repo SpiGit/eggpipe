@@ -1,5 +1,12 @@
 # Changelog требований
 
+### v2.3 (2026-11-16)
+
+- Добавлена opt-in инкрементальная генерация (`--incremental`).
+- Manifest location хранит `input_fingerprint` (hex SHA-256).
+- `--check`, `--force`, `--clean` и внешние импорты отключают incremental.
+- `generators[].status` может быть `skipped`; глобальная `formats` пуста.
+
 
 ### v2.2 (2026-11-13)
 

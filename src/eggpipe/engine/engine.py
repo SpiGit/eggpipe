@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 import uuid
 from collections.abc import Mapping
@@ -17,6 +19,7 @@ from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.core.model import PRIMITIVE_TYPES, FormatInfo, ModelSlice
 from eggpipe.core.parser import Parser
+from eggpipe.core.paths import is_ignored_part
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
 from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan, LocationKey
@@ -57,6 +60,7 @@ class _Pending:
     result: GenerationResult
     plan: ExecutionPlan
     output_dir: Path
+    fingerprint: str | None = None
 
 
 @dataclass(frozen=True)
@@ -96,8 +100,9 @@ class Engine:
         self._stale_paths: set[Path] = set()
         self._timings: dict[str, int] = {}
         self._started = 0.0
+        self._fingerprint: str | None = None
 
-    def build(self) -> EngineReport:
+    def build(self, *, incremental: bool | None = None) -> EngineReport:
         started = time.perf_counter()
         self._started = started
         self._timings = _empty_timings()
@@ -105,12 +110,21 @@ class Engine:
         self._formats = []
         self._stale = []
         self._stale_paths = set()
+        self._fingerprint = None
         diagnostics: list[Diagnostic] = []
         phase = time.perf_counter()
         sources, source_groups, resources = self._source_paths(diagnostics)
         self._timings["discovery_ms"] = _elapsed(phase)
         if not sources:
             return self._report(False, 1, diagnostics, [], started)
+
+        use_incremental = self.config.incremental if incremental is None else incremental
+        if use_incremental:
+            self._fingerprint = self._input_fingerprint(sources, resources)
+            if self._fingerprint is not None:
+                cached = self._cached_report(self._fingerprint, started)
+                if cached is not None:
+                    return cached
 
         phase = time.perf_counter()
         composition = self._load_composition(sources, source_groups, resources, diagnostics)
@@ -244,6 +258,7 @@ class Engine:
                         result=result,
                         plan=plan,
                         output_dir=self._output_dir(generator_config),
+                        fingerprint=self._fingerprint,
                     )
                 )
         return _GeneratorRun(
@@ -291,6 +306,7 @@ class Engine:
                         output_dir=pending.output_dir,
                         plan=pending.plan,
                         plugin_version=_plugin_version(pending.plugin),
+                        input_fingerprint=pending.fingerprint,
                         cleanup=cleanup,
                     )
                 )
@@ -316,7 +332,7 @@ class Engine:
         )
 
     def check(self) -> EngineReport:
-        report = self.build()
+        report = self.build(incremental=False)
         diagnostics = list(report.diagnostics)
         for pending in self._pending:
             diagnostics.extend(self.writer.check(plan=pending.plan))
@@ -328,6 +344,142 @@ class Engine:
                 "diagnostics": diagnostics,
             }
         )
+
+    def _enabled_generators(self) -> list[GeneratorConfig]:
+        return [
+            item for item in self.rules.generators if item.enabled or self.config.include_disabled
+        ]
+
+    def _input_fingerprint(
+        self,
+        sources: list[Path],
+        resources: dict[str, ImportedFile],
+    ) -> str | None:
+        if self.config.allow_outside_imports or self.rules.diagnostics.stale_dates:
+            return None
+        if self.config.force or self.config.clean:
+            return None
+        if not self._enabled_generators():
+            return None
+
+        resolved_sources = [path.resolve() for path in sources]
+        if any(not path.is_relative_to(self.config_dir) for path in resolved_sources):
+            return None
+
+        digest = hashlib.sha256()
+        digest.update(__version__.encode("utf-8"))
+        digest.update(
+            json.dumps(
+                self.rules.model_dump(mode="json", by_alias=True),
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf-8")
+        )
+        digest.update(
+            json.dumps(self.variables, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        )
+        for info in self.registry.list():
+            digest.update(info.name.encode("utf-8"))
+            digest.update(",".join(info.versions).encode("utf-8"))
+            digest.update(",".join(sorted(info.primitive_types)).encode("utf-8"))
+
+        output_dirs = {self._output_dir(item).resolve() for item in self.rules.generators}
+        files = set(resolved_sources)
+        for path in self.config_dir.rglob("*"):
+            if not path.is_file() or path.suffix.lower() not in {".yaml", ".yml"}:
+                continue
+            relative = path.relative_to(self.config_dir)
+            if any(is_ignored_part(part) for part in relative.parts):
+                continue
+            resolved = path.resolve()
+            if any(resolved.is_relative_to(output) for output in output_dirs):
+                continue
+            files.add(resolved)
+
+        for path in sorted(files, key=lambda item: item.as_posix()):
+            digest.update(path.relative_to(self.config_dir).as_posix().encode("utf-8"))
+            digest.update(path.read_bytes())
+        for alias, resource in sorted(resources.items()):
+            digest.update(alias.encode("utf-8"))
+            digest.update(resource.content)
+
+        for generator_config in self._enabled_generators():
+            plugin = self.generators.get(generator_config.id)
+            if plugin is None:
+                return None
+            digest.update(generator_config.id.encode("utf-8"))
+            digest.update(_plugin_version(plugin).encode("utf-8"))
+            digest.update(str(plugin.api_version).encode("utf-8"))
+            digest.update(json.dumps(_input_formats(plugin), sort_keys=True).encode("utf-8"))
+        return digest.hexdigest()
+
+    def _cached_report(self, fingerprint: str, started: float) -> EngineReport | None:
+        try:
+            manifest = self.writer.load_manifest()
+        except ManifestError:
+            return None
+        enabled = self._enabled_generators()
+        if not enabled:
+            return None
+        locations = {location.key: location for location in manifest.locations}
+        expected = {self.writer.location_key(item.id, self._output_dir(item)) for item in enabled}
+        if set(locations) != expected:
+            return None
+
+        generators: list[GeneratorReport] = []
+        artifacts: list[ArtifactReport] = []
+        for generator_config in enabled:
+            plugin = self.generators.get(generator_config.id)
+            if plugin is None:
+                return None
+            key = self.writer.location_key(generator_config.id, self._output_dir(generator_config))
+            location = locations[key]
+            if (
+                location.input_fingerprint != fingerprint
+                or location.eggpipe_version != __version__
+                or location.plugin_version != _plugin_version(plugin)
+            ):
+                return None
+            output_dir = self._output_dir(generator_config)
+            for item in location.artifacts:
+                target = output_dir / item.path
+                if not target.is_file():
+                    return None
+                if hashlib.sha256(target.read_bytes()).hexdigest() != item.sha256:
+                    return None
+                artifacts.append(
+                    ArtifactReport(
+                        generator=generator_config.id,
+                        path=item.path,
+                        action="skip",
+                        sha256=item.sha256,
+                    )
+                )
+            generators.append(
+                GeneratorReport(
+                    id=generator_config.id,
+                    name=plugin.name or generator_config.id,
+                    status="skipped",
+                    input_formats=_input_formats(plugin),
+                    formats=[
+                        FormatReport(name=item.name, version=item.version)
+                        for item in location.formats
+                    ],
+                    duration_ms=0,
+                )
+            )
+
+        # Без парсинга модели глобальная сводка форматов недоступна: не подменяем её нулями.
+        self._formats = []
+        self._pending = []
+        self._timings = {
+            "discovery_ms": self._timings.get("discovery_ms", 0),
+            "parse_ms": 0,
+            "validate_ms": 0,
+            "generate_ms": 0,
+            "write_ms": 0,
+        }
+        return self._report(True, 0, [], generators, started, artifacts)
 
     def _stale_location_entries(self) -> list[StaleLocation]:
         try:

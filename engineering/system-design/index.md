@@ -1,8 +1,8 @@
 # System Design — Eggpipe
 
-> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.2](../requirements/v2.2.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
+> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.3](../requirements/v2.3.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 2.2. Дата: 2026-11-13.*
+*Версия документа: 2.3. Дата: 2026-11-16.*
 
 ---
 
@@ -1251,6 +1251,7 @@ class ExecutionPlan:
       "output_dir": "output/oracle",
       "eggpipe_version": "0.3.2",
       "plugin_version": "1.2.0",
+      "input_fingerprint": "<sha256 hex>",
       "formats": [{"name": "entity-model", "version": "1.0"}],
       "generated_at": "2026-11-11T12:34:56Z",
       "artifacts": [{"path": "user.sql", "sha256": "...", "skipped": false}]

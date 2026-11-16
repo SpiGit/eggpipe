@@ -54,7 +54,7 @@ DOCUMENTS = (
     "docs/ai/context.md",
     "docs/ai/tasks.md",
     "docs/ai/invariants.md",
-    "engineering/requirements/v2.2.md",
+    "engineering/requirements/v2.3.md",
     "engineering/system-design/index.md",
 )
 
@@ -111,7 +111,7 @@ def _diagnostics() -> list[dict[str, str]]:
 def _llms_index() -> str:
     return """# Eggpipe documentation index
 
-> Eggpipe generates artifacts from YAML model definitions. Current spec: v2.2.
+> Eggpipe generates artifacts from YAML model definitions. Current spec: v2.3.
 > Project status: beta (0.x); breaking changes are possible before 1.0 (ADR-0014).
 
 ## User
@@ -139,7 +139,7 @@ def _llms_index() -> str:
 
 ## Engineering
 
-- [Requirements v2.2](../../engineering/requirements/v2.2.md)
+- [Requirements v2.3](../../engineering/requirements/v2.3.md)
 - [System Design](../../engineering/system-design/index.md)
 - [ADR index](../../engineering/adr/index.md)
 """
@@ -157,7 +157,7 @@ def _manifest() -> dict[str, Any]:
     return {
         "project": "eggpipe",
         "status": "beta",
-        "spec_version": "2.2",
+        "spec_version": "2.3",
         "package_version": eggpipe.__version__,
         "public_api": sorted(eggpipe.__all__),
         "commands": list(COMMANDS),

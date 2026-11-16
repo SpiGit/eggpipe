@@ -65,6 +65,7 @@ class ManifestLocation(BaseModel):
     output_dir: str
     eggpipe_version: str
     plugin_version: str
+    input_fingerprint: str | None = None
     formats: list[ManifestFormat] = Field(default_factory=list)
     generated_at: datetime
     artifacts: list[ManifestArtifact] = Field(default_factory=list)
@@ -292,6 +293,7 @@ class ArtifactWriter:
         output_dir: Path,
         plan: ExecutionPlan,
         plugin_version: str,
+        input_fingerprint: str | None = None,
         cleanup: Literal["off", "prompt", "enabled"] = "off",
     ) -> list[Diagnostic]:
         if plan.has_errors:
@@ -321,6 +323,7 @@ class ArtifactWriter:
             output_dir=self._output_rel(output_dir),
             eggpipe_version=self.eggpipe_version,
             plugin_version=plugin_version,
+            input_fingerprint=input_fingerprint,
             formats=_manifest_formats(plan.formats),
             generated_at=datetime.now(UTC),
             artifacts=entries,
