@@ -61,6 +61,21 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 - Не меняй публичный API и контракты плагинов без новой версии ТЗ.
 - Не коммить и не push без явного разрешения пользователя.
 
+## PR review
+
+1. Создать PR и дождаться `ci-success`.
+2. Запустить subagent `pr-reviewer` (Qwen3.8 Flash) с номером PR.
+3. Если verdict `APPROVE`, опубликовать review-комментарий:
+   ```bash
+   uv run python tools/review_pr.py --pr <N> --body "<verdict>"
+   ```
+   Для своего PR используется `event=COMMENT`: GitHub не позволяет формально
+   approve собственный PR.
+4. Если verdict `CHANGES REQUESTED` — внести правки, push, дождаться CI и запустить
+   ревью ещё раз.
+5. Максимум две итерации. Если второе ревью снова не `APPROVE`, остановиться и
+   сообщить о нерешённом PR, не уходя в цикл.
+
 ## После merge PR
 
 Когда пользователь подтверждает, что PR смержен:
@@ -136,6 +151,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 - `/adr-new <название>` — создание нового ADR по шаблону.
 - `uv run python tools/create_pr.py` — создать/обновить PR из текущей ветки (нужен `GH_TOKEN`).
 - `uv run python tools/benchmark.py` — базовый бенчмарк TPC-H.
+- `uv run python tools/review_pr.py` — опубликовать review-комментарий в PR.
 - Skill `spec-consistency` — чек-лист кросс-документной проверки.
 - Skill `plugin-contract` — контракты плагинов и публичный API.
 - Skill `clean-code` — принципы чистого кода и чек-лист code review.

@@ -19,6 +19,7 @@
 - ADR-0016: политика deprecation для публичного API, CLI, конфига и плагинов.
 - `tools/benchmark.py` и `engineering/benchmarks.md` — базовые замеры TPC-H.
 - Версионированная документация: `mike`, версии `major.minor` и alias `latest`.
+- PR-ревью через subagent `pr-reviewer` (Qwen3.8 Flash) и `tools/review_pr.py`.
 
 ## [0.3.2] - 2026-11-14
 
