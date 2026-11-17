@@ -262,6 +262,8 @@ def _run_engine(options: RunOptions) -> None:
         formats=_load_format_registry(),
     )
     entities = _selected_entities(options.entity)
+    if options.entity is not None and entities is None:
+        raise ConfigValidationError("--entity requires at least one name")
     if options.check:
         report = engine.check(entities=entities)
     elif options.plan:
