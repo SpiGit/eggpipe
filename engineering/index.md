@@ -9,6 +9,7 @@
 - [Changelog требований](requirements/changelog.md) — история изменений ТЗ.
 - [История сессий](session-log.md) — архив рабочих сессий.
 - [Закрытие дня](day-closure.md) — шаблон и правила завершения дня.
+- [Backlog](backlog.md) — отложенные minor и технический долг.
 - [System Design](system-design/index.md) — проектирование реализации.
 - [ADR](adr/index.md) — принятые архитектурные решения.
 - [Ревью](reviews/2026-11-13-project-review.md) — документация и код.
