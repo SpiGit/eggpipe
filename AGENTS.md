@@ -93,7 +93,8 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 [`engineering/day-closure.md`](./engineering/day-closure.md): план, выполнено, вне плана,
 не выполнено, план на следующий день. В `.session-context.md` оставить текущее состояние,
 план на следующий день и ссылку на `engineering/backlog.md`. На следующий день — не больше
-3–4 задач с импактом.
+3–4 задач с импактом. Backlog closeout: `Backlog candidates` из PR body переносятся в
+`engineering/backlog.md` одним PR.
 
 ## PR review
 
@@ -107,9 +108,10 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
    Для своего PR используется `event=COMMENT`: GitHub не позволяет формально
    approve собственный PR.
 4. Если verdict `CHANGES REQUESTED` — внести **только правки по находкам**. Minor и
-   «заодно улучшим» выноси в `engineering/backlog.md` или follow-up PR, чтобы не менять
-   уже проверенный diff. После правок запустить `uv run python tools/create_pr.py`: он
-   обновит блок размера и сохранит body; карту ревью обновить, если изменился scope.
+   «заодно улучшим» выноси в раздел `Backlog candidates` PR body (backlog правится только
+   на Backlog closeout) или follow-up PR, чтобы не менять уже проверенный diff. После
+   правок запустить `uv run python tools/create_pr.py`: он обновит блок размера и сохранит
+   body; карту ревью обновить, если изменился scope.
 5. Максимум две итерации. Если второе ревью снова не `APPROVE`, не запускать третье:
    разделить оставшуюся работу на меньшие PR и сообщить о нерешённом PR.
 6. После `APPROVE` новых коммитов не добавлять; любое изменение требует нового ревью.
