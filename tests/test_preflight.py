@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import subprocess
+
 import pytest
+import tools.preflight as preflight
 from tools.preflight import clean_env, commands
 
 
@@ -31,3 +34,25 @@ def test_clean_env_removes_git_hook_variables(monkeypatch: pytest.MonkeyPatch) -
     assert "GIT_DIR" not in env
     assert "GIT_WORK_TREE" not in env
     assert env["PATH"] == "/usr/bin"
+
+
+def test_main_passes_clean_env_to_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GIT_DIR", "/repo/.git")
+
+    def fake_which(name: str) -> str:
+        return "/usr/bin/uv"
+
+    monkeypatch.setattr(preflight.shutil, "which", fake_which)
+    captured: list[dict[str, str]] = []
+
+    def fake_run(
+        command: list[str], *, check: bool, env: dict[str, str]
+    ) -> subprocess.CompletedProcess[str]:
+        captured.append(env)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+
+    assert preflight.main(["--fast"]) == 0
+    assert len(captured) == 2
+    assert all("GIT_DIR" not in env for env in captured)
