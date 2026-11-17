@@ -11,8 +11,9 @@
 - 2026-11-13 (восьмая сессия: полное ревью проекта — ТЗ и код, модель Qwen3.8 Max)
 - 2026-11-13 (девятая сессия: v2.2, English-only, EG-коды, версия 0.3.0, E9)
 - 2026-11-16 (десятая сессия: incremental generation, ADR-0017, ТЗ v2.3, PR-процесс)
+- 2026-11-17 (одиннадцатая сессия: per-entity spec, ADR-0018, ТЗ v2.4, PR-процесс)
 
-**Статус ТЗ:** v2.3 — рабочая версия (замещает v2.2)
+**Статус ТЗ:** v2.4 — рабочая версия (замещает v2.3)
 **Статус проекта:** beta (0.x); до 1.0 breaking changes возможны (ADR-0014)
 **Идентичность:** Eggpipe v2.2: package/CLI/config/state переименованы; старые имена остаются только в истории и ADR.
 **Реализация:** E0–E9 выполнены, релиз `0.3.2` опубликован на PyPI; код и сообщения English-only, EG-коды.
@@ -26,7 +27,7 @@
 
 ## Текущее состояние
 
-Документация и код приведены к ТЗ v2.3 (E0–E9). Актуальные решения:
+Документация и код приведены к ТЗ v2.4 (E0–E9). Актуальные решения:
 
 - `ModelDocument` → `SourceModel` → `ModelSlice`; `imports` на уровне документа.
 - `UNSET` vs `default: null`; полная null-матрица.
@@ -101,7 +102,8 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 
 | Документ | Путь | Статус |
 |----------|------|--------|
-| ТЗ v2.3 | `engineering/requirements/v2.3.md` | Актуальная рабочая версия |
+| ТЗ v2.4 | `engineering/requirements/v2.4.md` | Актуальная рабочая версия |
+| ТЗ v2.3 | `engineering/requirements/v2.3.md` | Замещена (история) |
 | ТЗ v2.2 | `engineering/requirements/v2.2.md` | Замещена (история) |
 | ТЗ v2.1 | `engineering/requirements/v2.1.md` | Замещена (история) |
 | ТЗ v1.4 | `engineering/requirements/v1.4.md` | Замещена (история) |
@@ -109,7 +111,7 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 | ТЗ v1.2 | `engineering/requirements/v1.2.md` | Замещена (история) |
 | ТЗ v1.1 | `engineering/requirements/v1.1.md` | Замещена (история) |
 | ТЗ v1.0 | `engineering/requirements/v1.0.md` | Замещена (история) |
-| System Design | `engineering/system-design/index.md` | Обновлён до v2.3 |
+| System Design | `engineering/system-design/index.md` | Обновлён до v2.4 |
 | ADR-0001 | `engineering/adr/0001-composition-merge-semantics.md` | Принято (уточнено под v1.2) |
 | ADR-0002 | `engineering/adr/0002-type-checker-pyrefly.md` | Принято (Pyrefly вместо mypy) |
 | ADR-0003 | `engineering/adr/0003-null-semantics.md` | Принято (UNSET/null/default) |

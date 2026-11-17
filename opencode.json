@@ -45,6 +45,11 @@
       "effect": "deny"
     },
     {
+      "action": "edit",
+      "resource": "*requirements/v2.3.md",
+      "effect": "deny"
+    },
+    {
       "action": "shell",
       "resource": "git push *",
       "effect": "ask"

@@ -5,7 +5,7 @@ description: Контракты generator и FormatPlugin Eggpipe — публи
 
 # Контракты плагинов Eggpipe
 
-Источник истины: актуальное ТЗ v2.3 §6 и System Design §2.
+Источник истины: актуальное ТЗ v2.4 §6 и System Design §2.
 
 ## Публичный API
 

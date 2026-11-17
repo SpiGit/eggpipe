@@ -1,5 +1,13 @@
 # Changelog требований
 
+### v2.4 (2026-11-17)
+
+- Добавлена per-entity генерация: `--entity`, `Engine.build(entities=...)`.
+- `GeneratorPlugin.output_scope` (`model` / `entity`); per-entity требует `entity`.
+- Manifest в per-entity режиме дополняется, cleanup отключён.
+- Incremental и watch с `--entity` не поддерживаются в v2.4.
+- Новый код `EG303`.
+
 ### v2.3 (2026-11-16)
 
 - Добавлена opt-in инкрементальная генерация (`--incremental`).
