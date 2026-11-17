@@ -556,6 +556,7 @@ eggpipe generate -g oracle-ddl
 |------|----------|
 | `--config, -c` | путь к `.eggpipe.yaml` |
 | `--generator, -g` | id генераторов: через запятую или повторно |
+| `--entity` | per-entity генерация: имя или список через запятую; требует `output_scope="entity"` |
 | `--plugin PATH` | dev-only локальный плагин |
 | `--output, -o` | корень артефактов вместо каталога конфига |
 | `--var KEY=VALUE` | переменные для плагинов |
@@ -580,7 +581,7 @@ eggpipe watch
 eggpipe watch ./models/blog.yaml
 ```
 
-Флаги как у `generate`, плюс `--debounce-ms` (алиас `--debounce`).
+Флаги как у `generate`, плюс `--debounce-ms` (алиас `--debounce`). `--entity` в watch не поддерживается.
 Первичная генерация выполняется сразу; изменения конфига перезагружают настройки,
 плагины — нет.
 
@@ -640,7 +641,7 @@ eggpipe clean --root ./project
 ## JSON
 
 ```bash
-eggpipe generate --output-format json
+eggpipe generate --entity User --output-format json
 ```
 
 `report_version: 2`; содержит `formats`, `generators[].input_formats`, плоские

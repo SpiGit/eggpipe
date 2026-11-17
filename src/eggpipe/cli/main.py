@@ -97,6 +97,7 @@ class RunOptions:
     models: list[Path] | None
     config: Path | None
     generator: list[str] | None
+    entity: list[str] | None
     plugins: list[Path] | None
     output: Path | None
     variables: list[str] | None
@@ -129,6 +130,15 @@ def _selected_generators(values: list[str] | None) -> set[str] | None:
     for value in values:
         result.update(item.strip() for item in value.split(",") if item.strip())
     return result or None
+
+
+def _selected_entities(values: list[str] | None) -> list[str] | None:
+    if not values:
+        return None
+    result: list[str] = []
+    for value in values:
+        result.extend(item.strip() for item in value.split(",") if item.strip())
+    return list(dict.fromkeys(result)) or None
 
 
 def _filter_rules(rules: ProjectConfig, selected: set[str] | None) -> ProjectConfig:
@@ -251,12 +261,13 @@ def _run_engine(options: RunOptions) -> None:
         generators=_load_generators(options.plugins),
         formats=_load_format_registry(),
     )
+    entities = _selected_entities(options.entity)
     if options.check:
-        report = engine.check()
+        report = engine.check(entities=entities)
     elif options.plan:
-        report = engine.build()
+        report = engine.build(entities=entities)
     else:
-        report = engine.generate()
+        report = engine.generate(entities=entities)
     code = _print_report(
         report,
         ReportOptions(
@@ -278,6 +289,7 @@ def generate(
     ] = None,
     config: ConfigOption = None,
     generator: GeneratorOption = None,
+    entity: Annotated[list[str] | None, typer.Option("--entity")] = None,
     plugin: Annotated[list[Path] | None, typer.Option("--plugin")] = None,
     output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
     variable: Annotated[list[str] | None, typer.Option("--var")] = None,
@@ -303,6 +315,7 @@ def generate(
             models=models,
             config=config,
             generator=generator,
+            entity=entity,
             plugins=plugin,
             output=output,
             variables=variable,
@@ -646,6 +659,7 @@ def gen_info(generator_id: str) -> None:
     typer.echo(f"name: {plugin.name or plugin.id}")
     typer.echo(f"api_version: {plugin.api_version}")
     typer.echo(f"input_formats: {_input_formats_label(plugin.input_formats)}")
+    typer.echo(f"output_scope: {plugin.output_scope}")
     typer.echo(f"entry point group: {GENERATOR_GROUP}")
 
 
