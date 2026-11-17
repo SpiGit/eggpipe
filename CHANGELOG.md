@@ -13,6 +13,9 @@
 - Manifest state: `ManifestLocation.input_fingerprint` — необязательный hex SHA-256 входа
   (ADR-0017). Старые manifest v2 читаются; более старая Eggpipe новый manifest не прочитает.
 - `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
+- `tools/create_pr.py`: size-check корректно разбирает renames и quoted-пути в
+  `git diff --numstat`, сохраняет `## Size exception` при обновлении PR и отклоняет
+  пустой `--allow-large`.
 
 ### Added
 

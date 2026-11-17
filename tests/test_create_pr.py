@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import pytest
 from tools.create_pr import (
+    MAX_PR_FILES,
     MAX_PR_LINES,
     DiffSize,
+    _numstat_path,
     build_body,
     default_title,
     is_generated,
+    main,
     parse_numstat,
+    preserve_size_exception,
     repo_from_remote,
     size_warning,
     with_size_exception,
@@ -54,13 +59,45 @@ def test_parse_numstat_excludes_generated() -> None:
     assert size.too_large is False
 
 
+def test_numstat_path_rename() -> None:
+    assert _numstat_path("src/old.py => src/new.py") == "src/new.py"
+    assert _numstat_path("{src/old => src/new}/engine.py") == "src/new/engine.py"
+    assert _numstat_path("{src => docs/ai}/llms.txt") == "docs/ai/llms.txt"
+
+
+def test_parse_numstat_uses_rename_destination() -> None:
+    size = parse_numstat("1\t1\tsrc/old.py => src/new.py\n2\t0\t{src => docs/ai}/llms.txt\n")
+    assert size.lines == 2
+    assert size.files == 1
+    assert size.generated_lines == 2
+    assert size.generated_files == 1
+
+
+def test_numstat_path_quoted() -> None:
+    assert _numstat_path('"docs/ai/weird\\tname.txt"') == "docs/ai/weird\tname.txt"
+    assert _numstat_path('"src/quo\\"te.py"') == 'src/quo"te.py'
+    assert _numstat_path('"src/back\\\\slash.py"') == "src/back\\slash.py"
+    assert _numstat_path('"src/old.py" => "src/new.py"') == "src/new.py"
+
+
+def test_parse_numstat_quoted_generated() -> None:
+    size = parse_numstat('4\t0\t"docs/ai/weird\\tname.txt"\n')
+    assert size.lines == 0
+    assert size.files == 0
+    assert size.generated_lines == 4
+    assert size.generated_files == 1
+
+
 def test_size_warning() -> None:
     assert size_warning(DiffSize(lines=10, files=1)) is None
+    assert size_warning(DiffSize(lines=MAX_PR_LINES, files=MAX_PR_FILES)) is None
     warning = size_warning(DiffSize(lines=MAX_PR_LINES + 1, files=1))
     assert warning is not None
     assert "Split into stacked PRs" in warning
     assert "hand-written lines" in warning
-    assert size_warning(DiffSize(lines=1, files=16)) is not None
+    assert size_warning(DiffSize(lines=1, files=MAX_PR_FILES + 1)) is not None
+    assert DiffSize(lines=MAX_PR_LINES, files=MAX_PR_FILES).too_large is False
+    assert DiffSize(lines=1, files=MAX_PR_FILES + 1).too_large is True
 
 
 def test_with_size_exception() -> None:
@@ -68,3 +105,36 @@ def test_with_size_exception() -> None:
     body = with_size_exception("body\n", "large spec update")
     assert body.endswith("## Size exception\n\nlarge spec update\n")
     assert with_size_exception(body, "another reason") == body
+
+
+def test_preserve_size_exception() -> None:
+    body = "## Что изменено\n\n- feat: add thing\n"
+    assert preserve_size_exception(body, "") == body
+    assert preserve_size_exception(body, "## Что изменено\n\n- old\n") == body
+
+    previous = f"{body}\n## Size exception\n\nlarge spec update\n"
+    assert preserve_size_exception(body, previous).endswith(
+        "## Size exception\n\nlarge spec update\n"
+    )
+    assert preserve_size_exception(body, previous).startswith(body)
+
+    new_with_exception = with_size_exception(body, "new reason")
+    assert preserve_size_exception(new_with_exception, previous) == new_with_exception
+
+
+def test_preserve_size_exception_stops_at_next_heading() -> None:
+    previous = (
+        "## Что изменено\n\n- old\n\n"
+        "## Size exception\n\nlarge spec update\n\n"
+        "## Проверки\n\n- pytest\n"
+    )
+    body = "## Что изменено\n\n- new\n"
+    preserved = preserve_size_exception(body, previous)
+    assert preserved == f"{body.rstrip()}\n\n## Size exception\n\nlarge spec update\n"
+    assert "pytest" not in preserved
+
+
+@pytest.mark.parametrize("reason", ["", "   ", "\t"])
+def test_allow_large_requires_reason(reason: str) -> None:
+    with pytest.raises(SystemExit):
+        main(["--allow-large", reason])
