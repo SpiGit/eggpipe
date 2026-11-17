@@ -26,7 +26,8 @@ SIZE_HEADING = "## Размер"
 SIZE_BLOCK_START = "<!-- pr-size:start -->"
 SIZE_BLOCK_END = "<!-- pr-size:end -->"
 NUMSTAT_SEPARATOR = "\0"
-SECTION_START = re.compile(r"\n#{2,6} ")
+HEADING_START = re.compile(r"^#{2,6} ")
+FENCE_START = re.compile(r"^\s*(```|~~~)")
 
 
 @dataclass(frozen=True)
@@ -72,7 +73,8 @@ def parse_numstat(output: str) -> DiffSize:
         if not path:
             pairs = tokens[index : index + 2]
             if len(pairs) < 2:
-                break
+                # A truncated rename pair; git output should be complete.
+                continue
             index += 2
             path = pairs[1]
         count = _numstat_count(added) + _numstat_count(deleted)
@@ -173,13 +175,26 @@ def upsert_size_block(body: str, size: DiffSize) -> str:
     return f"{body[:start]}{block}{body[end:]}"
 
 
+def _next_section_start(text: str) -> int | None:
+    """Return the offset of the next markdown heading outside fenced code."""
+    fenced = False
+    offset = 0
+    for line in text.splitlines(keepends=True):
+        if FENCE_START.match(line):
+            fenced = not fenced
+        elif not fenced and HEADING_START.match(line):
+            return offset
+        offset += len(line)
+    return None
+
+
 def _replace_open_size_block(body: str, start: int, block: str) -> str:
     """Replace a size block whose end marker is missing, keeping the manual sections after it."""
     tail = body[start + len(SIZE_BLOCK_START) :]
-    following = SECTION_START.search(tail)
+    following = _next_section_start(tail)
     if following is None:
         return f"{body[:start]}{block}\n"
-    return f"{body[:start]}{block}\n{tail[following.start() :]}"
+    return f"{body[:start]}{block}\n{tail[following:]}"
 
 
 def with_size_exception(body: str, reason: str | None) -> str:

@@ -10,6 +10,7 @@ from tools.create_pr import (
     SIZE_BLOCK_END,
     SIZE_BLOCK_START,
     DiffSize,
+    _next_section_start,
     build_body,
     default_title,
     is_generated,
@@ -197,6 +198,11 @@ def test_upsert_size_block_keeps_tail_when_end_marker_missing() -> None:
     assert "## Карта ревью\n\n- src/engine.py" in updated
 
 
+def test_next_section_start_skips_fenced_headings() -> None:
+    text = "```md\n## not a heading\n```\n\n## real heading\n"
+    assert _next_section_start(text) == text.index("## real heading")
+
+
 def test_upsert_size_block_replaces_dangling_marker_at_body_end() -> None:
     body = f"## Размер\n\n{SIZE_BLOCK_START}\n- stale stats\n"
     updated = upsert_size_block(body, DiffSize(lines=2, files=1))
@@ -270,6 +276,9 @@ def test_main_updates_existing_pr_and_keeps_title(monkeypatch: pytest.MonkeyPatc
     assert all(method != "POST" for method, _, _ in api_calls)
     patches = [payload for method, _, payload in api_calls if method == "PATCH"]
     assert len(patches) == 1
+    assert ("PATCH", "/repos/SpiGit/eggpipe/pulls/42") in [
+        (method, path) for method, path, _ in api_calls if method == "PATCH"
+    ]
     patch = patches[0]
     assert patch is not None
     assert patch["title"] == "Старый заголовок"

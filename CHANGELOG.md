@@ -46,6 +46,8 @@
 
 ### Fixed
 
+- `tools/create_pr.py`: size-check разбирает `git diff --numstat -z`, а при повреждённом
+  `pr-size:start` не теряет ручные секции body.
 - `tools/preflight.py` и provenance-тесты не наследуют `GIT_*` из pre-push hook;
   временный git-репозиторий больше не может изменить основной репозиторий.
 
