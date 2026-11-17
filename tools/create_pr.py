@@ -26,6 +26,9 @@ SIZE_HEADING = "## Размер"
 SIZE_BLOCK_START = "<!-- pr-size:start -->"
 SIZE_BLOCK_END = "<!-- pr-size:end -->"
 NUMSTAT_SEPARATOR = "\0"
+SHARED_FILES = frozenset({"AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "engineering/backlog.md"})
+SHARED_PREFIXES = ("docs/ai/",)
+SHARED_PATTERNS = ("engineering/requirements/v*.md",)
 HEADING_START = re.compile(r"^#{1,6} ")
 FENCE_START = re.compile(r"^\s*(```|~~~)")
 
@@ -42,6 +45,17 @@ class DiffSize:
     @property
     def too_large(self) -> bool:
         return self.lines > MAX_PR_LINES or self.files > MAX_PR_FILES
+
+
+def shared_paths(paths: list[str]) -> list[str]:
+    """Return files that need a single owner across parallel PRs."""
+    return sorted(
+        path
+        for path in paths
+        if path in SHARED_FILES
+        or path.startswith(SHARED_PREFIXES)
+        or any(fnmatchcase(path, pattern) for pattern in SHARED_PATTERNS)
+    )
 
 
 def is_generated(path: str) -> bool:
@@ -331,6 +345,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"note: {warning}\nreason: {args.allow_large}", file=sys.stderr)
         else:
             print(f"warning: {warning}", file=sys.stderr)
+
+    changed = _run_git("diff", "--name-only", f"origin/{args.base}...HEAD").splitlines()
+    shared = shared_paths(changed)
+    if shared:
+        print(
+            "warning: shared files changed: "
+            + ", ".join(shared)
+            + ". Keep a single owner across parallel PRs.",
+            file=sys.stderr,
+        )
 
     token = _token()
     existing = find_open_pr(repo, branch, token)

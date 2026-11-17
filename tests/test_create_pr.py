@@ -18,6 +18,7 @@ from tools.create_pr import (
     parse_numstat,
     preserve_size_exception,
     repo_from_remote,
+    shared_paths,
     size_block,
     size_warning,
     upsert_size_block,
@@ -249,6 +250,7 @@ def test_main_updates_existing_pr_and_keeps_title(monkeypatch: pytest.MonkeyPatc
             ("ls-remote", "--heads", "origin", "chore/example"): "abc\trefs/heads/chore/example",
             ("log", "--format=%s", "origin/main..HEAD"): "feat: new work",
             ("diff", "--numstat", "-z", "origin/main...HEAD"): "12\t2\tsrc/engine.py\0",
+            ("diff", "--name-only", "origin/main...HEAD"): "src/engine.py\n",
         }
         return responses[args]
 
@@ -291,3 +293,20 @@ def test_main_updates_existing_pr_and_keeps_title(monkeypatch: pytest.MonkeyPatc
     assert "14 строк, 1 файл" in body
     assert body.count(SIZE_BLOCK_START) == 1
     assert body.count(SIZE_BLOCK_END) == 1
+
+
+def test_shared_paths() -> None:
+    assert shared_paths(
+        [
+            "src/engine.py",
+            "CHANGELOG.md",
+            "engineering/backlog.md",
+            "docs/ai/llms.txt",
+            "engineering/requirements/v2.4.md",
+        ]
+    ) == [
+        "CHANGELOG.md",
+        "docs/ai/llms.txt",
+        "engineering/backlog.md",
+        "engineering/requirements/v2.4.md",
+    ]
