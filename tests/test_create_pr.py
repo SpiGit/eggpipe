@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import pytest
+import tools.create_pr as create_pr
 from tools.create_pr import (
     MAX_PR_FILES,
     MAX_PR_LINES,
     SIZE_BLOCK_END,
     SIZE_BLOCK_START,
     DiffSize,
-    _numstat_path,
+    _next_section_start,
     build_body,
     default_title,
     is_generated,
@@ -49,12 +50,23 @@ def test_is_generated() -> None:
     assert not is_generated("engineering/requirements/index.md")
 
 
+def _numstat(*tokens: str) -> str:
+    """Render numstat tokens the way ``git diff --numstat -z`` separates them.
+
+    A plain entry is one token such as ``"10\t2\tsrc/a.py"``. A rename uses three tokens:
+    an entry with an empty path (``"1\t1\t"``), the source path and the destination path.
+    """
+    return "".join(f"{token}\0" for token in tokens)
+
+
 def test_parse_numstat_excludes_generated() -> None:
     size = parse_numstat(
-        "10\t2\tsrc/eggpipe/engine.py\n"
-        "5\t0\tdocs/ai/llms.txt\n"
-        "-\t-\tuv.lock\n"
-        "3\t1\tengineering/requirements/v2.3.md\n"
+        _numstat(
+            "10\t2\tsrc/eggpipe/engine.py",
+            "5\t0\tdocs/ai/llms.txt",
+            "-\t-\tuv.lock",
+            "3\t1\tengineering/requirements/v2.3.md",
+        )
     )
     assert size.lines == 12
     assert size.files == 1
@@ -63,33 +75,37 @@ def test_parse_numstat_excludes_generated() -> None:
     assert size.too_large is False
 
 
-def test_numstat_path_rename() -> None:
-    assert _numstat_path("src/old.py => src/new.py") == "src/new.py"
-    assert _numstat_path("{src/old => src/new}/engine.py") == "src/new/engine.py"
-    assert _numstat_path("{src => docs/ai}/llms.txt") == "docs/ai/llms.txt"
-
-
 def test_parse_numstat_uses_rename_destination() -> None:
-    size = parse_numstat("1\t1\tsrc/old.py => src/new.py\n2\t0\t{src => docs/ai}/llms.txt\n")
+    size = parse_numstat(
+        _numstat(
+            "1\t1\t",
+            "src/old.py",
+            "src/new.py",
+            "2\t0\t",
+            "src/old.txt",
+            "docs/ai/llms.txt",
+        )
+    )
     assert size.lines == 2
     assert size.files == 1
     assert size.generated_lines == 2
     assert size.generated_files == 1
 
 
-def test_numstat_path_quoted() -> None:
-    assert _numstat_path('"docs/ai/weird\\tname.txt"') == "docs/ai/weird\tname.txt"
-    assert _numstat_path('"src/quo\\"te.py"') == 'src/quo"te.py'
-    assert _numstat_path('"src/back\\\\slash.py"') == "src/back\\slash.py"
-    assert _numstat_path('"src/old.py" => "src/new.py"') == "src/new.py"
-
-
-def test_parse_numstat_quoted_generated() -> None:
-    size = parse_numstat('4\t0\t"docs/ai/weird\\tname.txt"\n')
-    assert size.lines == 0
-    assert size.files == 0
+def test_parse_numstat_keeps_paths_verbatim() -> None:
+    size = parse_numstat(_numstat("4\t0\tdocs/ai/weird\tname.txt", '2\t1\tsrc/quo"te.py'))
+    assert size.lines == 3
+    assert size.files == 1
     assert size.generated_lines == 4
     assert size.generated_files == 1
+
+
+def test_parse_numstat_rename_with_spaces_and_quotes() -> None:
+    size = parse_numstat(_numstat("1\t0\t", 'src/old "file".py', 'src/new "file".py'))
+    assert size.lines == 1
+    assert size.files == 1
+    assert size.generated_lines == 0
+    assert size.generated_files == 0
 
 
 def test_size_warning() -> None:
@@ -162,7 +178,7 @@ def test_upsert_size_block_replaces_markers() -> None:
     assert "- old stats" not in updated
     assert "20 строк, 2 файла" in updated
     assert updated.count(SIZE_BLOCK_START) == 1
-    assert "## Карта ревью\n\n- src/engine.py" in updated
+    assert f"{SIZE_BLOCK_END}\n\n## Карта ревью\n\n- src/engine.py" in updated
 
 
 def test_upsert_size_block_appends_section() -> None:
@@ -170,6 +186,30 @@ def test_upsert_size_block_appends_section() -> None:
     assert "## Что изменено" in updated
     assert "## Размер" in updated
     assert "3 строки, 1 файл" in updated
+
+
+def test_upsert_size_block_keeps_tail_when_end_marker_missing() -> None:
+    body = f"## Размер\n\n{SIZE_BLOCK_START}\n- stale stats\n\n## Карта ревью\n\n- src/engine.py\n"
+    updated = upsert_size_block(body, DiffSize(lines=5, files=1))
+    assert updated.count(SIZE_BLOCK_START) == 1
+    assert updated.count(SIZE_BLOCK_END) == 1
+    assert "- stale stats" not in updated
+    assert "5 строк, 1 файл" in updated
+    assert f"{SIZE_BLOCK_END}\n\n## Карта ревью\n\n- src/engine.py" in updated
+
+
+def test_next_section_start_skips_fenced_headings() -> None:
+    text = "```md\n## not a heading\n```\n\n## real heading\n"
+    assert _next_section_start(text) == text.index("## real heading")
+    assert _next_section_start("body\n# level one\n") == len("body\n")
+
+
+def test_upsert_size_block_replaces_dangling_marker_at_body_end() -> None:
+    body = f"## Размер\n\n{SIZE_BLOCK_START}\n- stale stats\n"
+    updated = upsert_size_block(body, DiffSize(lines=2, files=1))
+    assert "- stale stats" not in updated
+    assert "2 строки, 1 файл" in updated
+    assert updated.count(SIZE_BLOCK_END) == 1
 
 
 def test_upsert_size_block_preserves_legacy_content() -> None:
@@ -186,3 +226,68 @@ def test_upsert_size_block_preserves_size_exception() -> None:
     updated = upsert_size_block(body, DiffSize(lines=3, files=1))
     assert "## Size exception\n\nlarge spec" in updated
     assert "3 строки, 1 файл" in updated
+
+
+PREVIOUS_BODY = (
+    "## Что изменено\n\n- feat: old work\n\n"
+    "## Размер\n\n"
+    f"{SIZE_BLOCK_START}\n- old stats\n{SIZE_BLOCK_END}\n\n"
+    "## Карта ревью\n\n- src/engine.py\n"
+)
+
+
+def test_main_updates_existing_pr_and_keeps_title(monkeypatch: pytest.MonkeyPatch) -> None:
+    git_calls: list[tuple[str, ...]] = []
+    api_calls: list[tuple[str, str, dict[str, object] | None]] = []
+
+    def fake_git(*args: str) -> str:
+        git_calls.append(args)
+        responses: dict[tuple[str, ...], str] = {
+            ("rev-parse", "--abbrev-ref", "HEAD"): "chore/example",
+            ("fetch", "origin", "main"): "",
+            ("remote", "get-url", "origin"): "git@github.com:SpiGit/eggpipe.git",
+            ("ls-remote", "--heads", "origin", "chore/example"): "abc\trefs/heads/chore/example",
+            ("log", "--format=%s", "origin/main..HEAD"): "feat: new work",
+            ("diff", "--numstat", "-z", "origin/main...HEAD"): "12\t2\tsrc/engine.py\0",
+        }
+        return responses[args]
+
+    def fake_api(
+        method: str,
+        path: str,
+        token: str,
+        payload: dict[str, object] | None = None,
+    ) -> object:
+        api_calls.append((method, path, payload))
+        if method == "GET" and path.startswith("/repos/SpiGit/eggpipe/pulls?head="):
+            return [{"number": 42}]
+        if method == "GET" and path == "/repos/SpiGit/eggpipe/pulls/42":
+            return {"title": "Старый заголовок", "body": PREVIOUS_BODY}
+        if method == "PATCH":
+            return {"number": 42, "html_url": "https://github.com/SpiGit/eggpipe/pull/42"}
+        raise AssertionError(f"unexpected API call: {method} {path}")
+
+    monkeypatch.setattr(create_pr, "_run_git", fake_git)
+    monkeypatch.setattr(create_pr, "_api", fake_api)
+    monkeypatch.setattr(create_pr, "_token", lambda: "secret")
+
+    assert main([]) == 0
+
+    assert ("diff", "--numstat", "-z", "origin/main...HEAD") in git_calls
+    assert all(method != "POST" for method, _, _ in api_calls)
+    patches = [payload for method, _, payload in api_calls if method == "PATCH"]
+    assert len(patches) == 1
+    assert ("PATCH", "/repos/SpiGit/eggpipe/pulls/42") in [
+        (method, path) for method, path, _ in api_calls if method == "PATCH"
+    ]
+    patch = patches[0]
+    assert patch is not None
+    assert patch["title"] == "Старый заголовок"
+    body = patch["body"]
+    assert isinstance(body, str)
+    assert "## Что изменено\n\n- feat: old work" in body
+    assert "## Карта ревью\n\n- src/engine.py" in body
+    assert "- old stats" not in body
+    assert "14 строк, 1 файл" in body
+    assert body.count(SIZE_BLOCK_START) == 1
+    assert body.count(SIZE_BLOCK_END) == 1

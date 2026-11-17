@@ -17,9 +17,8 @@
   ручную карту ревью при повторном запуске.
 - `engineering/backlog.md` — единое место для отложенных minor и техдолга; PR-шаблон
   и процесс ревью требуют фиксировать их там.
-- `tools/create_pr.py`: size-check корректно разбирает renames и quoted-пути в
-  `git diff --numstat`, сохраняет `## Size exception` при обновлении PR и отклоняет
-  пустой `--allow-large`.
+- `tools/create_pr.py`: size-check использует `git diff --numstat -z`, сохраняет
+  `## Size exception` при обновлении PR и отклоняет пустой `--allow-large`.
 
 ### Added
 
@@ -46,6 +45,8 @@
 
 ### Fixed
 
+- `tools/create_pr.py`: size-check разбирает `git diff --numstat -z`, а при повреждённом
+  `pr-size:start` не теряет ручные секции body.
 - `tools/preflight.py` и provenance-тесты не наследуют `GIT_*` из pre-push hook;
   временный git-репозиторий больше не может изменить основной репозиторий.
 

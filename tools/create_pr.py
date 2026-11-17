@@ -25,9 +25,9 @@ SIZE_EXCEPTION_HEADING = "## Size exception"
 SIZE_HEADING = "## Размер"
 SIZE_BLOCK_START = "<!-- pr-size:start -->"
 SIZE_BLOCK_END = "<!-- pr-size:end -->"
-RENAME_SEPARATOR = " => "
-BRACE_RENAME = re.compile(r"\{([^{}]*)" + re.escape(RENAME_SEPARATOR) + r"([^{}]*)\}")
-PATH_ESCAPES = {"t": "\t", "n": "\n", "r": "\r", '"': '"', "\\": "\\"}
+NUMSTAT_SEPARATOR = "\0"
+HEADING_START = re.compile(r"^#{1,6} ")
+FENCE_START = re.compile(r"^\s*(```|~~~)")
 
 
 @dataclass(frozen=True)
@@ -52,14 +52,31 @@ def is_generated(path: str) -> bool:
 
 
 def parse_numstat(output: str) -> DiffSize:
-    """Parse ``git diff --numstat`` output into a hand-written size summary."""
+    """Parse ``git diff --numstat -z`` output into a hand-written size summary.
+
+    The NUL format keeps paths verbatim, so quotes, tabs and spaces need no unescaping.
+    A rename leaves the path field empty and carries the source and the destination as
+    separate NUL-terminated tokens that follow the counters.
+    """
     lines = files = generated_lines = generated_files = 0
-    for line in output.splitlines():
-        parts = line.split("\t")
+    tokens = output.split(NUMSTAT_SEPARATOR)
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        index += 1
+        if not token:
+            continue
+        parts = token.split("\t", 2)
         if len(parts) < 3:
             continue
-        added, deleted = parts[0], parts[1]
-        path = _numstat_path(parts[2])
+        added, deleted, path = parts
+        if not path:
+            pairs = tokens[index : index + 2]
+            if len(pairs) < 2:
+                # A truncated rename pair; git output should be complete.
+                continue
+            index += 2
+            path = pairs[1]
         count = _numstat_count(added) + _numstat_count(deleted)
         if is_generated(path):
             generated_lines += count
@@ -68,37 +85,6 @@ def parse_numstat(output: str) -> DiffSize:
             lines += count
             files += 1
     return DiffSize(lines, files, generated_lines, generated_files)
-
-
-def _numstat_path(raw: str) -> str:
-    """Return the destination path of a numstat entry, resolving renames and quotes."""
-    brace = BRACE_RENAME.search(raw)
-    if brace is not None:
-        path = f"{raw[: brace.start()]}{brace.group(2)}{raw[brace.end() :]}"
-    elif RENAME_SEPARATOR in raw:
-        path = raw.rsplit(RENAME_SEPARATOR, 1)[1]
-    else:
-        path = raw
-    return _unquote_path(path)
-
-
-def _unquote_path(path: str) -> str:
-    """Strip the surrounding quotes git adds for special characters and unescape them."""
-    if len(path) < 2 or not (path.startswith('"') and path.endswith('"')):
-        return path
-    unquoted: list[str] = []
-    body = path[1:-1]
-    index = 0
-    while index < len(body):
-        char = body[index]
-        if char == "\\" and index + 1 < len(body):
-            index += 1
-            escaped = body[index]
-            unquoted.append(PATH_ESCAPES.get(escaped, f"\\{escaped}"))
-        else:
-            unquoted.append(char)
-        index += 1
-    return "".join(unquoted)
 
 
 def _numstat_count(value: str) -> int:
@@ -119,7 +105,13 @@ def size_warning(size: DiffSize) -> str | None:
 
 
 def _run_git(*args: str) -> str:
-    result = subprocess.run(["git", *args], capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        ["git", *args],
+        capture_output=True,
+        text=True,
+        errors="surrogateescape",
+        check=False,
+    )
     if result.returncode != 0:
         raise SystemExit(result.stderr.strip() or f"git {' '.join(args)} failed")
     return result.stdout.strip()
@@ -174,13 +166,35 @@ def upsert_size_block(body: str, size: DiffSize) -> str:
     """Replace the size block or append a new section without touching manual content."""
     block = size_block(size)
     start = body.find(SIZE_BLOCK_START)
-    if start != -1:
-        end = body.find(SIZE_BLOCK_END, start)
-        if end == -1:
-            return f"{body[:start]}{block}\n"
-        end += len(SIZE_BLOCK_END)
-        return f"{body[:start]}{block}{body[end:]}"
-    return f"{body.rstrip()}\n\n{SIZE_HEADING}\n\n{block}\n"
+    if start == -1:
+        return f"{body.rstrip()}\n\n{SIZE_HEADING}\n\n{block}\n"
+    end = body.find(SIZE_BLOCK_END, start)
+    if end == -1:
+        return _replace_open_size_block(body, start, block)
+    end += len(SIZE_BLOCK_END)
+    return f"{body[:start]}{block}{body[end:]}"
+
+
+def _next_section_start(text: str) -> int | None:
+    """Return the offset of the next markdown heading outside fenced code."""
+    fenced = False
+    offset = 0
+    for line in text.splitlines(keepends=True):
+        if FENCE_START.match(line):
+            fenced = not fenced
+        elif not fenced and HEADING_START.match(line):
+            return offset
+        offset += len(line)
+    return None
+
+
+def _replace_open_size_block(body: str, start: int, block: str) -> str:
+    """Replace a size block whose end marker is missing, keeping the manual sections after it."""
+    tail = body[start + len(SIZE_BLOCK_START) :]
+    following = _next_section_start(tail)
+    if following is None:
+        return f"{body[:start]}{block}\n"
+    return f"{body[:start]}{block}\n\n{tail[following:]}"
 
 
 def with_size_exception(body: str, reason: str | None) -> str:
@@ -248,7 +262,9 @@ def _token() -> str:
 
 
 def _api(method: str, path: str, token: str, payload: dict[str, object] | None = None) -> object:
-    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    data = (
+        None if payload is None else json.dumps(payload).encode("utf-8", errors="backslashreplace")
+    )
     request = Request(
         f"{API}{path}",
         data=data,
@@ -308,7 +324,7 @@ def main(argv: list[str] | None = None) -> int:
     if not subjects:
         raise SystemExit(f"no commits ahead of origin/{args.base}")
 
-    size = parse_numstat(_run_git("diff", "--numstat", f"origin/{args.base}...HEAD"))
+    size = parse_numstat(_run_git("diff", "--numstat", "-z", f"origin/{args.base}...HEAD"))
     warning = size_warning(size)
     if warning is not None:
         if args.allow_large:

@@ -370,17 +370,22 @@ class Engine:
         resources: dict[str, ImportedFile],
     ) -> str | None:
         if self.config.allow_outside_imports:
-            return self._disable_incremental("allow_outside_imports is enabled")
+            self._disable_incremental("allow_outside_imports is enabled")
+            return None
         if self.rules.diagnostics.stale_dates:
-            return self._disable_incremental("diagnostics.stale_dates is enabled")
+            self._disable_incremental("diagnostics.stale_dates is enabled")
+            return None
         if self.config.force or self.config.clean:
-            return self._disable_incremental("force or clean is enabled")
+            self._disable_incremental("force or clean is enabled")
+            return None
         if not self._enabled_generators():
-            return self._disable_incremental("no enabled generators")
+            self._disable_incremental("no enabled generators")
+            return None
 
         resolved_sources = [path.resolve() for path in sources]
         if any(not path.is_relative_to(self.config_dir) for path in resolved_sources):
-            return self._disable_incremental("a source path is outside the project root")
+            self._disable_incremental("a source path is outside the project root")
+            return None
 
         digest = hashlib.sha256()
         _digest_text(digest, __version__)
@@ -416,9 +421,8 @@ class Engine:
         for generator_config in self._enabled_generators():
             plugin = self.generators.get(generator_config.id)
             if plugin is None:
-                return self._disable_incremental(
-                    f"generator plugin is not loaded: {generator_config.id}"
-                )
+                self._disable_incremental(f"generator plugin is not loaded: {generator_config.id}")
+                return None
             _digest_text(digest, generator_config.id)
             _digest_text(digest, _plugin_version(plugin))
             _digest_text(digest, str(plugin.api_version))
@@ -431,7 +435,8 @@ class Engine:
         for source in sources:
             content = _read_file(source)
             if content is None:
-                return self._disable_incremental(f"cannot read source: {source}")
+                self._disable_incremental(f"cannot read source: {source}")
+                return None
             files[source] = content
 
         pending = list(files)
@@ -448,29 +453,34 @@ class Engine:
             try:
                 plugin = self.registry.get(format_name)
             except ConfigValidationError:
-                return self._disable_incremental(f"unknown or invalid format: {format_name}")
+                self._disable_incremental(f"unknown or invalid format: {format_name}")
+                return None
             try:
                 inputs = plugin.input_paths(data, path.parent)
             except DocumentError as exc:
-                return self._disable_incremental(
+                self._disable_incremental(
                     f"format {format_name} cannot resolve inputs: {exc.message}"
                 )
+                return None
             if inputs is None:
-                return self._disable_incremental(
+                self._disable_incremental(
                     f"format {format_name} does not declare input dependencies"
                 )
+                return None
             for raw_path in inputs:
                 candidate = Path(raw_path)
                 if not candidate.is_absolute():
                     candidate = path.parent / candidate
                 candidate = candidate.resolve()
                 if not candidate.is_relative_to(self.config_dir) or not candidate.is_file():
-                    return self._disable_incremental(f"unsafe input path: {raw_path}")
+                    self._disable_incremental(f"unsafe input path: {raw_path}")
+                    return None
                 if candidate in files:
                     continue
                 content = _read_file(candidate)
                 if content is None:
-                    return self._disable_incremental(f"cannot read input: {candidate}")
+                    self._disable_incremental(f"cannot read input: {candidate}")
+                    return None
                 files[candidate] = content
                 pending.append(candidate)
         return files
@@ -495,31 +505,34 @@ class Engine:
         try:
             manifest = self.writer.load_manifest()
         except ManifestError:
-            return self._disable_incremental("manifest is missing or corrupt")
+            self._disable_incremental("manifest is missing or corrupt")
+            return None
         diagnostics = self._filter_ignored(list(discovery))
         if _has_errors(diagnostics):
-            return self._disable_incremental("discovery diagnostics contain errors")
+            self._disable_incremental("discovery diagnostics contain errors")
+            return None
         enabled = self._enabled_generators()
         if not enabled:
-            return self._disable_incremental("no enabled generators")
+            self._disable_incremental("no enabled generators")
+            return None
         locations = {location.key: location for location in manifest.locations}
         expected = {self.writer.location_key(item.id, self._output_dir(item)) for item in enabled}
         if set(locations) != expected:
             extra = sorted(key.generator for key in set(locations) - expected)
             missing = sorted(key.generator for key in expected - set(locations))
-            return self._disable_incremental(
+            self._disable_incremental(
                 f"manifest locations do not match enabled generators"
                 f" (extra={extra}, missing={missing})"
             )
+            return None
 
         generators: list[GeneratorReport] = []
         artifacts: list[ArtifactReport] = []
         for generator_config in enabled:
             plugin = self.generators.get(generator_config.id)
             if plugin is None:
-                return self._disable_incremental(
-                    f"generator plugin is not loaded: {generator_config.id}"
-                )
+                self._disable_incremental(f"generator plugin is not loaded: {generator_config.id}")
+                return None
             key = self.writer.location_key(generator_config.id, self._output_dir(generator_config))
             location = locations[key]
             if (
@@ -527,22 +540,24 @@ class Engine:
                 or location.eggpipe_version != __version__
                 or location.plugin_version != _plugin_version(plugin)
             ):
-                return self._disable_incremental(
+                self._disable_incremental(
                     f"input fingerprint or versions changed for {generator_config.id}"
                 )
+                return None
             output_dir = self._output_dir(generator_config)
             output_root = output_dir.resolve()
             for item in location.artifacts:
                 target = (output_dir / item.path).resolve()
                 if not target.is_relative_to(output_root):
-                    return self._disable_incremental(
-                        f"artifact path escapes output dir: {item.path}"
-                    )
+                    self._disable_incremental(f"artifact path escapes output dir: {item.path}")
+                    return None
                 content = _read_file(target)
                 if content is None:
-                    return self._disable_incremental(f"cannot read artifact: {item.path}")
+                    self._disable_incremental(f"cannot read artifact: {item.path}")
+                    return None
                 if hashlib.sha256(content).hexdigest() != item.sha256:
-                    return self._disable_incremental(f"artifact is missing or changed: {item.path}")
+                    self._disable_incremental(f"artifact is missing or changed: {item.path}")
+                    return None
                 artifacts.append(
                     ArtifactReport(
                         generator=generator_config.id,
