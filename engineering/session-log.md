@@ -505,8 +505,8 @@ PR C — после PR A.
 |--------|---------|---------|
 | B-023: tests+coverage в PR body | Отложено | 2026-11-18 |
 | B-024: тесты merge formats/generated_at | Найдено на ревью #32 | 2026-11-18 |
-| Улучшение watch | Не начинали | 2026-11-18, design-first |
-| Reference-плагины, метрики | Не начинали | После watch |
+| Улучшение watch | Не начинали | После релиза 0.4.0 (0.5.0) |
+| Reference-плагины, метрики | Не начинали | Reference — 0.4.0; метрики — 0.5.0 |
 
 ### 5. План на 2026-11-18
 
@@ -515,4 +515,4 @@ PR C — после PR A.
 | 1 | B-023: coverage в PR body | `create_pr.py` + `coverage.xml`/`--coverage` | Видимость покрытия | chore, ~100 строк |
 | 2 | B-024: merge formats/generated_at tests | per-entity manifest | Закрыть пробел покрытия | test, ~50 строк |
 | 3 | Аудит инженерной документации | ТЗ, ADR, System Design, roadmap, session-log | Убрать stale-статусы | docs |
-| 4 | Watch improvement: ADR/design | батчинг, отмена устаревших запусков | P1 без гонок | spec |
+| 4 | 0.4.0 Plugin DX | template, contract-test kit, examples, docs | Закрыть текущий релиз | feat/docs |
