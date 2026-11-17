@@ -31,6 +31,10 @@ Generated/full-copy:
 - uv.lock
 -->
 
+## Backlog candidates
+
+<!-- Отложенные minor; в конце дня переносятся в engineering/backlog.md. -->
+
 ## Ревью
 
 - [ ] Ревью пройдено (`pr-reviewer`: APPROVE) или ревью не требуется.

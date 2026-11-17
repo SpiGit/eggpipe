@@ -149,7 +149,8 @@ generated, какие вопросы задать ревьюеру и что в�
 [`engineering/day-closure.md`](./engineering/day-closure.md): план, выполнено, вне плана,
 не выполнено, план на следующий день. В `.session-context.md` оставь текущее состояние,
 план на следующий день и ссылку на `engineering/backlog.md`. На следующий день — не больше
-3–4 задач с импактом.
+3–4 задач с импактом. Backlog closeout: `Backlog candidates` из PR body переносятся в
+`engineering/backlog.md` одним PR.
 
 ## Ревью PR
 
