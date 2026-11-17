@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from fnmatch import fnmatch
+from fnmatch import fnmatchcase
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import quote
@@ -21,6 +21,10 @@ MAX_PR_LINES = 500
 MAX_PR_FILES = 15
 GENERATED_PREFIXES = ("docs/ai/",)
 GENERATED_PATTERNS = ("engineering/requirements/v*.md", "uv.lock")
+SIZE_EXCEPTION_HEADING = "## Size exception"
+RENAME_SEPARATOR = " => "
+BRACE_RENAME = re.compile(r"\{([^{}]*)" + re.escape(RENAME_SEPARATOR) + r"([^{}]*)\}")
+PATH_ESCAPES = {"t": "\t", "n": "\n", "r": "\r", '"': '"', "\\": "\\"}
 
 
 @dataclass(frozen=True)
@@ -40,7 +44,7 @@ class DiffSize:
 def is_generated(path: str) -> bool:
     """Return True for files that do not count towards the PR size budget."""
     return path.startswith(GENERATED_PREFIXES) or any(
-        fnmatch(path, pattern) for pattern in GENERATED_PATTERNS
+        fnmatchcase(path, pattern) for pattern in GENERATED_PATTERNS
     )
 
 
@@ -51,7 +55,8 @@ def parse_numstat(output: str) -> DiffSize:
         parts = line.split("\t")
         if len(parts) < 3:
             continue
-        added, deleted, path = parts[0], parts[1], parts[2]
+        added, deleted = parts[0], parts[1]
+        path = _numstat_path(parts[2])
         count = _numstat_count(added) + _numstat_count(deleted)
         if is_generated(path):
             generated_lines += count
@@ -60,6 +65,37 @@ def parse_numstat(output: str) -> DiffSize:
             lines += count
             files += 1
     return DiffSize(lines, files, generated_lines, generated_files)
+
+
+def _numstat_path(raw: str) -> str:
+    """Return the destination path of a numstat entry, resolving renames and quotes."""
+    brace = BRACE_RENAME.search(raw)
+    if brace is not None:
+        path = f"{raw[: brace.start()]}{brace.group(2)}{raw[brace.end() :]}"
+    elif RENAME_SEPARATOR in raw:
+        path = raw.rsplit(RENAME_SEPARATOR, 1)[1]
+    else:
+        path = raw
+    return _unquote_path(path)
+
+
+def _unquote_path(path: str) -> str:
+    """Strip the surrounding quotes git adds for special characters and unescape them."""
+    if len(path) < 2 or not (path.startswith('"') and path.endswith('"')):
+        return path
+    unquoted: list[str] = []
+    body = path[1:-1]
+    index = 0
+    while index < len(body):
+        char = body[index]
+        if char == "\\" and index + 1 < len(body):
+            index += 1
+            escaped = body[index]
+            unquoted.append(PATH_ESCAPES.get(escaped, f"\\{escaped}"))
+        else:
+            unquoted.append(char)
+        index += 1
+    return "".join(unquoted)
 
 
 def _numstat_count(value: str) -> int:
@@ -107,9 +143,30 @@ def default_title(subjects: list[str], branch: str) -> str:
 
 def with_size_exception(body: str, reason: str | None) -> str:
     """Append a persistent size-exception section once."""
-    if not reason or "## Size exception" in body:
+    if not reason or SIZE_EXCEPTION_HEADING in body:
         return body
-    return f"{body.rstrip()}\n\n## Size exception\n\n{reason}\n"
+    return f"{body.rstrip()}\n\n{SIZE_EXCEPTION_HEADING}\n\n{reason}\n"
+
+
+def preserve_size_exception(body: str, previous: str) -> str:
+    """Carry the size-exception section over from a previous PR body."""
+    if SIZE_EXCEPTION_HEADING in body:
+        return body
+    section = _size_exception_section(previous)
+    if section is None:
+        return body
+    return f"{body.rstrip()}\n\n{section}\n"
+
+
+def _size_exception_section(body: str) -> str | None:
+    """Return the size-exception section of a PR body, without trailing headings."""
+    index = body.find(SIZE_EXCEPTION_HEADING)
+    if index == -1:
+        return None
+    rest = body[index + len(SIZE_EXCEPTION_HEADING) :]
+    following = re.search(r"\n## ", rest)
+    section = rest if following is None else rest[: following.start()]
+    return f"{SIZE_EXCEPTION_HEADING}{section}".strip()
 
 
 def find_open_pr(repo: str, branch: str, token: str) -> int | None:
@@ -123,6 +180,15 @@ def find_open_pr(repo: str, branch: str, token: str) -> int | None:
     if isinstance(data, list) and data:
         return int(data[0]["number"])
     return None
+
+
+def pr_body(repo: str, number: int, token: str) -> str:
+    """Return the current body of a pull request, or an empty string."""
+    data = _api("GET", f"/repos/{repo}/pulls/{number}", token)
+    if not isinstance(data, dict):
+        return ""
+    body = data.get("body")
+    return body if isinstance(body, str) else ""
 
 
 def _token() -> str:
@@ -169,6 +235,10 @@ def main(argv: list[str] | None = None) -> int:
         help="acknowledge a PR above the size budget",
     )
     args = parser.parse_args(argv)
+    if args.allow_large is not None:
+        args.allow_large = args.allow_large.strip()
+        if not args.allow_large:
+            parser.error("--allow-large requires a non-empty reason")
 
     branch = _run_git("rev-parse", "--abbrev-ref", "HEAD")
     if branch in {"main", "master"}:
@@ -209,6 +279,7 @@ def main(argv: list[str] | None = None) -> int:
     existing = find_open_pr(repo, branch, token)
     if existing is not None:
         number = existing
+        body = preserve_size_exception(body, pr_body(repo, number, token))
         result = _api(
             "PATCH",
             f"/repos/{repo}/pulls/{number}",
