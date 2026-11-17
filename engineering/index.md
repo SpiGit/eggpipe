@@ -8,6 +8,7 @@
 - [Требования](requirements/index.md) — реестр версий и актуальное ТЗ v2.3.
 - [Changelog требований](requirements/changelog.md) — история изменений ТЗ.
 - [История сессий](session-log.md) — архив рабочих сессий.
+- [Закрытие дня](day-closure.md) — шаблон и правила завершения дня.
 - [System Design](system-design/index.md) — проектирование реализации.
 - [ADR](adr/index.md) — принятые архитектурные решения.
 - [Ревью](reviews/2026-11-13-project-review.md) — документация и код.

@@ -19,6 +19,8 @@
 - `--incremental` / `EGGPIPE_INCREMENTAL=true` — opt-in кэш на уровне location:
   пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов;
   отключается при `--check`, `--force`, `--clean`, `--strict` и внешних импортах.
+- `engineering/day-closure.md` — шаблон закрытия дня; разделы «Параллельная работа» и
+  «Закрытие дня» в `AGENTS.md`/`CONTRIBUTING.md`.
 - `FormatPlugin.input_paths` — декларация файлов, влияющих на парсинг формата;
   `None` отключает incremental.
 - `timings.fingerprint_ms` — время сбора входного fingerprint.

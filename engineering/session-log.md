@@ -10,8 +10,9 @@
 - 2026-11-12 (седьмая сессия: Eggpipe, v2.0, CLI/UX, диагностики, JSON v2)
 - 2026-11-13 (восьмая сессия: полное ревью проекта — ТЗ и код, модель Qwen3.8 Max)
 - 2026-11-13 (девятая сессия: v2.2, English-only, EG-коды, версия 0.3.0, E9)
+- 2026-11-16 (десятая сессия: incremental generation, ADR-0017, ТЗ v2.3, PR-процесс)
 
-**Статус ТЗ:** v2.2 — рабочая версия (замещает v2.1)
+**Статус ТЗ:** v2.3 — рабочая версия (замещает v2.2)
 **Статус проекта:** beta (0.x); до 1.0 breaking changes возможны (ADR-0014)
 **Идентичность:** Eggpipe v2.2: package/CLI/config/state переименованы; старые имена остаются только в истории и ADR.
 **Реализация:** E0–E9 выполнены, релиз `0.3.2` опубликован на PyPI; код и сообщения English-only, EG-коды.
@@ -25,7 +26,7 @@
 
 ## Текущее состояние
 
-Документация и код приведены к ТЗ v2.2 (E0–E9). Актуальные решения:
+Документация и код приведены к ТЗ v2.3 (E0–E9). Актуальные решения:
 
 - `ModelDocument` → `SourceModel` → `ModelSlice`; `imports` на уровне документа.
 - `UNSET` vs `default: null`; полная null-матрица.
@@ -100,14 +101,15 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 
 | Документ | Путь | Статус |
 |----------|------|--------|
-| ТЗ v2.2 | `engineering/requirements/v2.2.md` | Актуальная рабочая версия |
+| ТЗ v2.3 | `engineering/requirements/v2.3.md` | Актуальная рабочая версия |
+| ТЗ v2.2 | `engineering/requirements/v2.2.md` | Замещена (история) |
 | ТЗ v2.1 | `engineering/requirements/v2.1.md` | Замещена (история) |
 | ТЗ v1.4 | `engineering/requirements/v1.4.md` | Замещена (история) |
 | ТЗ v1.3 | `engineering/requirements/v1.3.md` | Замещена (история) |
 | ТЗ v1.2 | `engineering/requirements/v1.2.md` | Замещена (история) |
 | ТЗ v1.1 | `engineering/requirements/v1.1.md` | Замещена (история) |
 | ТЗ v1.0 | `engineering/requirements/v1.0.md` | Замещена (история) |
-| System Design | `engineering/system-design/index.md` | Обновлён до v2.2 |
+| System Design | `engineering/system-design/index.md` | Обновлён до v2.3 |
 | ADR-0001 | `engineering/adr/0001-composition-merge-semantics.md` | Принято (уточнено под v1.2) |
 | ADR-0002 | `engineering/adr/0002-type-checker-pyrefly.md` | Принято (Pyrefly вместо mypy) |
 | ADR-0003 | `engineering/adr/0003-null-semantics.md` | Принято (UNSET/null/default) |
@@ -378,7 +380,7 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 
 | Вопрос | Решение |
 |--------|---------|
-| Инкрементальная генерация | Future; manifest-хеши — основа |
+| Инкрементальная генерация | Реализована в v2.3 (ADR-0017) |
 | CI/CD machine-readable | `--output-format json`; расширенная схема — v0.3 |
 | Кэширование watch | Простой watch, интерфейс `CacheStrategy` заложен |
 | Binary-артефакты | Не-цель v1 |
@@ -389,7 +391,7 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 | Публикация PyPI `eggpipe` / `eggpipe` | Опубликован `0.3.2` |
 | Расширение формата | Решено в v2.0: наследование, `input_formats`, слои (ADR-0007/0008) |
 
-## Следующие шаги
+## Следующие шаги (2026-11-13)
 
 1. E2 выполнен: core-модели и публичный API (`FormatInfo`, `FormatSchema`, `MergePolicy`, `Entity.format`, `GenerationContext.formats`).
 2. E3 выполнен: наследование форматов, версии, `base_versions`, `schemas`, latest-версия.
@@ -399,3 +401,56 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 6. E7 выполнен: CLI/UX, diagnostics, JSON v2, strict/ignore, new schemas/info.
 7. E9 выполнен: CI, release workflow, версия пакета 0.3.2.
 8. PyPI trusted publisher настроен; тег `v0.3.2` опубликован, пакет доступен на PyPI.
+
+
+---
+
+## 2026-11-16 — incremental generation и PR-процесс
+
+### 1. План на день
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | Завершить incremental generation: ADR-0017, ТЗ v2.3, fingerprint, CLI, тесты, docs | Выполнено |
+| 2 | Провести PR через CI и ревью | Выполнено, 6 итераций |
+| 3 | Смержить и очистить ветки | Выполнено |
+
+### 2. Выполнено
+
+| Задача | Результат |
+|--------|-----------|
+| Incremental generation | PR #18: `--incremental`, `input_fingerprint`, `FormatPlugin.input_paths`, `fingerprint_ms`, ADR-0017, ТЗ v2.3 |
+| Roadmap PostgreSQL transform | PR #17: пример зафиксирован как кандидат в `0.5.0` |
+| PR-процесс | PR #19: Definition of Ready, бюджет 500/15, split rule, review freeze, size-warning, PR-шаблон |
+| Очистка | `main` на `dd5d2dd`; ветки #18/#19 удалены локально и на remote |
+
+### 3. Вне плана
+
+| Что | Причина | Импакт |
+|-----|---------|--------|
+| PR #19 про процесс PR | PR #18 оказался слишком большим | Появился бюджет размера и review freeze |
+| 6 итераций ревью | Контракт формата и locations всплыли поздно | Время, но контракт стал корректнее |
+| `FormatPlugin.input_paths` | Сторонние форматы читают файлы вне `model.imports` | Закрыта дыра с устаревшими артефактами |
+| `--strict` отключает incremental | На cache hit терялись warnings | Поведение `--strict` согласовано |
+
+### 4. Не выполнено
+
+| Задача | Причина | Перенос |
+|--------|---------|---------|
+| Per-entity generate | Не начинали | 2026-11-17, design-first |
+| Улучшение watch | Не начинали | После per-entity |
+| Reference-плагины | Не начинали | Параллельно |
+| Синхронизация session context/log | Отложено | 2026-11-17 |
+| Follow-up minor `create_pr.py` | Вынесены | 2026-11-17 |
+
+### 5. План на 2026-11-17
+
+| # | Задача | Контекст | Импакт | Формат / оценка |
+|---|--------|----------|--------|-----------------|
+| 1 | Перезапустить `ci` на `dd5d2dd` | macOS 3.11 cancelled | Уверенность в зелёном main | 5 минут |
+| 2 | Day-closure и session sync | AGENTS/CONTRIBUTING + session-файлы | Повторяемое закрытие дня | docs |
+| 3 | Follow-up `create_pr.py` | renames, `fnmatchcase`, size exception | Надёжный size-check | chore |
+| 4 | Per-entity spec/ADR | CLI/API, ownership, incremental | Разблокирует P1 | spec |
+
+Параллельно: PR A (docs) и PR B (chore) в отдельных worktree, файлы не пересекаются.
+PR C — после PR A.
