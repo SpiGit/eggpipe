@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from datetime import datetime
@@ -14,7 +15,15 @@ from eggpipe import git_provenance
 pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
 
 
-def test_git_provenance(tmp_path: Path) -> None:
+def _clear_git_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Remove GIT_* variables inherited from a pre-push hook."""
+    for key in list(os.environ):
+        if key.startswith("GIT_"):
+            monkeypatch.delenv(key, raising=False)
+
+
+def test_git_provenance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _clear_git_env(monkeypatch)
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     path = tmp_path / "model.yaml"
     path.write_text("format: entity-model\nversion: '1.0'\nmodel: {}\n", encoding="utf-8")
@@ -40,7 +49,8 @@ def test_git_provenance(tmp_path: Path) -> None:
     assert isinstance(provenance.date, datetime)
 
 
-def test_git_provenance_without_repo(tmp_path: Path) -> None:
+def test_git_provenance_without_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _clear_git_env(monkeypatch)
     path = tmp_path / "model.yaml"
     path.write_text("", encoding="utf-8")
     assert git_provenance(path) is None

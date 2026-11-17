@@ -36,6 +36,11 @@
 - Версионированная документация: `mike`, версии `major.minor` и alias `latest`.
 - PR-ревью через subagent `pr-reviewer` (Qwen3.8 Flash) и `tools/review_pr.py`.
 
+### Fixed
+
+- `tools/preflight.py` и provenance-тесты не наследуют `GIT_*` из pre-push hook;
+  временный git-репозиторий больше не может изменить основной репозиторий.
+
 ## [0.3.2] - 2026-11-14
 
 ### Changed
