@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import ClassVar, Literal
 
+import pytest
+
 from eggpipe import (
     AppConfig,
     Artifact,
@@ -14,10 +16,12 @@ from eggpipe import (
     GeneratorConfig,
     GeneratorInput,
     GeneratorPlugin,
+    InputSelection,
     ProjectConfig,
     SourceConfig,
     generator,
 )
+from eggpipe.utils.exceptions import PluginContractError
 
 MODEL = """\
 format: entity-model
@@ -42,9 +46,11 @@ class PerEntityGenerator(GeneratorPlugin):
     output_scope: ClassVar[Literal["entity"]] = "entity"
     __version__ = "1"
     calls = 0
+    last_entities: ClassVar[tuple[str, ...]] = ()
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         type(self).calls += 1
+        type(self).last_entities = tuple(entity.name for entity in input.model.entities)
         return GenerationResult(
             artifacts=[
                 Artifact(path=f"{entity.name.lower()}.txt", content=f"{entity.name}\n")
@@ -71,6 +77,7 @@ def make_engine(
     cleanup: Literal["off", "prompt", "enabled"] = "off",
     incremental: bool = False,
     clean: bool = False,
+    input_entities: tuple[str, ...] | None = None,
 ) -> Engine:
     rules = ProjectConfig(
         version="1.0",
@@ -80,6 +87,7 @@ def make_engine(
                 id=generator_id,
                 output_dir=Path("out"),
                 cleanup=cleanup,
+                input=InputSelection(entities=input_entities),
             ),
         ),
     )
@@ -169,3 +177,64 @@ def test_generator_decorator_accepts_output_scope() -> None:
         return GenerationResult(artifacts=[Artifact(path="x.txt", content="x\n")])
 
     assert decorated.output_scope == "entity"
+
+
+def test_per_entity_rejects_empty_selection(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(tmp_path).generate(entities=[])
+
+    assert report.success is False
+    assert any(item.code == "EG018" for item in report.diagnostics)
+
+
+def test_per_entity_intersection_with_generator_input(tmp_path: Path) -> None:
+    PerEntityGenerator.last_entities = ()
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(tmp_path, input_entities=("Post",)).generate(entities=["User"])
+
+    assert report.success is True
+    assert PerEntityGenerator.last_entities == ()
+    assert not (tmp_path / "out" / "user.txt").exists()
+    assert not (tmp_path / "out" / "post.txt").exists()
+
+
+def test_per_entity_check_maps_eg303_to_exit_2(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(tmp_path, generator_id="model", plugin=ModelGenerator()).check(
+        entities=["User"]
+    )
+
+    assert report.success is False
+    assert report.exit_code == 2
+    assert any(item.code == "EG303" for item in report.diagnostics)
+
+
+def test_per_entity_preserves_input_fingerprint(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    engine = make_engine(tmp_path, incremental=True)
+    assert engine.generate().success is True
+    manifest_path = tmp_path / ".eggpipe" / "manifest.json"
+    before = json.loads(manifest_path.read_text(encoding="utf-8"))["locations"][0][
+        "input_fingerprint"
+    ]
+    assert before
+
+    assert engine.generate(entities=["User"]).success is True
+
+    after = json.loads(manifest_path.read_text(encoding="utf-8"))["locations"][0][
+        "input_fingerprint"
+    ]
+    assert after == before
+
+
+def test_generator_decorator_rejects_invalid_output_scope() -> None:
+    with pytest.raises(PluginContractError):
+        generator(id="bad-scope", input_formats=None, output_scope="bad")  # type: ignore[arg-type]
+
+
+def test_per_entity_accepts_single_string(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(tmp_path).generate(entities="User")  # type: ignore[arg-type]
+
+    assert report.success is True
+    assert (tmp_path / "out" / "user.txt").is_file()

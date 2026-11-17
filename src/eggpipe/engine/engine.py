@@ -123,6 +123,8 @@ class Engine:
         self._stale_paths = set()
         self._fingerprint = None
         self._incremental_reason = None
+        if isinstance(entities, str):
+            entities = (entities,)
         self._entities = tuple(dict.fromkeys(entities)) if entities is not None else None
         diagnostics: list[Diagnostic] = []
         phase = time.perf_counter()
@@ -172,7 +174,7 @@ class Engine:
                 diagnostics.extend(
                     error("EG018", f"unknown entity: {name}", entity=name) for name in missing
                 )
-                return self._report(False, 1, diagnostics, [], started)
+                return self._report(False, 1, self._filter_ignored(diagnostics), [], started)
             scope_errors = self._output_scope_errors()
             if scope_errors:
                 return self._report(False, 2, diagnostics + scope_errors, [], started)
@@ -478,6 +480,7 @@ class Engine:
             _digest_text(digest, generator_config.id)
             _digest_text(digest, _plugin_version(plugin))
             _digest_text(digest, str(plugin.api_version))
+            _digest_text(digest, str(getattr(type(plugin), "output_scope", "model")))
             _digest_text(digest, json.dumps(_input_formats(plugin), sort_keys=True))
         return digest.hexdigest()
 
@@ -693,17 +696,22 @@ class Engine:
         plugin: GeneratorPlugin,
     ) -> tuple[GenerationResult, ExecutionPlan]:
         selection = generator_config.input
+        empty_slice = False
         if self._entities is not None:
             selected = set(self._entities)
             if selection.entities:
-                selection = selection.model_copy(
-                    update={
-                        "entities": tuple(name for name in selection.entities if name in selected)
-                    }
-                )
+                overlap = tuple(name for name in selection.entities if name in selected)
+                if overlap:
+                    selection = selection.model_copy(update={"entities": overlap})
+                else:
+                    empty_slice = True
             else:
                 selection = selection.model_copy(update={"entities": self._entities})
-        slice_, slice_diagnostics = select_slice(composition.model, selection)
+        if empty_slice:
+            slice_ = ModelSlice()
+            slice_diagnostics: list[Diagnostic] = []
+        else:
+            slice_, slice_diagnostics = select_slice(composition.model, selection)
         context = GenerationContext(
             variables=dict(self.variables),
             naming_hint=self.rules.defaults.naming_convention,
@@ -1017,7 +1025,7 @@ def _has_errors(diagnostics: list[Diagnostic]) -> bool:
 def _exit_code(success: bool, diagnostics: list[Diagnostic]) -> int:
     if success:
         return 0
-    return 2 if any(item.code == "EG033" for item in diagnostics) else 1
+    return 2 if any(item.code in {"EG033", "EG303"} for item in diagnostics) else 1
 
 
 __all__ = ["Engine"]

@@ -313,6 +313,7 @@ class ArtifactWriter:
         fingerprint = input_fingerprint
         if old is not None:
             if merge:
+                # Per-entity writes merge into the location and intentionally skip cleanup/prune.
                 merged = {item.path: item for item in entries}
                 for item in old.artifacts:
                     merged.setdefault(item.path, item)
