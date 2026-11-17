@@ -9,7 +9,7 @@
 
 Репозиторий содержит реализацию ядра и спецификацию ТЗ v2.4: composition, форматы и слои, decorator API,
 watch, JSON-отчёт v2, provenance, глобальный manifest/lock, cleanup, `Engine`, CLI,
-reference- и TPC-H-плагины, golden-тесты. Per-entity генерация специфицирована (ADR-0018), реализация — следующий шаг.
+reference- и TPC-H-плагины, golden-тесты. Per-entity генерация реализована: `output_scope`, `Engine.entities`, CLI `--entity` (ADR-0018).
 
 ## Источники истины
 

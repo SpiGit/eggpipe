@@ -27,6 +27,21 @@ model:
           description: Identifier
 """
 
+MODEL_TWO = """\
+format: entity-model
+version: "1.0"
+model:
+  entities:
+    - name: User
+      fields:
+        - name: id
+          type: integer
+    - name: Post
+      fields:
+        - name: id
+          type: integer
+"""
+
 RULES = """\
 version: "1.0"
 sources:
@@ -42,6 +57,30 @@ def project(tmp_path: Path) -> tuple[Path, Path]:
     rules = tmp_path / ".eggpipe.yaml"
     rules.write_text(RULES, encoding="utf-8")
     return model, rules
+
+
+def per_entity_plugin(tmp_path: Path) -> Path:
+    plugin = tmp_path / "per_entity_plugin.py"
+    plugin.write_text(
+        """\
+from eggpipe import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
+
+class PerEntity(GeneratorPlugin):
+    id = "per-entity"
+    input_formats = None
+    output_scope = "entity"
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult(
+            artifacts=[
+                Artifact(path=f"{entity.name.lower()}.txt", content=f"{entity.name}\\n")
+                for entity in input.model.entities
+            ]
+        )
+""",
+        encoding="utf-8",
+    )
+    return plugin
 
 
 def test_model_validate(tmp_path: Path) -> None:
@@ -430,3 +469,153 @@ def test_json_report_v2_action_and_timings(
         "total_ms",
     }
     assert report["generators"][0]["status"] == "ok"
+
+
+def test_generate_per_entity_with_local_plugin(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    plugin = tmp_path / "per_entity_plugin.py"
+    plugin.write_text(
+        """\
+from eggpipe import Artifact, GenerationResult, GeneratorInput, GeneratorPlugin
+
+class PerEntity(GeneratorPlugin):
+    id = "per-entity"
+    input_formats = None
+    output_scope = "entity"
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult(
+            artifacts=[
+                Artifact(path=f"{entity.name.lower()}.txt", content=f"{entity.name}\\n")
+                for entity in input.model.entities
+            ]
+        )
+""",
+        encoding="utf-8",
+    )
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: per-entity\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--plugin", str(plugin), "--entity", "User"],
+    )
+    assert result.exit_code == 0
+    assert (tmp_path / "out" / "user.txt").is_file()
+
+
+def test_generate_per_entity_requires_entity_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, rules = project(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    entries = [EntryPoint("reference", ReferenceGenerator)]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--entity", "User"])
+    assert result.exit_code == 2
+    assert "EG303" in result.stderr
+
+
+def test_generate_per_entity_unknown_entity(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    plugin = tmp_path / "per_entity_plugin.py"
+    plugin.write_text(
+        """\
+from eggpipe import GenerationResult, GeneratorInput, GeneratorPlugin
+
+class PerEntity(GeneratorPlugin):
+    id = "per-entity"
+    input_formats = None
+    output_scope = "entity"
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult()
+""",
+        encoding="utf-8",
+    )
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: per-entity\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--plugin", str(plugin), "--entity", "Missing"],
+    )
+    assert result.exit_code == 1
+    assert "EG018" in result.stderr
+
+
+def test_watch_rejects_entity_option(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    result = CliRunner().invoke(app, ["watch", "-c", str(rules), "--entity", "User"])
+    assert result.exit_code == 2
+
+
+def test_gen_info_shows_output_scope(monkeypatch: pytest.MonkeyPatch) -> None:
+    entries = [EntryPoint("reference", ReferenceGenerator)]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    result = CliRunner().invoke(app, ["gen", "info", "reference"])
+    assert result.exit_code == 0
+    assert "output_scope: model" in result.stdout
+
+
+def test_generate_per_entity_accepts_lists_and_repeats(tmp_path: Path) -> None:
+    model, rules = project(tmp_path)
+    model.write_text(MODEL_TWO, encoding="utf-8")
+    plugin = per_entity_plugin(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: per-entity\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    first = runner.invoke(
+        app,
+        ["generate", "-c", str(rules), "--plugin", str(plugin), "--entity", "User"],
+    )
+    assert first.exit_code == 0
+    assert (tmp_path / "out" / "user.txt").is_file()
+    assert not (tmp_path / "out" / "post.txt").exists()
+
+    second = runner.invoke(
+        app,
+        [
+            "generate",
+            "-c",
+            str(rules),
+            "--plugin",
+            str(plugin),
+            "--entity",
+            "User, Post",
+            "--entity",
+            "User",
+        ],
+    )
+    assert second.exit_code == 0
+    assert (tmp_path / "out" / "post.txt").is_file()
+
+
+@pytest.mark.parametrize("value", ["", ",", " , "])
+def test_generate_empty_entity_exits_2(tmp_path: Path, value: str) -> None:
+    _, rules = project(tmp_path)
+    plugin = per_entity_plugin(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: per-entity\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--plugin", str(plugin), "--entity", value],
+    )
+    assert result.exit_code == 2

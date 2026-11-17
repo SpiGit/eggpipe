@@ -556,6 +556,7 @@ eggpipe generate -g oracle-ddl
 |------|----------|
 | `--config, -c` | путь к `.eggpipe.yaml` |
 | `--generator, -g` | id генераторов: через запятую или повторно |
+| `--entity` | per-entity генерация: имя или список через запятую, повторяемый флаг; требует `output_scope="entity"` у всех выбранных генераторов |
 | `--plugin PATH` | dev-only локальный плагин |
 | `--output, -o` | корень артефактов вместо каталога конфига |
 | `--var KEY=VALUE` | переменные для плагинов |
@@ -565,8 +566,8 @@ eggpipe generate -g oracle-ddl
 | `--force` | перезаписать unowned-файлы |
 | `--strict` | warnings → errors |
 | `--ignore` | коды warnings через запятую |
-| `--clean` | cleanup enabled для запуска |
-| `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict` |
+| `--clean` | cleanup enabled для запуска; игнорируется с `--entity` |
+| `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict`/`--entity` |
 | `--include-disabled` | включить `enabled: false` |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |
 | `--output-format` | `text` или `json` |
@@ -580,7 +581,7 @@ eggpipe watch
 eggpipe watch ./models/blog.yaml
 ```
 
-Флаги как у `generate`, плюс `--debounce-ms` (алиас `--debounce`).
+Флаги как у `generate`, плюс `--debounce-ms` (алиас `--debounce`). `--entity` в watch не поддерживается.
 Первичная генерация выполняется сразу; изменения конфига перезагружают настройки,
 плагины — нет.
 
@@ -634,7 +635,7 @@ eggpipe clean --root ./project
 |-----|----------|
 | `0` | успех |
 | `1` | errors парсинга/валидации/генерации, drift, `--strict` warnings |
-| `2` | config/usage/plugin errors, EG033/EG034/EG301/EG302 |
+| `2` | config/usage/plugin errors, EG033/EG034/EG301/EG302/EG303 |
 | `130` | Ctrl+C в `generate`; watch завершается штатно с `0` |
 
 ## JSON

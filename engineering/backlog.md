@@ -41,6 +41,6 @@
 | B-018 | done | EG303 в user diagnostics | PR #29 review | Каталог кодов | #29 | 2026-11-17 |
 | B-019 | done | ссылка ADR-0018 в System Design | PR #29 review | Навигация | #29 | 2026-11-17 |
 | B-020 | done | `output_scope` в skill | PR #29 review | Чек-лист | #29 | 2026-11-17 |
-| B-021 | open | `--clean --entity`: warning EG030 вместо тихого игнора | PR #26 review | Пользователь не видит, что cleanup пропущен | — | — |
+| B-021 | done | `--clean --entity`: warning EG030 вместо тихого игнора | PR #26 review | Пользователь не видит, что cleanup пропущен | #32 | 2026-11-17 |
 | B-022 | done | исправить таблицы v2.4 | PR #29 review | Мелкие дефекты | #29 | 2026-11-17 |
 | B-023 | open | PR body: показывать число тестов и покрытие (`Tests: N; coverage: X%`) | user request 2026-11-17 | Видимость coverage в PR | — | — |
