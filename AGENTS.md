@@ -7,9 +7,9 @@
 `eggpipe` — инструмент, который генерирует артефакты (SQL, Python, TypeScript и т.д.)
 из YAML-описания модели данных. Архитектура: нейтральное ядро + плагины генераторов и форматов.
 
-Репозиторий содержит реализацию ТЗ v2.4: composition, форматы и слои, decorator API,
+Репозиторий содержит реализацию ядра и спецификацию ТЗ v2.4: composition, форматы и слои, decorator API,
 watch, JSON-отчёт v2, provenance, глобальный manifest/lock, cleanup, `Engine`, CLI,
-reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, версия пакета и release.
+reference- и TPC-H-плагины, golden-тесты. Per-entity генерация специфицирована (ADR-0018), реализация — следующий шаг.
 
 ## Источники истины
 
