@@ -20,7 +20,7 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 
 - `main`: `86cee35`; актуальное ТЗ — v2.4 (per-entity generation).
 - Текущий релиз — **0.4.0**; последний опубликованный — `0.3.2`.
-- В 0.4.0 уже входят: incremental generation (ADR-0017, #18), per-entity generation (ADR-0018, #26/#32/#33), PR-процесс и backlog (#19–#25, #27–#31).
+- В 0.4.0 уже входят: incremental generation (ADR-0017, #18), per-entity generation (ADR-0018, #26/#32/#33), PR-процесс и backlog (#19–#25, #27–#31), а также всё из CHANGELOG `[Unreleased]` (ADR-0016, mike, SBOM, benchmarks).
 - Осталось до 0.4.0: Plugin DX (one-command template, contract-test kit, examples, docs).
 - Открыто в backlog: B-023 (tests/coverage в PR body), B-024 (тесты merge `formats`/`generated_at`).
 - Следующая веха после 0.4.0 — **0.5.0**: watch, L2/L3 cache, auto-discovery, benchmarks.
@@ -67,8 +67,8 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 - [ ] понятные ошибки контракта плагина;
 - [ ] раздел «Первый плагин за 10 минут».
 
-Не входит в 0.4.0: watch improvement, L2/L3 cache, auto-discovery, метрики,
-relations/FK. Это 0.5.0+.
+Не входит в 0.4.0: watch improvement, L2/L3 cache, auto-discovery, метрики.
+Это 0.5.0+. Relations/FK не зафиксированы: P2 и открытый вопрос 2.
 
 Критерий релиза: чеклист закрыт, CHANGELOG и docs обновлены, `ci-success` зелёный,
 release workflow проверен, тег `0.4.0` поставлен на `main`.
@@ -81,7 +81,7 @@ release workflow проверен, тег `0.4.0` поставлен на `main`
 - кэш разбора и композиции (L2/L3);
 - авто-discovery ресурсов (если подтвердится сценарием);
 - метрики и structured logging;
-- бенчмарки на TPC-H и синтетических моделях;
+- регулярные и регрессионные бенчмарки, синтетические модели (база уже в 0.4.0);
 - reference examples, если не успеют в 0.4.0.
 
 ### 0.6.0 — 1.0 readiness
@@ -117,9 +117,9 @@ release workflow проверен, тег `0.4.0` поставлен на `main`
 |--------|---------|-------|-----------|--------|
 | Шаблон плагина | Плагины | 0.4.0 | Новый плагин создаётся одной командой | Частично |
 | Contract-test kit | Плагины | 0.4.0 | Автор плагина проверяет контракт локально | Частично |
-| Политика deprecation | API | 0.3.2 | Понятно, как менять API до 1.0 | Готово (ADR-0016) |
-| Версионирование документации | Docs | 0.3.2 | Старые версии docs не теряются | Готово |
-| Бенчмарк-набор | Ядро | 0.3.2 | Есть базовые цифры до оптимизаций | Готово |
+| Политика deprecation | API | 0.4.0 | Понятно, как менять API до 1.0 | Готово (ADR-0016) |
+| Версионирование документации | Docs | 0.4.0 | Старые версии docs не теряются | Готово |
+| Бенчмарк-набор | Ядро | 0.4.0 | Есть базовые цифры до оптимизаций | Готово |
 | Аудит инженерной документации | Docs | 0.4.0 | ТЗ, ADR, System Design, roadmap и session-log показывают актуальную точку | Следующая |
 
 ### P1 — следующий этап
@@ -131,7 +131,7 @@ release workflow проверен, тег `0.4.0` поставлен на `main`
 | Улучшение watch | Ядро | 0.5.0 | Нет параллельных запусков и лишних пересборок | Следующая |
 | Reference-плагины SQL/Pydantic/TS | Экосистема | 0.4.0 | Переиспользуемые примеры, не только TPC-H | Не начато |
 | PostgreSQL transform/upsert example | Экосистема | 0.5.0 | Пример процедур; кандидат в 0.5.0 | Не начато |
-| PyPI attestations / SBOM | Безопасность | 0.3.2 | Attestations уже есть; SBOM добавлен в release | Готово |
+| PyPI attestations / SBOM | Безопасность | 0.3.2 / 0.4.0 | Attestations — 0.3.2; SBOM — 0.4.0 | Готово |
 | Метрики и structured logging | Эксплуатация | 0.5.0 | Проще диагностировать проблемы | Не начато |
 
 ### Аудит инженерной документации
@@ -193,7 +193,7 @@ Relations в ядре остаются открытым вопросом 2.
 ## 8. Ближайшие две недели
 
 1. [x] Инкрементальная генерация (ADR-0017, #18) — входит в 0.4.0.
-2. [x] Per-entity generation (ADR-0018, #32/#33) — входит в 0.4.0.
+2. [x] Per-entity generation (ADR-0018, #26/#32/#33) — входит в 0.4.0.
 3. [ ] B-023: tests/coverage в PR body; B-024: тесты merge `formats`/`generated_at`.
 4. [ ] Аудит инженерной документации.
 5. [ ] Добить 0.4.0 Plugin DX: one-command template, contract-test kit, examples, docs.
