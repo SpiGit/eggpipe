@@ -15,13 +15,13 @@
 - `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
 - `tools/create_pr.py` обновляет блок размера в PR body по маркерам и сохраняет
   ручную карту ревью при повторном запуске.
-- `engineering/backlog.md` — единое место для отложенных minor и техдолга; PR-шаблон
-  и процесс ревью требуют фиксировать их там.
+- PR-шаблон и процесс ревью требуют фиксировать отложенные minor в backlog.
 - `tools/create_pr.py`: size-check использует `git diff --numstat -z`, сохраняет
   `## Size exception` при обновлении PR и отклоняет пустой `--allow-large`.
 
 ### Added
 
+- `engineering/backlog.md` — единое место для отложенных minor и техдолга.
 - `--incremental` / `EGGPIPE_INCREMENTAL=true` — opt-in кэш на уровне location:
   пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов;
   отключается при `--check`, `--force`, `--clean`, `--strict` и внешних импортах.

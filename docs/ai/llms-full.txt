@@ -702,6 +702,13 @@ report.timings: dict[str, int]
 `artifacts[].action`: `create | update | skip | delete | conflict | error | drift`.
 `generators[].status`: `ok | error | skipped`.
 
+## Provenance
+
+`git_provenance(path)` запускает `git` и наследует окружение процесса. Если вызывающий код
+работает под git hook или CI с `GIT_DIR`/`GIT_WORK_TREE`, он должен очистить `GIT_*` перед
+вызовом; harness делает это в `tools/preflight.py`. Вне git-репозитория функция возвращает
+`None`.
+
 ## Исключения
 
 - `EggpipeError` — базовая ошибка библиотеки.

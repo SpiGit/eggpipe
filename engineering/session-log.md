@@ -15,7 +15,7 @@
 
 **Статус ТЗ:** v2.4 — рабочая версия (замещает v2.3)
 **Статус проекта:** beta (0.x); до 1.0 breaking changes возможны (ADR-0014)
-**Идентичность:** Eggpipe v2.2: package/CLI/config/state переименованы; старые имена остаются только в истории и ADR.
+**Идентичность:** Eggpipe: package/CLI/config/state; старые имена остаются только в истории и ADR.
 **Реализация:** E0–E9 выполнены, релиз `0.3.2` опубликован на PyPI; код и сообщения English-only, EG-коды.
 **Code review:** `engineering/reviews/2026-11-13-code-quality-review.md`; skill `clean-code` добавлен; M1/M2/M4/M6/M8 исправлены.
 **Patterns review:** `engineering/reviews/2026-11-13-patterns-review.md`; skill `python-patterns` добавлен; P1–P15 применены; continue-аудит: 74 → 39, оставшиеся — guard clauses.
@@ -126,6 +126,10 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 | ADR-0012 | `engineering/adr/0012-english-only-source.md` | Принято (English-only) |
 | ADR-0013 | `engineering/adr/0013-diagnostic-code-namespace.md` | Принято (EG-коды) |
 | ADR-0014 | `engineering/adr/0014-beta-status-and-compatibility.md` | Принято (beta и совместимость) |
+| ADR-0015 | `engineering/adr/0015-branching-and-release-policy.md` | Принято (ветвление и релизы) |
+| ADR-0016 | `engineering/adr/0016-deprecation-policy.md` | Принято (deprecation) |
+| ADR-0017 | `engineering/adr/0017-incremental-generation.md` | Принято (incremental) |
+| ADR-0018 | `engineering/adr/0018-per-entity-generation.md` | Принято (per-entity) |
 | Ревью | `engineering/reviews/2026-11-10-project-review.md` | P0 внесены в v1.2; P1/P2 — backlog |
 
 ## Harness
@@ -190,7 +194,7 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 ├── pyproject.toml          # Пакет и конфигурация инструментов
 ├── pyrightconfig.json      # basedpyright/Pyright
 ├── uv.lock                 # Зафиксированные dev-зависимости
-├── README.md               # Обновлён по v2.2
+├── README.md               # Обновлён по v2.4
 ├── src/
 │   └── eggpipe/
 │       ├── __init__.py     # Публичный API
@@ -295,8 +299,8 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 │       ├── index.md
 │       ├── requirements/
 │       │   ├── index.md
-│       │   ├── v1.0.md … v2.0.md   # История
-│       │   └── v2.1.md             # Актуальное ТЗ
+│       │   ├── v1.0.md … v2.3.md   # История
+│       │   └── v2.4.md             # Актуальное ТЗ
 │       ├── adr/
 │       ├── system-design/
 │       ├── reviews/

@@ -141,7 +141,8 @@ class MyFormat(EntityModelFormat):
 
 ### Generator
 
-- [ ] `api_version`, `id`, `name`, `input_formats`, `output_scope` заданы как `ClassVar`.
+- [ ] `api_version`, `id`, `name`, `input_formats` заданы как `ClassVar`.
+- [ ] `output_scope="entity"` задан только если генератор действительно поддерживает per-entity.
 - [ ] `input_formats` обязателен: `None` — любой, `set()` — ни один.
 - [ ] Entry point совпадает с `id`; `id` соответствует pattern.
 - [ ] Для decorator API аннотации только `ModelSlice`/`GenerationContext`/`GeneratorConfig`.
