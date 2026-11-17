@@ -16,6 +16,7 @@
 - `tools/create_pr.py` обновляет блок размера в PR body по маркерам и сохраняет
   ручную карту ревью при повторном запуске; предупреждает об изменении shared-файлов.
 - Backlog ведётся одной таблицей со статусом, без переноса строк между секциями.
+- PR-процесс: rebase только при `behind`/`dirty`, squash WIP перед rebase, `rerere`/`zdiff3`.
 - PR-шаблон и процесс ревью требуют фиксировать отложенные minor в backlog.
 - `tools/create_pr.py`: size-check использует `git diff --numstat -z`, сохраняет
   `## Size exception` при обновлении PR и отклоняет пустой `--allow-large`.

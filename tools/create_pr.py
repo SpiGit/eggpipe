@@ -58,6 +58,18 @@ def shared_paths(paths: list[str]) -> list[str]:
     )
 
 
+def shared_warning(paths: list[str]) -> str | None:
+    """Return a warning for shared-file changes, or None."""
+    shared = shared_paths(paths)
+    if not shared:
+        return None
+    return (
+        "warning: shared files changed: "
+        + ", ".join(shared)
+        + ". Keep a single owner across parallel PRs."
+    )
+
+
 def is_generated(path: str) -> bool:
     """Return True for files that do not count towards the PR size budget."""
     return path.startswith(GENERATED_PREFIXES) or any(
@@ -347,14 +359,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"warning: {warning}", file=sys.stderr)
 
     changed = _run_git("diff", "--name-only", f"origin/{args.base}...HEAD").splitlines()
-    shared = shared_paths(changed)
-    if shared:
-        print(
-            "warning: shared files changed: "
-            + ", ".join(shared)
-            + ". Keep a single owner across parallel PRs.",
-            file=sys.stderr,
-        )
+    warning_text = shared_warning(changed)
+    if warning_text is not None:
+        print(warning_text, file=sys.stderr)
 
     token = _token()
     existing = find_open_pr(repo, branch, token)

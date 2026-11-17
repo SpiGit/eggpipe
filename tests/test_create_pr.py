@@ -19,6 +19,7 @@ from tools.create_pr import (
     preserve_size_exception,
     repo_from_remote,
     shared_paths,
+    shared_warning,
     size_block,
     size_warning,
     upsert_size_block,
@@ -310,3 +311,11 @@ def test_shared_paths() -> None:
         "engineering/backlog.md",
         "engineering/requirements/v2.4.md",
     ]
+
+
+def test_shared_warning() -> None:
+    assert shared_warning(["src/engine.py"]) is None
+    warning = shared_warning(["CHANGELOG.md", "src/engine.py"])
+    assert warning is not None
+    assert "CHANGELOG.md" in warning
+    assert "single owner" in warning
