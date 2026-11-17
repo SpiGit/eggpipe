@@ -495,7 +495,7 @@ PR C — после PR A.
 | Что | Причина | Импакт |
 |-----|---------|--------|
 | Git hook pollution | `GIT_DIR` из pre-push попал в provenance-тест | Commit/core.bare в repo; исправлено #22 |
-| Backlog cleanup | После PR #18 накопилось 22 minor | 21 закрыт, остался B-023 |
+| Backlog cleanup | B-001–B-022 накопились за ревью | Все закрыты (B-021 — в #32); открыты B-023 и B-024 |
 | Per-entity реализация | Спецификация и engine/CLI сделаны в тот же день | P1 закрыт раньше плана |
 | Process optimizations | Долгие rebase и конфликты | shared-file warning, rebase policy, rerere |
 
