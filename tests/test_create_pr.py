@@ -148,8 +148,8 @@ def test_size_block_contains_stats() -> None:
     block = size_block(DiffSize(lines=12, files=1, generated_lines=9, generated_files=3))
     assert block.startswith(SIZE_BLOCK_START)
     assert block.endswith(SIZE_BLOCK_END)
-    assert "12 строк, 1 файлов" in block
-    assert "9 строк, 3 файлов" in block
+    assert "12 строк, 1 файл" in block
+    assert "9 строк, 3 файла" in block
 
 
 def test_upsert_size_block_replaces_markers() -> None:
@@ -160,7 +160,7 @@ def test_upsert_size_block_replaces_markers() -> None:
     )
     updated = upsert_size_block(body, DiffSize(lines=20, files=2))
     assert "- old stats" not in updated
-    assert "20 строк, 2 файлов" in updated
+    assert "20 строк, 2 файла" in updated
     assert updated.count(SIZE_BLOCK_START) == 1
     assert "## Карта ревью\n\n- src/engine.py" in updated
 
@@ -169,12 +169,20 @@ def test_upsert_size_block_appends_section() -> None:
     updated = upsert_size_block("## Что изменено\n\n- feat\n", DiffSize(lines=3, files=1))
     assert "## Что изменено" in updated
     assert "## Размер" in updated
-    assert "3 строк, 1 файлов" in updated
+    assert "3 строки, 1 файл" in updated
 
 
-def test_upsert_size_block_migrates_heading() -> None:
-    body = "## Размер\n\nold manual text\n\n## Карта ревью\n\n- src/engine.py\n"
+def test_upsert_size_block_preserves_legacy_content() -> None:
+    body = "## Размер и карта ревью\n\nold manual text\n\n## Ревью\n\n- ok\n"
     updated = upsert_size_block(body, DiffSize(lines=7, files=1))
-    assert "old manual text" not in updated
-    assert "7 строк, 1 файлов" in updated
-    assert "## Карта ревью\n\n- src/engine.py" in updated
+    assert "old manual text" in updated
+    assert "## Ревью\n\n- ok" in updated
+    assert "7 строк, 1 файл" in updated
+    assert updated.count("## Размер") == 2
+
+
+def test_upsert_size_block_preserves_size_exception() -> None:
+    body = "## Что изменено\n\n- feat\n\n## Size exception\n\nlarge spec\n"
+    updated = upsert_size_block(body, DiffSize(lines=3, files=1))
+    assert "## Size exception\n\nlarge spec" in updated
+    assert "3 строки, 1 файл" in updated
