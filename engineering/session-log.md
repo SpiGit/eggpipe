@@ -10,8 +10,9 @@
 - 2026-11-12 (седьмая сессия: Eggpipe, v2.0, CLI/UX, диагностики, JSON v2)
 - 2026-11-13 (восьмая сессия: полное ревью проекта — ТЗ и код, модель Qwen3.8 Max)
 - 2026-11-13 (девятая сессия: v2.2, English-only, EG-коды, версия 0.3.0, E9)
+- 2026-11-16 (десятая сессия: incremental generation, ADR-0017, ТЗ v2.3, PR-процесс)
 
-**Статус ТЗ:** v2.2 — рабочая версия (замещает v2.1)
+**Статус ТЗ:** v2.3 — рабочая версия (замещает v2.2)
 **Статус проекта:** beta (0.x); до 1.0 breaking changes возможны (ADR-0014)
 **Идентичность:** Eggpipe v2.2: package/CLI/config/state переименованы; старые имена остаются только в истории и ADR.
 **Реализация:** E0–E9 выполнены, релиз `0.3.2` опубликован на PyPI; код и сообщения English-only, EG-коды.
@@ -399,3 +400,56 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 6. E7 выполнен: CLI/UX, diagnostics, JSON v2, strict/ignore, new schemas/info.
 7. E9 выполнен: CI, release workflow, версия пакета 0.3.2.
 8. PyPI trusted publisher настроен; тег `v0.3.2` опубликован, пакет доступен на PyPI.
+
+
+---
+
+## 2026-11-16 — incremental generation и PR-процесс
+
+### 1. План на день
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | Завершить incremental generation: ADR-0017, ТЗ v2.3, fingerprint, CLI, тесты, docs | Выполнено |
+| 2 | Провести PR через CI и ревью | Выполнено, 6 итераций |
+| 3 | Смержить и очистить ветки | Выполнено |
+
+### 2. Выполнено
+
+| Задача | Результат |
+|--------|-----------|
+| Incremental generation | PR #18: `--incremental`, `input_fingerprint`, `FormatPlugin.input_paths`, `fingerprint_ms`, ADR-0017, ТЗ v2.3 |
+| Roadmap PostgreSQL transform | PR #17: пример зафиксирован как кандидат в `0.5.0` |
+| PR-процесс | PR #19: Definition of Ready, бюджет 500/15, split rule, review freeze, size-warning, PR-шаблон |
+| Очистка | `main` на `dd5d2dd`; ветки #18/#19 удалены локально и на remote |
+
+### 3. Вне плана
+
+| Что | Причина | Импакт |
+|-----|---------|--------|
+| PR #19 про процесс PR | PR #18 оказался слишком большим | Появился бюджет размера и review freeze |
+| 6 итераций ревью | Контракт формата и locations всплыли поздно | Время, но контракт стал корректнее |
+| `FormatPlugin.input_paths` | Сторонние форматы читают файлы вне `model.imports` | Закрыта дыра с устаревшими артефактами |
+| `--strict` отключает incremental | На cache hit терялись warnings | Поведение `--strict` согласовано |
+
+### 4. Не выполнено
+
+| Задача | Причина | Перенос |
+|--------|---------|---------|
+| Per-entity generate | Не начинали | 2026-11-17, design-first |
+| Улучшение watch | Не начинали | После per-entity |
+| Reference-плагины | Не начинали | Параллельно |
+| Синхронизация session context/log | Отложено | 2026-11-17 |
+| Follow-up minor `create_pr.py` | Вынесены | 2026-11-17 |
+
+### 5. План на 2026-11-17
+
+| # | Задача | Контекст | Импакт | Формат |
+|---|--------|----------|--------|--------|
+| 1 | Перезапустить `ci` на `dd5d2dd` | macOS 3.11 cancelled | Уверенность в зелёном main | 5 минут |
+| 2 | Day-closure и session sync | AGENTS/CONTRIBUTING + session-файлы | Повторяемое закрытие дня | docs |
+| 3 | Follow-up `create_pr.py` | renames, `fnmatchcase`, size exception | Надёжный size-check | chore |
+| 4 | Per-entity spec/ADR | CLI/API, ownership, incremental | Разблокирует P1 | spec |
+
+Параллельно: PR A (docs) и PR B (chore) в отдельных worktree, файлы не пересекаются.
+PR C — после PR A.

@@ -33,6 +33,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 | `engineering/system-design/index.md` | System Design |
 | `engineering/adr/` | Принятые архитектурные решения |
 | `engineering/reviews/` | Ревью и backlog P1/P2 |
+| `engineering/day-closure.md` | Шаблон и правила завершения дня |
 | `engineering/roadmap.md` | Направления развития и подготовка к 1.0 |
 | `engineering/decisions/eggpipe.md` | Имя, CLI/конфиг, бренд и идеи лого |
 | `docs/user/plugins.md` | Руководство по плагинам |
@@ -73,6 +74,24 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
   можно не читать построчно, какие вопросы задать ревьюеру, что вне scope.
 - `tools/create_pr.py` предупреждает о превышении бюджета; `--allow-large "reason"`
   фиксирует осознанное исключение.
+
+## Параллельная работа
+
+- Одна задача — одна ветка и один worktree.
+- У задачи есть owned paths; чужие owned paths не редактируются.
+- Общие файлы (`AGENTS.md`, `CHANGELOG.md`, `docs/ai/**`, версии ТЗ) имеют одного
+  владельца или обновляются последовательно.
+- Generated-файлы пересобирает только владелец задачи.
+- Перед merge — rebase на актуальный `main`.
+- Если файлы пересекаются, задачи выполняются последовательно, а не параллельно.
+- Subagent работает в отдельном worktree; основной агент координирует порядок merge.
+
+## Закрытие дня
+
+В конце дня заполнить `engineering/session-log.md` по шаблону
+[`engineering/day-closure.md`](./engineering/day-closure.md): план, выполнено, вне плана,
+не выполнено, план на завтра. В `.session-context.md` оставить только текущее состояние и
+следующие шаги. На завтра — не больше 3–4 задач с импактом.
 
 ## PR review
 
