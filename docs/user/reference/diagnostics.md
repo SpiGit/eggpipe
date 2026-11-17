@@ -64,7 +64,7 @@
 `cleanup: prompt` без поддерживаемого tty-подтверждения: ядро откатывается к `cleanup: off`.
 
 `EG030` и `EG300` входят в диапазоны EG0xx и EG3xx.
-Коды EG027, EG029, EG031–EG038, EG051, EG052, EG301–EG303 относятся к слоям, форматам,
+Коды EG027, EG029, EG031–EG038, EG051, EG052, EG301–EG303 относятся к слоям, форматам, per-entity/plugin API,
 ресурсам, manifest и decorator API.
 
 `diagnostics.ignore` и `--ignore` игнорируют только warnings; errors показываются всегда.

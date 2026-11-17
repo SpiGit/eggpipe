@@ -24,24 +24,24 @@
 
 | ID | Задача | PR | Дата | Статус |
 |----|--------|----|------|--------|
-| B-001 | create_pr START без END | #28 | 2026-11-17 | done |
-| B-002 | тест сохранения title/body | #28 | 2026-11-17 | done |
-| B-003 | numstat -z | #28 | 2026-11-17 | done |
-| B-004 | тест clean_env в preflight | #28 | 2026-11-17 | done |
-| B-010 | _disable_incremental return | #28 | 2026-11-17 | done |
-| B-005 | git_provenance environment docs | #29 | 2026-11-17 | done |
-| B-006 | session-log v2.2 остатки | #29 | 2026-11-17 | done |
-| B-007 | day-closure формулировки | #29 | 2026-11-17 | done |
-| B-008 | Size exception persistence | #29 | 2026-11-17 | done |
-| B-009 | input_paths invalid model | #29 | 2026-11-17 | done |
-| B-011 | Закрытые status column | #29 | 2026-11-17 | done |
-| B-012 | роль автора/ревьюера | #29 | 2026-11-17 | done |
-| B-013 | PR-шаблон minor нет | #29 | 2026-11-17 | done |
-| B-014 | roadmap link | #29 | 2026-11-17 | done |
-| B-015 | CHANGELOG category | #29 | 2026-11-17 | done |
-| B-016 | day-closure link | #29 | 2026-11-17 | done |
-| B-017 | EG018 wording | #29 | 2026-11-17 | done |
-| B-018 | EG303 diagnostics | #29 | 2026-11-17 | done |
-| B-019 | System Design ADR link | #29 | 2026-11-17 | done |
-| B-020 | skill output_scope | #29 | 2026-11-17 | done |
-| B-022 | v2.4 table fixes | #29 | 2026-11-17 | done |
+| B-001 | create_pr: не терять хвост body при открытом size-блоке | #28 | 2026-11-17 | done |
+| B-002 | тест сохранения title/body при обновлении PR | #28 | 2026-11-17 | done |
+| B-003 | перейти на `numstat -z` | #28 | 2026-11-17 | done |
+| B-004 | тест передачи `clean_env` в preflight | #28 | 2026-11-17 | done |
+| B-010 | явный `return None` в `_disable_incremental` | #28 | 2026-11-17 | done |
+| B-005 | документировать окружение `git_provenance` | #29 | 2026-11-17 | done |
+| B-006 | убрать остатки v2.2 из session-log | #29 | 2026-11-17 | done |
+| B-007 | уточнить формулировки day-closure | #29 | 2026-11-17 | done |
+| B-008 | зафиксировать персистентность `Size exception` | #29 | 2026-11-17 | done |
+| B-009 | уточнить `input_paths` при невалидном model | #29 | 2026-11-17 | done |
+| B-011 | колонка статуса в «Закрытых» | #29 | 2026-11-17 | done |
+| B-012 | роль автора и ревьюера | #29 | 2026-11-17 | done |
+| B-013 | чекбокс «minor нет» в PR-шаблоне | #29 | 2026-11-17 | done |
+| B-014 | ссылка на backlog из roadmap | #29 | 2026-11-17 | done |
+| B-015 | рубрика CHANGELOG для backlog | #29 | 2026-11-17 | done |
+| B-016 | ссылка на backlog в day-closure | #29 | 2026-11-17 | done |
+| B-017 | формулировка EG018 | #29 | 2026-11-17 | done |
+| B-018 | EG303 в user diagnostics | #29 | 2026-11-17 | done |
+| B-019 | ссылка ADR-0018 в System Design | #29 | 2026-11-17 | done |
+| B-020 | `output_scope` в skill | #29 | 2026-11-17 | done |
+| B-022 | исправить таблицы v2.4 | #29 | 2026-11-17 | done |
