@@ -22,6 +22,9 @@ MAX_PR_FILES = 15
 GENERATED_PREFIXES = ("docs/ai/",)
 GENERATED_PATTERNS = ("engineering/requirements/v*.md", "uv.lock")
 SIZE_EXCEPTION_HEADING = "## Size exception"
+SIZE_HEADING = "## Размер"
+SIZE_BLOCK_START = "<!-- pr-size:start -->"
+SIZE_BLOCK_END = "<!-- pr-size:end -->"
 RENAME_SEPARATOR = " => "
 BRACE_RENAME = re.compile(r"\{([^{}]*)" + re.escape(RENAME_SEPARATOR) + r"([^{}]*)\}")
 PATH_ESCAPES = {"t": "\t", "n": "\n", "r": "\r", '"': '"', "\\": "\\"}
@@ -141,6 +144,45 @@ def default_title(subjects: list[str], branch: str) -> str:
     return subjects[0] if subjects else branch
 
 
+def _plural(value: int, one: str, few: str, many: str) -> str:
+    if value % 10 == 1 and value % 100 != 11:
+        return one
+    if 2 <= value % 10 <= 4 and not 12 <= value % 100 <= 14:
+        return few
+    return many
+
+
+def size_block(size: DiffSize) -> str:
+    """Render the machine-maintained size block."""
+    lines = f"{size.lines} {_plural(size.lines, 'строка', 'строки', 'строк')}"
+    files = f"{size.files} {_plural(size.files, 'файл', 'файла', 'файлов')}"
+    generated_lines = (
+        f"{size.generated_lines} {_plural(size.generated_lines, 'строка', 'строки', 'строк')}"
+    )
+    generated_files = (
+        f"{size.generated_files} {_plural(size.generated_files, 'файл', 'файла', 'файлов')}"
+    )
+    return (
+        f"{SIZE_BLOCK_START}\n"
+        f"- Hand-written diff: {lines}, {files}\n"
+        f"- Generated/full-copy: {generated_lines}, {generated_files}\n"
+        f"{SIZE_BLOCK_END}"
+    )
+
+
+def upsert_size_block(body: str, size: DiffSize) -> str:
+    """Replace the size block or append a new section without touching manual content."""
+    block = size_block(size)
+    start = body.find(SIZE_BLOCK_START)
+    if start != -1:
+        end = body.find(SIZE_BLOCK_END, start)
+        if end == -1:
+            return f"{body[:start]}{block}\n"
+        end += len(SIZE_BLOCK_END)
+        return f"{body[:start]}{block}{body[end:]}"
+    return f"{body.rstrip()}\n\n{SIZE_HEADING}\n\n{block}\n"
+
+
 def with_size_exception(body: str, reason: str | None) -> str:
     """Append a persistent size-exception section once."""
     if not reason or SIZE_EXCEPTION_HEADING in body:
@@ -182,13 +224,17 @@ def find_open_pr(repo: str, branch: str, token: str) -> int | None:
     return None
 
 
-def pr_body(repo: str, number: int, token: str) -> str:
-    """Return the current body of a pull request, or an empty string."""
+def pr_details(repo: str, number: int, token: str) -> tuple[str, str]:
+    """Return the current title and body of a pull request."""
     data = _api("GET", f"/repos/{repo}/pulls/{number}", token)
     if not isinstance(data, dict):
-        return ""
+        return "", ""
+    title = data.get("title")
     body = data.get("body")
-    return body if isinstance(body, str) else ""
+    return (
+        title if isinstance(title, str) else "",
+        body if isinstance(body, str) else "",
+    )
 
 
 def _token() -> str:
@@ -270,16 +316,20 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"warning: {warning}", file=sys.stderr)
 
-    title = args.title or default_title(subjects, branch)
-    body = args.body or build_body(subjects)
+    token = _token()
+    existing = find_open_pr(repo, branch, token)
+    previous_title, previous_body = pr_details(repo, existing, token) if existing else ("", "")
+    title = args.title or (
+        previous_title if existing is not None else default_title(subjects, branch)
+    )
+    body = args.body or (previous_body if existing is not None else build_body(subjects))
+    body = upsert_size_block(body, size)
     if warning is not None:
         body = with_size_exception(body, args.allow_large)
-    token = _token()
 
-    existing = find_open_pr(repo, branch, token)
     if existing is not None:
         number = existing
-        body = preserve_size_exception(body, pr_body(repo, number, token))
+        body = preserve_size_exception(body, previous_body)
         result = _api(
             "PATCH",
             f"/repos/{repo}/pulls/{number}",
