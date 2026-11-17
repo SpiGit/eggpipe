@@ -79,6 +79,7 @@ class GeneratorPlugin(ABC):
     id: ClassVar[str]
     name: ClassVar[str] = ""
     input_formats: ClassVar[set[str] | None]
+    output_scope: ClassVar[Literal["model", "entity"]] = "model"
 
     @abstractmethod
     def generate(self, input: GeneratorInput) -> GenerationResult:
@@ -96,6 +97,7 @@ def generator(
     id: str | None = None,
     name: str | None = None,
     input_formats: set[str] | None,
+    output_scope: Literal["model", "entity"] = "model",
     api_version: Literal["1"] = "1",
 ) -> Callable[[Callable[..., Any]], type[GeneratorPlugin]]:
     """Declare a generator as a function; creates a GeneratorPlugin adapter class."""
@@ -105,6 +107,8 @@ def generator(
     ):
         raise PluginContractError("EG301", "input_formats must be set[str] or None")
     formats = set(input_formats) if input_formats is not None else None
+    if output_scope not in {"model", "entity"}:
+        raise PluginContractError("EG301", "output_scope must be 'model' or 'entity'")
 
     def decorate(function: Callable[..., Any]) -> type[GeneratorPlugin]:
         generator_id = id or function.__name__.lower().replace("_", "-")
@@ -113,12 +117,14 @@ def generator(
         generator_name = name or function.__name__.replace("_", " ").title()
         adapter_version = api_version
         adapter_formats = formats
+        adapter_scope = output_scope
 
         class Adapter(GeneratorPlugin):
             api_version: ClassVar[Literal["1"]] = adapter_version
             id: ClassVar[str] = generator_id
             name: ClassVar[str] = generator_name
             input_formats: ClassVar[set[str] | None] = adapter_formats
+            output_scope: ClassVar[Literal["model", "entity"]] = adapter_scope
             _function: ClassVar[Callable[..., Any]] = staticmethod(function)
 
             def generate(self, input: GeneratorInput) -> GenerationResult:
@@ -145,6 +151,9 @@ def validate_generator_contract(plugin: GeneratorPlugin) -> None:
         or any(not isinstance(item, str) or not item for item in formats)
     ):
         raise PluginContractError("EG301", "input_formats must be set[str] or None")
+    scope = getattr(plugin_type, "output_scope", "model")
+    if scope not in {"model", "entity"}:
+        raise PluginContractError("EG301", "output_scope must be 'model' or 'entity'")
     function = getattr(plugin_type, "_function", None)
     if function is not None:
         validate_generator_function(function)

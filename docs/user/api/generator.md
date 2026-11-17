@@ -22,6 +22,7 @@ def my_generator(
 - `id` опционален; по умолчанию имя функции с `_` → `-`.
 - `name` опционален.
 - `api_version` по умолчанию `"1"`.
+- `output_scope` — `"model"` (default) или `"entity"` для `engine.generate(entities=...)`.
 - Аннотации инжектируются: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
   Неизвестная аннотация — EG302.
 - Возврат: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`.
@@ -45,6 +46,7 @@ class MyGenerator(GeneratorPlugin):
     id: ClassVar[str] = "my-generator"
     name: ClassVar[str] = "My Generator"
     input_formats: ClassVar[set[str] | None] = {"entity-model"}
+    output_scope: ClassVar[Literal["model", "entity"]] = "model"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult(

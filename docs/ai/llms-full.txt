@@ -666,11 +666,13 @@ plan = engine.build()                  # без записи
 report = engine.generate()             # build + запись
 report = engine.check()                # проверка drift без записи
 plan = engine.build(incremental=True)  # opt-in кэш на один вызов
+report = engine.generate(entities=["User"])  # per-entity generate
 ```
 
 `Engine` не вызывает `sys.exit`, не настраивает root-logger и не пишет файлы в `build()`.
 `AppConfig(incremental=True)` включает кэш, `build(incremental=...)` переопределяет настройку;
-`check()` всегда работает без кэша.
+`check()` всегда работает без кэша. `entities=[...]` включает per-entity режим для генераторов
+с `output_scope="entity"`.
 
 Полезные параметры `Engine`:
 
@@ -755,6 +757,7 @@ def my_generator(
 - `id` опционален; по умолчанию имя функции с `_` → `-`.
 - `name` опционален.
 - `api_version` по умолчанию `"1"`.
+- `output_scope` — `"model"` (default) или `"entity"` для `engine.generate(entities=...)`.
 - Аннотации инжектируются: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
   Неизвестная аннотация — EG302.
 - Возврат: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`.
@@ -778,6 +781,7 @@ class MyGenerator(GeneratorPlugin):
     id: ClassVar[str] = "my-generator"
     name: ClassVar[str] = "My Generator"
     input_formats: ClassVar[set[str] | None] = {"entity-model"}
+    output_scope: ClassVar[Literal["model", "entity"]] = "model"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult(

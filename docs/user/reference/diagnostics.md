@@ -49,7 +49,7 @@
 | EG300 | error | engine | Генератор/запись/check упали или обнаружен drift | реализовано |
 | EG301 | error | plugin | Нарушен контракт генератора: нет `input_formats`, неверная сигнатура/return type | реализовано |
 | EG302 | error | plugin | Неизвестный инжектируемый параметр декоратора | реализовано |
-| EG303 | error | plugin | Генератор не поддерживает per-entity output | специфицировано (v2.4) |
+| EG303 | error | plugin | Генератор не поддерживает per-entity output | реализовано |
 | EG040 | error | write | Некорректный artifact path / content | реализовано |
 | EG041 | error | write | Ownership-конфликт / `on_conflict: error` | реализовано |
 | EG042 | error | planning | Дубликат artifact path / case-collision / prefix-конфликт | реализовано |

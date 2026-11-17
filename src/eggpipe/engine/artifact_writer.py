@@ -295,6 +295,7 @@ class ArtifactWriter:
         plugin_version: str,
         input_fingerprint: str | None = None,
         cleanup: Literal["off", "prompt", "enabled"] = "off",
+        merge: bool = False,
     ) -> list[Diagnostic]:
         if plan.has_errors:
             raise ManifestError("cannot write a plan that has errors")
@@ -308,23 +309,37 @@ class ArtifactWriter:
         current_paths = {str(item.path) for item in plan.artifacts}
         manifest = self.load_manifest()
         old = self._find_location(manifest, generator_id, output_dir)
+        formats = _manifest_formats(plan.formats)
+        fingerprint = input_fingerprint
         if old is not None:
-            entries.extend(
-                self._cleanup_location(
-                    old,
-                    output_dir,
-                    current_paths,
-                    cleanup,
-                    diagnostics,
+            if merge:
+                # Per-entity writes merge into the location and intentionally skip cleanup/prune.
+                merged = {item.path: item for item in entries}
+                for item in old.artifacts:
+                    merged.setdefault(item.path, item)
+                entries = list(merged.values())
+                known_formats = {item.name: item for item in formats}
+                for item in old.formats:
+                    known_formats.setdefault(item.name, item)
+                formats = list(known_formats.values())
+                fingerprint = old.input_fingerprint
+            else:
+                entries.extend(
+                    self._cleanup_location(
+                        old,
+                        output_dir,
+                        current_paths,
+                        cleanup,
+                        diagnostics,
+                    )
                 )
-            )
         location = ManifestLocation(
             generator=generator_id,
             output_dir=self._output_rel(output_dir),
             eggpipe_version=self.eggpipe_version,
             plugin_version=plugin_version,
-            input_fingerprint=input_fingerprint,
-            formats=_manifest_formats(plan.formats),
+            input_fingerprint=fingerprint,
+            formats=formats,
             generated_at=datetime.now(UTC),
             artifacts=entries,
         )

@@ -298,7 +298,7 @@
     "level": "error",
     "message": "Генератор не поддерживает per-entity output",
     "phase": "plugin",
-    "status": "специфицировано (v2.4)"
+    "status": "реализовано"
   },
   {
     "code": "EG040",

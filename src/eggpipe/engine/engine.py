@@ -6,7 +6,7 @@ import hashlib
 import json
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -106,8 +106,14 @@ class Engine:
         self._started = 0.0
         self._fingerprint: str | None = None
         self._incremental_reason: str | None = None
+        self._entities: tuple[str, ...] | None = None
 
-    def build(self, *, incremental: bool | None = None) -> EngineReport:
+    def build(
+        self,
+        *,
+        incremental: bool | None = None,
+        entities: Collection[str] | None = None,
+    ) -> EngineReport:
         started = time.perf_counter()
         self._started = started
         self._timings = _empty_timings()
@@ -117,14 +123,22 @@ class Engine:
         self._stale_paths = set()
         self._fingerprint = None
         self._incremental_reason = None
+        if isinstance(entities, str):
+            entities = (entities,)
+        self._entities = tuple(dict.fromkeys(entities)) if entities is not None else None
         diagnostics: list[Diagnostic] = []
         phase = time.perf_counter()
         sources, source_groups, resources = self._source_paths(diagnostics)
         self._timings["discovery_ms"] = _elapsed(phase)
         if not sources:
             return self._report(False, 1, diagnostics, [], started)
+        if self._entities is not None and not self._entities:
+            diagnostics.append(error("EG018", "no entities selected", path="--entity"))
+            return self._report(False, 1, self._filter_ignored(diagnostics), [], started)
 
         use_incremental = self.config.incremental if incremental is None else incremental
+        if self._entities is not None:
+            use_incremental = False
         if use_incremental:
             phase = time.perf_counter()
             self._fingerprint = self._input_fingerprint(sources, resources)
@@ -152,6 +166,18 @@ class Engine:
         diagnostics = self._filter_ignored(diagnostics)
         if _has_errors(diagnostics):
             return self._report(False, 1, diagnostics, [], started)
+
+        if self._entities is not None:
+            known = {entity.name for entity in composition.model.entities}
+            missing = [name for name in self._entities if name not in known]
+            if missing:
+                diagnostics.extend(
+                    error("EG018", f"unknown entity: {name}", entity=name) for name in missing
+                )
+                return self._report(False, 1, self._filter_ignored(diagnostics), [], started)
+            scope_errors = self._output_scope_errors()
+            if scope_errors:
+                return self._report(False, 2, diagnostics + scope_errors, [], started)
 
         phase = time.perf_counter()
         run = self._run_generators(composition)
@@ -281,10 +307,10 @@ class Engine:
             diagnostics=tuple(diagnostics),
         )
 
-    def generate(self) -> EngineReport:
+    def generate(self, *, entities: Collection[str] | None = None) -> EngineReport:
         try:
             with self.writer.write_lock():
-                report = self.build()
+                report = self.build(entities=entities)
                 if not report.success:
                     return report
                 return self._write_pending(report)
@@ -302,9 +328,20 @@ class Engine:
         generators = list(report.generators)
         phase = time.perf_counter()
         try:
+            per_entity = self._entities is not None
             for pending in self._pending:
                 cleanup = "enabled" if self.config.clean else pending.config.cleanup
-                if cleanup == "prompt":
+                if per_entity:
+                    if cleanup != "off":
+                        diagnostics.append(
+                            warning(
+                                "EG030",
+                                "cleanup is ignored in per-entity mode",
+                                path=str(pending.output_dir),
+                            )
+                        )
+                    cleanup = "off"
+                elif cleanup == "prompt":
                     diagnostics.append(
                         warning(
                             "EG030",
@@ -321,6 +358,7 @@ class Engine:
                         plugin_version=_plugin_version(pending.plugin),
                         input_fingerprint=pending.fingerprint,
                         cleanup=cleanup,
+                        merge=per_entity,
                     )
                 )
         except (ManifestError, OSError) as exc:
@@ -345,8 +383,8 @@ class Engine:
             }
         )
 
-    def check(self) -> EngineReport:
-        report = self.build(incremental=False)
+    def check(self, *, entities: Collection[str] | None = None) -> EngineReport:
+        report = self.build(incremental=False, entities=entities)
         diagnostics = list(report.diagnostics)
         for pending in self._pending:
             diagnostics.extend(self.writer.check(plan=pending.plan))
@@ -358,6 +396,22 @@ class Engine:
                 "diagnostics": diagnostics,
             }
         )
+
+    def _output_scope_errors(self) -> list[Diagnostic]:
+        errors: list[Diagnostic] = []
+        for generator_config in self._enabled_generators():
+            plugin = self.generators.get(generator_config.id)
+            if plugin is None:
+                continue
+            if getattr(type(plugin), "output_scope", "model") != "entity":
+                errors.append(
+                    error(
+                        "EG303",
+                        f"generator {generator_config.id} does not support per-entity output",
+                        path=generator_config.id,
+                    )
+                )
+        return errors
 
     def _enabled_generators(self) -> list[GeneratorConfig]:
         return [
@@ -426,6 +480,7 @@ class Engine:
             _digest_text(digest, generator_config.id)
             _digest_text(digest, _plugin_version(plugin))
             _digest_text(digest, str(plugin.api_version))
+            _digest_text(digest, str(getattr(type(plugin), "output_scope", "model")))
             _digest_text(digest, json.dumps(_input_formats(plugin), sort_keys=True))
         return digest.hexdigest()
 
@@ -640,7 +695,23 @@ class Engine:
         generator_config: GeneratorConfig,
         plugin: GeneratorPlugin,
     ) -> tuple[GenerationResult, ExecutionPlan]:
-        slice_, slice_diagnostics = select_slice(composition.model, generator_config.input)
+        selection = generator_config.input
+        empty_slice = False
+        if self._entities is not None:
+            selected = set(self._entities)
+            if selection.entities:
+                overlap = tuple(name for name in selection.entities if name in selected)
+                if overlap:
+                    selection = selection.model_copy(update={"entities": overlap})
+                else:
+                    empty_slice = True
+            else:
+                selection = selection.model_copy(update={"entities": self._entities})
+        if empty_slice:
+            slice_ = ModelSlice()
+            slice_diagnostics: list[Diagnostic] = []
+        else:
+            slice_, slice_diagnostics = select_slice(composition.model, selection)
         context = GenerationContext(
             variables=dict(self.variables),
             naming_hint=self.rules.defaults.naming_convention,
@@ -954,7 +1025,7 @@ def _has_errors(diagnostics: list[Diagnostic]) -> bool:
 def _exit_code(success: bool, diagnostics: list[Diagnostic]) -> int:
     if success:
         return 0
-    return 2 if any(item.code == "EG033" for item in diagnostics) else 1
+    return 2 if any(item.code in {"EG033", "EG303"} for item in diagnostics) else 1
 
 
 __all__ = ["Engine"]

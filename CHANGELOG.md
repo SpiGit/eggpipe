@@ -36,6 +36,8 @@
 - `timings.fingerprint_ms` — время сбора входного fingerprint.
 - ТЗ v2.3: контракт инкрементальной генерации и отчёт cache hit.
 - ТЗ v2.4: контракт per-entity генерации, `output_scope`, `--entity` и EG303.
+- Per-entity generation: `output_scope`, `Engine.build/generate/check(entities=...)`,
+  manifest merge, cleanup off, EG303.
 - `examples/plugin-template` — шаблон генератора и формата с contract-тестами.
 - Страница `docs/user/plugin-template.md` и CI-проверка шаблона.
 - `tools/create_pr.py` — создание PR с заполнением «Что изменено» из коммитов,
