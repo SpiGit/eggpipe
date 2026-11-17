@@ -35,6 +35,12 @@
 | B-014 | `roadmap.md`: ссылка на `backlog.md` из секции «Backlog» | PR #24 review | Навигация между уровнями задач |
 | B-015 | CHANGELOG: создание `backlog.md` перенести в `Added` | PR #24 review | Рубрика не соответствует Keep a Changelog |
 | B-016 | `day-closure.md`: markdown-ссылка `[backlog.md](./backlog.md)` | PR #24 review | Единообразие ссылок |
+| B-017 | v2.4: EG018 не должен делать пустой `sources[].input`/`generators[].input` ошибкой | PR #26 review | Противоречие с «пусто = все» |
+| B-018 | User diagnostics и `docs/ai/diagnostics.json`: добавить EG303 | PR #26 review | Полный каталог кодов отстаёт от ТЗ |
+| B-019 | System Design §2: ссылка на ADR-0018 в абзаце per-entity | PR #26 review | Навигация к решению |
+| B-020 | Skill plugin-contract: `output_scope` опционален, а не обязателен | PR #26 review | Чек-лист вводит в заблуждение |
+| B-021 | `--clean --entity`: warning EG030 вместо тихого игнора | PR #26 review | Пользователь не видит, что cleanup пропущен |
+| B-022 | v2.4: дубль `--no-color` и метка EG301 вместо EG3xx в §9.3 | PR #26 review | Мелкие дефекты таблиц |
 
 ## Incremental
 
