@@ -200,6 +200,21 @@ provenance = git_provenance(entity.source) if entity.source else None
 `git_provenance` возвращает commit hash и дату последнего коммита файла. Значения не попадают
 в артефакты автоматически — это решение генератора.
 
+## Per-entity генерация
+
+Генератор, который умеет работать с одной сущностью, объявляет:
+
+```python
+@generator(id="user-sql", input_formats={"entity-model"}, output_scope="entity")
+def user_sql(...): ...
+```
+
+- `output_scope="model"` (default) — генератор зависит от всех entities.
+- `output_scope="entity"` — артефакты строятся только из выбранных entities, пути уникальны
+  для каждой entity.
+- `engine.generate(entities=[...])` требует `entity` у всех выбранных генераторов; иначе EG303.
+- Manifest дополняется, cleanup не выполняется; incremental с `entities=` не используется.
+
 ## Версионирование
 
 `api_version` повышается только при breaking change контракта. Несовместимый плагин не ломает

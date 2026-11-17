@@ -14,11 +14,13 @@ plan = engine.build()                  # без записи
 report = engine.generate()             # build + запись
 report = engine.check()                # проверка drift без записи
 plan = engine.build(incremental=True)  # opt-in кэш на один вызов
+report = engine.generate(entities=["User"])  # per-entity generate
 ```
 
 `Engine` не вызывает `sys.exit`, не настраивает root-logger и не пишет файлы в `build()`.
 `AppConfig(incremental=True)` включает кэш, `build(incremental=...)` переопределяет настройку;
-`check()` всегда работает без кэша.
+`check()` всегда работает без кэша. `entities=[...]` включает per-entity режим для генераторов
+с `output_scope="entity"`.
 
 Полезные параметры `Engine`:
 
