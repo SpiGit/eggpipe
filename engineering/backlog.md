@@ -14,45 +14,34 @@
 - Перед новой фичей backlog groomится: закрыть или явно отложить записи; держать
   не больше 10 открытых.
 
-## Process и tooling
+## Открытые
 
 | ID | Задача | Источник | Импакт |
 |----|--------|----------|--------|
-| B-001 | `create_pr.py`: при `pr-size:start` без `pr-size:end` не терять хвост body | PR #23 review | Потеря карты ревью при повреждённом маркере |
-| B-002 | `create_pr.py`: тест сохранения title/body при обновлении PR | PR #23 review | Регрессия может снова перезаписать заголовок |
-| B-003 | `create_pr.py`: `git diff --numstat -z` вместо текстового разбора | PR #21 review | Устойчивость к rename/кавычкам и спецсимволам |
-| B-004 | `preflight`: тест, что `main()` передаёт `clean_env()` в `subprocess.run` | PR #22 review | Изоляция от `GIT_*` может тихо сломаться |
-| B-005 | `provenance`: поведение `git_provenance` при унаследованном `GIT_*` вне harness | PR #22 review | Нужен контракт публичной функции или явное ограничение |
-| B-011 | «Закрытые»: добавить колонку статуса или убрать `done` из правила | PR #24 review | Правило и таблица не совпадают |
-| B-012 | Уточнить: minor заносит автор PR, ревьюер только сообщает находки | PR #24 review | Роль read-only ревьюера описана неверно |
-| B-013 | PR-шаблон: чекбокс для случая «отложенных minor нет» | PR #24 review | Безусловный чекбокс не отражает состояние |
-
-## Документация
-
-| ID | Задача | Источник | Импакт |
-|----|--------|----------|--------|
-| B-006 | `session-log.md`: остатки v2.2 в исторических комментариях и таблице ADR (0015–0017) | PR #20 review | Историческая запись выглядит противоречиво |
-| B-007 | `day-closure.md`: формулировки «план/backlog», разделитель записей, синхронизация context | PR #20 review | Меньше двусмысленности при следующем закрытии дня |
-| B-008 | CONTRIBUTING: зафиксировать персистентность `## Size exception` | PR #21 review | Пользователь не знает, как убрать секцию |
-| B-014 | `roadmap.md`: ссылка на `backlog.md` из секции «Backlog» | PR #24 review | Навигация между уровнями задач |
-| B-015 | CHANGELOG: создание `backlog.md` перенести в `Added` | PR #24 review | Рубрика не соответствует Keep a Changelog |
-| B-016 | `day-closure.md`: markdown-ссылка `[backlog.md](./backlog.md)` | PR #24 review | Единообразие ссылок |
-| B-017 | v2.4: EG018 не должен делать пустой `sources[].input`/`generators[].input` ошибкой | PR #26 review | Противоречие с «пусто = все» |
-| B-018 | User diagnostics и `docs/ai/diagnostics.json`: добавить EG303 | PR #26 review | Полный каталог кодов отстаёт от ТЗ |
-| B-019 | System Design §2: ссылка на ADR-0018 в абзаце per-entity | PR #26 review | Навигация к решению |
-| B-020 | Skill plugin-contract: `output_scope` опционален, а не обязателен | PR #26 review | Чек-лист вводит в заблуждение |
 | B-021 | `--clean --entity`: warning EG030 вместо тихого игнора | PR #26 review | Пользователь не видит, что cleanup пропущен |
-| B-022 | v2.4: дубль `--no-color` и метка EG301 вместо EG3xx в §9.3 | PR #26 review | Мелкие дефекты таблиц |
-
-## Incremental
-
-| ID | Задача | Источник | Импакт |
-|----|--------|----------|--------|
-| B-009 | Уточнить поведение `input_paths` при невалидном `model` в §6.3 | PR #18 review | Контракт формата остаётся частично неопределённым |
-| B-010 | Привести `_disable_incremental` к явному `return None` | PR #18 review | Читаемость кода |
 
 ## Закрытые
 
 | ID | Задача | PR | Дата | Статус |
 |----|--------|----|------|--------|
-| — | — | — | — | — |
+| B-001 | create_pr START без END | #28 | 2026-11-17 | done |
+| B-002 | тест сохранения title/body | #28 | 2026-11-17 | done |
+| B-003 | numstat -z | #28 | 2026-11-17 | done |
+| B-004 | тест clean_env в preflight | #28 | 2026-11-17 | done |
+| B-010 | _disable_incremental return | #28 | 2026-11-17 | done |
+| B-005 | git_provenance environment docs | #29 | 2026-11-17 | done |
+| B-006 | session-log v2.2 остатки | #29 | 2026-11-17 | done |
+| B-007 | day-closure формулировки | #29 | 2026-11-17 | done |
+| B-008 | Size exception persistence | #29 | 2026-11-17 | done |
+| B-009 | input_paths invalid model | #29 | 2026-11-17 | done |
+| B-011 | Закрытые status column | #29 | 2026-11-17 | done |
+| B-012 | роль автора/ревьюера | #29 | 2026-11-17 | done |
+| B-013 | PR-шаблон minor нет | #29 | 2026-11-17 | done |
+| B-014 | roadmap link | #29 | 2026-11-17 | done |
+| B-015 | CHANGELOG category | #29 | 2026-11-17 | done |
+| B-016 | day-closure link | #29 | 2026-11-17 | done |
+| B-017 | EG018 wording | #29 | 2026-11-17 | done |
+| B-018 | EG303 diagnostics | #29 | 2026-11-17 | done |
+| B-019 | System Design ADR link | #29 | 2026-11-17 | done |
+| B-020 | skill output_scope | #29 | 2026-11-17 | done |
+| B-022 | v2.4 table fixes | #29 | 2026-11-17 | done |
