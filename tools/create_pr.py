@@ -26,7 +26,7 @@ SIZE_HEADING = "## Размер"
 SIZE_BLOCK_START = "<!-- pr-size:start -->"
 SIZE_BLOCK_END = "<!-- pr-size:end -->"
 NUMSTAT_SEPARATOR = "\0"
-HEADING_START = re.compile(r"^#{2,6} ")
+HEADING_START = re.compile(r"^#{1,6} ")
 FENCE_START = re.compile(r"^\s*(```|~~~)")
 
 
@@ -194,7 +194,7 @@ def _replace_open_size_block(body: str, start: int, block: str) -> str:
     following = _next_section_start(tail)
     if following is None:
         return f"{body[:start]}{block}\n"
-    return f"{body[:start]}{block}\n{tail[following:]}"
+    return f"{body[:start]}{block}\n\n{tail[following:]}"
 
 
 def with_size_exception(body: str, reason: str | None) -> str:
@@ -262,7 +262,9 @@ def _token() -> str:
 
 
 def _api(method: str, path: str, token: str, payload: dict[str, object] | None = None) -> object:
-    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    data = (
+        None if payload is None else json.dumps(payload).encode("utf-8", errors="backslashreplace")
+    )
     request = Request(
         f"{API}{path}",
         data=data,

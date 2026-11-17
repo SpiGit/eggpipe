@@ -178,7 +178,7 @@ def test_upsert_size_block_replaces_markers() -> None:
     assert "- old stats" not in updated
     assert "20 строк, 2 файла" in updated
     assert updated.count(SIZE_BLOCK_START) == 1
-    assert "## Карта ревью\n\n- src/engine.py" in updated
+    assert f"{SIZE_BLOCK_END}\n\n## Карта ревью\n\n- src/engine.py" in updated
 
 
 def test_upsert_size_block_appends_section() -> None:
@@ -195,12 +195,13 @@ def test_upsert_size_block_keeps_tail_when_end_marker_missing() -> None:
     assert updated.count(SIZE_BLOCK_END) == 1
     assert "- stale stats" not in updated
     assert "5 строк, 1 файл" in updated
-    assert "## Карта ревью\n\n- src/engine.py" in updated
+    assert f"{SIZE_BLOCK_END}\n\n## Карта ревью\n\n- src/engine.py" in updated
 
 
 def test_next_section_start_skips_fenced_headings() -> None:
     text = "```md\n## not a heading\n```\n\n## real heading\n"
     assert _next_section_start(text) == text.index("## real heading")
+    assert _next_section_start("body\n# level one\n") == len("body\n")
 
 
 def test_upsert_size_block_replaces_dangling_marker_at_body_end() -> None:
