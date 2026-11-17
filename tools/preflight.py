@@ -12,10 +12,10 @@ import sys
 
 
 def clean_env() -> dict[str, str]:
-    """Return the environment without git hook variables.
+    """Return the environment without the GIT_ namespace set by git hooks.
 
-    Git sets GIT_DIR/GIT_WORK_TREE for pre-push hooks. Tests that create temporary
-    repositories inherit them and can mutate the caller repository.
+    Hooks can set GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE and other GIT_* variables.
+    Tests that create temporary repositories must not inherit them.
     """
     return {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
 

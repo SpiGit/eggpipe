@@ -13,7 +13,6 @@
 - Manifest state: `ManifestLocation.input_fingerprint` — необязательный hex SHA-256 входа
   (ADR-0017). Старые manifest v2 читаются; более старая Eggpipe новый manifest не прочитает.
 - `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
-- `tools/preflight.py` и provenance-тесты не наследуют `GIT_DIR`/`GIT_WORK_TREE` из pre-push hook.
 
 ### Added
 
@@ -36,6 +35,11 @@
 - Release workflow генерирует CycloneDX SBOM и прикладывает его к GitHub Release.
 - Версионированная документация: `mike`, версии `major.minor` и alias `latest`.
 - PR-ревью через subagent `pr-reviewer` (Qwen3.8 Flash) и `tools/review_pr.py`.
+
+### Fixed
+
+- `tools/preflight.py` и provenance-тесты не наследуют `GIT_*` из pre-push hook;
+  временный git-репозиторий больше не может изменить основной репозиторий.
 
 ## [0.3.2] - 2026-11-14
 
