@@ -19,8 +19,8 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 ### 1.1. Текущая точка (2026-11-17)
 
 - `main`: `99c425b`; актуальное ТЗ — v2.4 (per-entity generation).
-- Готово: incremental generation (ADR-0017, #18), per-entity generation (ADR-0018, #32/#33), PR-процесс и backlog (#19–#31).
-- Открыто в backlog: B-023 (tests/coverage в PR body), B-024 (тесты merge manifest).
+- Готово: incremental generation (ADR-0017, #18), per-entity generation (ADR-0018, #26/#32/#33), PR-процесс и backlog (#19–#25, #27–#31).
+- Открыто в backlog: B-023 (tests/coverage в PR body), B-024 (тесты merge `formats`/`generated_at`).
 - Следующее: аудит инженерной документации, затем watch improvement.
 - Живое состояние — [.session-context.md](../.session-context.md); мелкие задачи — [backlog.md](./backlog.md).
 
@@ -48,9 +48,10 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 
 ### 0.4.0 — Plugin DX
 
-Фокус: сделать написание плагинов быстрым и предсказуемым.
+Фокус: сделать написание плагинов быстрым и предсказуемым. В релиз также войдут уже
+смерженные incremental и per-entity generation (Reliability), чтобы не ждать 0.5.0.
 
-- шаблон плагина (`cookiecutter`/`uv`-template) с генератором и форматом;
+- шаблон плагина (`cookiecutter`/`uv`-template) с генератором и форматом — частично: есть `examples/plugin-template`, one-command scaffolding нет;
 - набор contract-тестов для авторов плагинов;
 - примеры: SQL, Pydantic, TypeScript, OpenAPI;
 - улучшение `eggpipe gen info` и `eggpipe format info`;
@@ -99,7 +100,7 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 
 | Задача | Область | Результат | Статус |
 |--------|---------|-----------|--------|
-| Шаблон плагина | Плагины | Новый плагин создаётся одной командой | Готово |
+| Шаблон плагина | Плагины | Новый плагин создаётся одной командой | Частично |
 | Contract-test kit | Плагины | Автор плагина проверяет контракт локально | Частично |
 | Политика deprecation | API | Понятно, как менять API до 1.0 | Готово (ADR-0016) |
 | Версионирование документации | Docs | Старые версии docs не теряются | Готово |
@@ -125,8 +126,10 @@ Scope следующей задачи:
 - сверить ТЗ v2.4, ADR-0001–0018, System Design, roadmap, session-log и backlog;
 - проверить актуальные статусы, версии, ссылки, термины и коды `EGxxx`;
 - проверить harness (`AGENTS.md`, `CONTRIBUTING.md`, `.opencode/`, `opencode.json`);
-- обновить README, `.session-context.md` и `docs/ai`;
-- использовать skill `spec-consistency` и subagent `spec-reviewer`.
+- обновить README, `.session-context.md`, `CHANGELOG.md`, `docs/user/**`, `docs/ai`,
+  `engineering/release.md` и `engineering/requirements/changelog.md`;
+- использовать skill `spec-consistency` и subagent `spec-reviewer`;
+- критерий готовности: `uv run python tools/check_docs.py --strict` проходит без ошибок.
 
 Результат: roadmap и инженерные документы показывают фактическую точку проекта без
 реконструкции по PR и session-log.
@@ -166,7 +169,7 @@ Relations в ядре остаются открытым вопросом 2.
 
 ## 7. Открытые вопросы
 
-1. Входит ли инкрементальная генерация в `1.0` или остаётся после?
+1. Инкрементальная генерация реализована (ADR-0017); релиз — в ближайшем minor.
 2. Нужны ли relations в базовой модели или это всегда зона format-плагина?
 3. Какой минимальный набор reference-плагинов достаточен для `1.0`?
 4. Нужна ли отдельная версия контракта plugin API или достаточно `api_version`?
@@ -176,7 +179,7 @@ Relations в ядре остаются открытым вопросом 2.
 
 1. [x] Инкрементальная генерация (ADR-0017, #18).
 2. [x] Per-entity generation (ADR-0018, #32/#33).
-3. [ ] B-023: tests/coverage в PR body; B-024: тесты merge manifest.
+3. [ ] B-023: tests/coverage в PR body; B-024: тесты merge `formats`/`generated_at`.
 4. [ ] Аудит инженерной документации: ТЗ, ADR, System Design, roadmap, session-log.
 5. [ ] Watch improvement: ADR/design и реализация.
 6. [ ] Разбор backlog и выбор темы для `0.5.0`.

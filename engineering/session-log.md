@@ -514,5 +514,5 @@ PR C — после PR A.
 |---|--------|----------|--------|-----------------|
 | 1 | B-023: coverage в PR body | `create_pr.py` + `coverage.xml`/`--coverage` | Видимость покрытия | chore, ~100 строк |
 | 2 | B-024: merge formats/generated_at tests | per-entity manifest | Закрыть пробел покрытия | test, ~50 строк |
-| 3 | Watch improvement: ADR/design | батчинг, отмена устаревших запусков | P1 без гонок | spec |
-| 4 | Watch implementation | после merge design | Ускорить dev-loop | feat |
+| 3 | Аудит инженерной документации | ТЗ, ADR, System Design, roadmap, session-log | Убрать stale-статусы | docs |
+| 4 | Watch improvement: ADR/design | батчинг, отмена устаревших запусков | P1 без гонок | spec |
