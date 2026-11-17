@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from tools.preflight import commands
+import pytest
+from tools.preflight import clean_env, commands
 
 
 def test_fast_commands() -> None:
@@ -20,3 +21,13 @@ def test_full_commands() -> None:
     assert any("check_docs.py" in item for item in joined)
     assert any("mkdocs" in item for item in joined)
     assert any("check_wheel.py" in item for item in joined)
+
+
+def test_clean_env_removes_git_hook_variables(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GIT_DIR", "/repo/.git")
+    monkeypatch.setenv("GIT_WORK_TREE", "/repo")
+    monkeypatch.setenv("PATH", "/usr/bin")
+    env = clean_env()
+    assert "GIT_DIR" not in env
+    assert "GIT_WORK_TREE" not in env
+    assert env["PATH"] == "/usr/bin"

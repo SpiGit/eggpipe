@@ -4,10 +4,20 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import shutil
 import subprocess
 import sys
+
+
+def clean_env() -> dict[str, str]:
+    """Return the environment without git hook variables.
+
+    Git sets GIT_DIR/GIT_WORK_TREE for pre-push hooks. Tests that create temporary
+    repositories inherit them and can mutate the caller repository.
+    """
+    return {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
 
 
 def commands(*, fast: bool) -> list[list[str]]:
@@ -39,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
 
     for command in commands(fast=args.fast):
         print(f"$ {shlex.join(command)}", flush=True)
-        result = subprocess.run(command, check=False)
+        result = subprocess.run(command, check=False, env=clean_env())
         if result.returncode != 0:
             print(f"preflight failed: {shlex.join(command)}", file=sys.stderr)
             return result.returncode

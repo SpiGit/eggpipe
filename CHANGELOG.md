@@ -13,6 +13,7 @@
 - Manifest state: `ManifestLocation.input_fingerprint` — необязательный hex SHA-256 входа
   (ADR-0017). Старые manifest v2 читаются; более старая Eggpipe новый manifest не прочитает.
 - `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
+- `tools/preflight.py` и provenance-тесты не наследуют `GIT_DIR`/`GIT_WORK_TREE` из pre-push hook.
 
 ### Added
 
