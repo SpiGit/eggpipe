@@ -44,3 +44,4 @@
 | B-021 | done | `--clean --entity`: warning EG030 вместо тихого игнора | PR #26 review | Пользователь не видит, что cleanup пропущен | #32 | 2026-11-17 |
 | B-022 | done | исправить таблицы v2.4 | PR #29 review | Мелкие дефекты | #29 | 2026-11-17 |
 | B-023 | open | PR body: показывать число тестов и покрытие (`Tests: N; coverage: X%`) | user request 2026-11-17 | Видимость coverage в PR | — | — |
+| B-024 | open | тесты merge `formats`/`generated_at` в per-entity manifest | PR #32 review | Закрыть пробел покрытия | — | — |

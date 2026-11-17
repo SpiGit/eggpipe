@@ -460,3 +460,59 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 
 Параллельно: PR A (docs) и PR B (chore) в отдельных worktree, файлы не пересекаются.
 PR C — после PR A.
+
+
+---
+
+## 2026-11-17 — per-entity generation и очистка процесса
+
+### 1. План на день
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | Перезапустить `ci` на `dd5d2dd` | Выполнено |
+| 2 | Day-closure и session sync | Выполнено (#20) |
+| 3 | Follow-up `create_pr.py` | Выполнено (#21, #23) |
+| 4 | Per-entity spec/ADR | Выполнено (#26) |
+
+### 2. Выполнено
+
+| Задача | Результат |
+|--------|-----------|
+| Day closure | #20: `day-closure.md`, Backlog candidates, параллельная работа |
+| create_pr follow-up | #21, #23: renames, `numstat -z`, size exception, авто-блок размера |
+| Git env isolation | #22: preflight/provenance не наследуют `GIT_*` |
+| Backlog process | #24, #25, #27: backlog, ID, закрытие, grooming |
+| Per-entity spec | #26: ТЗ v2.4, ADR-0018, output_scope, EG303 |
+| Process optimization | #28–#30: backlog cleanup, shared-file warning, rebase policy |
+| Backlog closeout | #31: Backlog candidates, B-021/B-023 |
+| Per-entity engine | #32: entities selection, manifest merge, cleanup off |
+| Per-entity CLI/docs | #33: `--entity`, watch rejection, docs, tests |
+| Итог | `main` 953e4d5; 295 тестов; coverage 84.60% |
+
+### 3. Вне плана
+
+| Что | Причина | Импакт |
+|-----|---------|--------|
+| Git hook pollution | `GIT_DIR` из pre-push попал в provenance-тест | Commit/core.bare в repo; исправлено #22 |
+| Backlog cleanup | После PR #18 накопилось 22 minor | 21 закрыт, остался B-023 |
+| Per-entity реализация | Спецификация и engine/CLI сделаны в тот же день | P1 закрыт раньше плана |
+| Process optimizations | Долгие rebase и конфликты | shared-file warning, rebase policy, rerere |
+
+### 4. Не выполнено
+
+| Задача | Причина | Перенос |
+|--------|---------|---------|
+| B-023: tests+coverage в PR body | Отложено | 2026-11-18 |
+| B-024: тесты merge formats/generated_at | Найдено на ревью #32 | 2026-11-18 |
+| Улучшение watch | Не начинали | 2026-11-18, design-first |
+| Reference-плагины, метрики | Не начинали | После watch |
+
+### 5. План на 2026-11-18
+
+| # | Задача | Контекст | Импакт | Формат / оценка |
+|---|--------|----------|--------|-----------------|
+| 1 | B-023: coverage в PR body | `create_pr.py` + `coverage.xml`/`--coverage` | Видимость покрытия | chore, ~100 строк |
+| 2 | B-024: merge formats/generated_at tests | per-entity manifest | Закрыть пробел покрытия | test, ~50 строк |
+| 3 | Watch improvement: ADR/design | батчинг, отмена устаревших запусков | P1 без гонок | spec |
+| 4 | Watch implementation | после merge design | Ускорить dev-loop | feat |
