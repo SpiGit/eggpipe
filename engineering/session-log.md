@@ -26,7 +26,7 @@
 
 ## Текущее состояние
 
-Документация и код приведены к ТЗ v2.2 (E0–E9). Актуальные решения:
+Документация и код приведены к ТЗ v2.3 (E0–E9). Актуальные решения:
 
 - `ModelDocument` → `SourceModel` → `ModelSlice`; `imports` на уровне документа.
 - `UNSET` vs `default: null`; полная null-матрица.
@@ -101,14 +101,15 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 
 | Документ | Путь | Статус |
 |----------|------|--------|
-| ТЗ v2.2 | `engineering/requirements/v2.2.md` | Актуальная рабочая версия |
+| ТЗ v2.3 | `engineering/requirements/v2.3.md` | Актуальная рабочая версия |
+| ТЗ v2.2 | `engineering/requirements/v2.2.md` | Замещена (история) |
 | ТЗ v2.1 | `engineering/requirements/v2.1.md` | Замещена (история) |
 | ТЗ v1.4 | `engineering/requirements/v1.4.md` | Замещена (история) |
 | ТЗ v1.3 | `engineering/requirements/v1.3.md` | Замещена (история) |
 | ТЗ v1.2 | `engineering/requirements/v1.2.md` | Замещена (история) |
 | ТЗ v1.1 | `engineering/requirements/v1.1.md` | Замещена (история) |
 | ТЗ v1.0 | `engineering/requirements/v1.0.md` | Замещена (история) |
-| System Design | `engineering/system-design/index.md` | Обновлён до v2.2 |
+| System Design | `engineering/system-design/index.md` | Обновлён до v2.3 |
 | ADR-0001 | `engineering/adr/0001-composition-merge-semantics.md` | Принято (уточнено под v1.2) |
 | ADR-0002 | `engineering/adr/0002-type-checker-pyrefly.md` | Принято (Pyrefly вместо mypy) |
 | ADR-0003 | `engineering/adr/0003-null-semantics.md` | Принято (UNSET/null/default) |
@@ -379,7 +380,7 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 
 | Вопрос | Решение |
 |--------|---------|
-| Инкрементальная генерация | Future; manifest-хеши — основа |
+| Инкрементальная генерация | Реализована в v2.3 (ADR-0017) |
 | CI/CD machine-readable | `--output-format json`; расширенная схема — v0.3 |
 | Кэширование watch | Простой watch, интерфейс `CacheStrategy` заложен |
 | Binary-артефакты | Не-цель v1 |
@@ -390,7 +391,7 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 | Публикация PyPI `eggpipe` / `eggpipe` | Опубликован `0.3.2` |
 | Расширение формата | Решено в v2.0: наследование, `input_formats`, слои (ADR-0007/0008) |
 
-## Следующие шаги
+## Следующие шаги (2026-11-13)
 
 1. E2 выполнен: core-модели и публичный API (`FormatInfo`, `FormatSchema`, `MergePolicy`, `Entity.format`, `GenerationContext.formats`).
 2. E3 выполнен: наследование форматов, версии, `base_versions`, `schemas`, latest-версия.
@@ -444,8 +445,8 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 
 ### 5. План на 2026-11-17
 
-| # | Задача | Контекст | Импакт | Формат |
-|---|--------|----------|--------|--------|
+| # | Задача | Контекст | Импакт | Формат / оценка |
+|---|--------|----------|--------|-----------------|
 | 1 | Перезапустить `ci` на `dd5d2dd` | macOS 3.11 cancelled | Уверенность в зелёном main | 5 минут |
 | 2 | Day-closure и session sync | AGENTS/CONTRIBUTING + session-файлы | Повторяемое закрытие дня | docs |
 | 3 | Follow-up `create_pr.py` | renames, `fnmatchcase`, size exception | Надёжный size-check | chore |
