@@ -128,7 +128,7 @@
   {
     "code": "EG018",
     "level": "error",
-    "message": "Неизвестное имя в `input`",
+    "message": "Неизвестное имя в `input` или `--entity`; пустой `--entity` (API)",
     "phase": "slice",
     "status": "реализовано"
   },
@@ -292,6 +292,13 @@
     "message": "Неизвестный инжектируемый параметр декоратора",
     "phase": "plugin",
     "status": "реализовано"
+  },
+  {
+    "code": "EG303",
+    "level": "error",
+    "message": "Генератор не поддерживает per-entity output",
+    "phase": "plugin",
+    "status": "специфицировано (v2.4)"
   },
   {
     "code": "EG040",

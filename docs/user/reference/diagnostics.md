@@ -25,7 +25,7 @@
 | EG015 | warning | validate | Пустой description у required-поля | реализовано |
 | EG016 | error | validate | `default` не приводится к итоговому типу | реализовано |
 | EG017 | error | validate | `default` нарушает constraints/enum | реализовано |
-| EG018 | error | slice | Неизвестное имя в `input` | реализовано |
+| EG018 | error | slice | Неизвестное имя в `input` или `--entity`; пустой `--entity` (API) | реализовано |
 | EG019 | error | validate | Пустой enum / дубликат имени или значения | реализовано |
 | EG020 | error | validate | Цикл `CustomType.base` / глубина > 10 | реализовано |
 | EG021 | error | validate | Неприменимый или противоречивый constraint | реализовано |
@@ -49,6 +49,7 @@
 | EG300 | error | engine | Генератор/запись/check упали или обнаружен drift | реализовано |
 | EG301 | error | plugin | Нарушен контракт генератора: нет `input_formats`, неверная сигнатура/return type | реализовано |
 | EG302 | error | plugin | Неизвестный инжектируемый параметр декоратора | реализовано |
+| EG303 | error | plugin | Генератор не поддерживает per-entity output | специфицировано (v2.4) |
 | EG040 | error | write | Некорректный artifact path / content | реализовано |
 | EG041 | error | write | Ownership-конфликт / `on_conflict: error` | реализовано |
 | EG042 | error | planning | Дубликат artifact path / case-collision / prefix-конфликт | реализовано |
@@ -63,7 +64,7 @@
 `cleanup: prompt` без поддерживаемого tty-подтверждения: ядро откатывается к `cleanup: off`.
 
 `EG030` и `EG300` входят в диапазоны EG0xx и EG3xx.
-Коды EG027, EG029, EG031–EG038, EG051, EG052, EG301, EG302 относятся к слоям, форматам,
+Коды EG027, EG029, EG031–EG038, EG051, EG052, EG301–EG303 относятся к слоям, форматам,
 ресурсам, manifest и decorator API.
 
 `diagnostics.ignore` и `--ignore` игнорируют только warnings; errors показываются всегда.

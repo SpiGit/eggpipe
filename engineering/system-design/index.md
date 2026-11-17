@@ -201,7 +201,8 @@ class GeneratorPlugin(ABC):
 композиции и замыкает enums/types. Режим разрешён, только если все выбранные генераторы
 объявили `output_scope="entity"`; иначе EG303. Per-entity генератор не зависит от других
 entities и пишет уникальные для каждой entity пути. Manifest location дополняется, cleanup
-не выполняется; incremental и watch с `--entity` не поддерживаются в v2.4.
+не выполняется; incremental и watch с `--entity` не поддерживаются в v2.4. Решение —
+[ADR-0018](../adr/0018-per-entity-generation.md).
 
 **Жизненный цикл:** `__init__` → `validate_config()` → `generate()`.
 

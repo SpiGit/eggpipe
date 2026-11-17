@@ -84,6 +84,9 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 
 ## 5. Backlog
 
+Мелкие follow-up и технический долг — в [backlog.md](./backlog.md); здесь — вехи и
+крупные направления.
+
 ### P0 — до следующего minor
 
 | Задача | Область | Результат |
