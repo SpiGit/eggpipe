@@ -19,7 +19,7 @@
 - Backlog closeout: отложенные minor копятся в `Backlog candidates` PR body и переносятся
   в backlog одним PR в конце дня.
 - PR-процесс: rebase только при `behind`/`dirty`, squash WIP перед rebase, `rerere`/`zdiff3`.
-- PR-шаблон и процесс ревью требуют фиксировать отложенные minor в backlog.
+- PR-шаблон и процесс ревью требуют фиксировать отложенные minor в `Backlog candidates`.
 - `tools/create_pr.py`: size-check использует `git diff --numstat -z`, сохраняет
   `## Size exception` при обновлении PR и отклоняет пустой `--allow-large`.
 
