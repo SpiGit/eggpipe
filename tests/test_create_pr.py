@@ -6,6 +6,8 @@ import pytest
 from tools.create_pr import (
     MAX_PR_FILES,
     MAX_PR_LINES,
+    SIZE_BLOCK_END,
+    SIZE_BLOCK_START,
     DiffSize,
     _numstat_path,
     build_body,
@@ -15,7 +17,9 @@ from tools.create_pr import (
     parse_numstat,
     preserve_size_exception,
     repo_from_remote,
+    size_block,
     size_warning,
+    upsert_size_block,
     with_size_exception,
 )
 
@@ -138,3 +142,39 @@ def test_preserve_size_exception_stops_at_next_heading() -> None:
 def test_allow_large_requires_reason(reason: str) -> None:
     with pytest.raises(SystemExit):
         main(["--allow-large", reason])
+
+
+def test_size_block_contains_stats() -> None:
+    block = size_block(DiffSize(lines=12, files=1, generated_lines=9, generated_files=3))
+    assert block.startswith(SIZE_BLOCK_START)
+    assert block.endswith(SIZE_BLOCK_END)
+    assert "12 строк, 1 файлов" in block
+    assert "9 строк, 3 файлов" in block
+
+
+def test_upsert_size_block_replaces_markers() -> None:
+    body = (
+        "## Размер\n\n"
+        f"{SIZE_BLOCK_START}\n- old stats\n{SIZE_BLOCK_END}\n\n"
+        "## Карта ревью\n\n- src/engine.py\n"
+    )
+    updated = upsert_size_block(body, DiffSize(lines=20, files=2))
+    assert "- old stats" not in updated
+    assert "20 строк, 2 файлов" in updated
+    assert updated.count(SIZE_BLOCK_START) == 1
+    assert "## Карта ревью\n\n- src/engine.py" in updated
+
+
+def test_upsert_size_block_appends_section() -> None:
+    updated = upsert_size_block("## Что изменено\n\n- feat\n", DiffSize(lines=3, files=1))
+    assert "## Что изменено" in updated
+    assert "## Размер" in updated
+    assert "3 строк, 1 файлов" in updated
+
+
+def test_upsert_size_block_migrates_heading() -> None:
+    body = "## Размер\n\nold manual text\n\n## Карта ревью\n\n- src/engine.py\n"
+    updated = upsert_size_block(body, DiffSize(lines=7, files=1))
+    assert "old manual text" not in updated
+    assert "7 строк, 1 файлов" in updated
+    assert "## Карта ревью\n\n- src/engine.py" in updated

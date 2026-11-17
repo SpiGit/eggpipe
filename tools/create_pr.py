@@ -22,6 +22,9 @@ MAX_PR_FILES = 15
 GENERATED_PREFIXES = ("docs/ai/",)
 GENERATED_PATTERNS = ("engineering/requirements/v*.md", "uv.lock")
 SIZE_EXCEPTION_HEADING = "## Size exception"
+SIZE_HEADING = "## Размер"
+SIZE_BLOCK_START = "<!-- pr-size:start -->"
+SIZE_BLOCK_END = "<!-- pr-size:end -->"
 RENAME_SEPARATOR = " => "
 BRACE_RENAME = re.compile(r"\{([^{}]*)" + re.escape(RENAME_SEPARATOR) + r"([^{}]*)\}")
 PATH_ESCAPES = {"t": "\t", "n": "\n", "r": "\r", '"': '"', "\\": "\\"}
@@ -139,6 +142,32 @@ def build_body(subjects: list[str]) -> str:
 def default_title(subjects: list[str], branch: str) -> str:
     """Use the first commit subject, or the branch name as a fallback."""
     return subjects[0] if subjects else branch
+
+
+def size_block(size: DiffSize) -> str:
+    """Render the machine-maintained size block."""
+    return (
+        f"{SIZE_BLOCK_START}\n"
+        f"- Hand-written diff: {size.lines} строк, {size.files} файлов\n"
+        f"- Generated/full-copy: {size.generated_lines} строк, "
+        f"{size.generated_files} файлов\n"
+        f"{SIZE_BLOCK_END}"
+    )
+
+
+def upsert_size_block(body: str, size: DiffSize) -> str:
+    """Replace the size block or add a new section to the PR body."""
+    block = size_block(size)
+    if SIZE_BLOCK_START in body and SIZE_BLOCK_END in body:
+        start = body.index(SIZE_BLOCK_START)
+        end = body.index(SIZE_BLOCK_END, start) + len(SIZE_BLOCK_END)
+        return f"{body[:start]}{block}{body[end:]}"
+    if SIZE_HEADING in body:
+        start = body.index(SIZE_HEADING) + len(SIZE_HEADING)
+        following = re.search(r"\n## ", body[start:])
+        end = start + following.start() if following is not None else len(body)
+        return f"{body[:start]}\n\n{block}{body[end:]}"
+    return f"{body.rstrip()}\n\n{SIZE_HEADING}\n\n{block}\n"
 
 
 def with_size_exception(body: str, reason: str | None) -> str:
@@ -271,15 +300,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"warning: {warning}", file=sys.stderr)
 
     title = args.title or default_title(subjects, branch)
-    body = args.body or build_body(subjects)
+    token = _token()
+    existing = find_open_pr(repo, branch, token)
+    previous = pr_body(repo, existing, token) if existing is not None else ""
+    body = args.body or (previous if existing is not None else build_body(subjects))
+    body = upsert_size_block(body, size)
     if warning is not None:
         body = with_size_exception(body, args.allow_large)
-    token = _token()
 
-    existing = find_open_pr(repo, branch, token)
     if existing is not None:
         number = existing
-        body = preserve_size_exception(body, pr_body(repo, number, token))
+        body = preserve_size_exception(body, previous)
         result = _api(
             "PATCH",
             f"/repos/{repo}/pulls/{number}",
