@@ -81,6 +81,9 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 
 - Правила owned paths, shared files и generated-файлов — в `CONTRIBUTING.md`,
   раздел «Параллельная работа».
+- `CHANGELOG.md`, `engineering/backlog.md`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/ai/**` и
+  `engineering/requirements/v*.md` редактирует только владелец; при пересечении задачи
+  выполняются последовательно.
 - Subagent работает в отдельном worktree; основной агент координирует порядок merge.
 - Если owned paths пересекаются, задачи выполняются последовательно.
 
@@ -110,6 +113,8 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 5. Максимум две итерации. Если второе ревью снова не `APPROVE`, не запускать третье:
    разделить оставшуюся работу на меньшие PR и сообщить о нерешённом PR.
 6. После `APPROVE` новых коммитов не добавлять; любое изменение требует нового ревью.
+7. Перед rebase проверить `mergeable_state`: `clean` — мержить без rebase; rebase только
+   при `behind`/`dirty`. WIP-коммиты squash-ить перед rebase.
 
 ## После merge PR
 

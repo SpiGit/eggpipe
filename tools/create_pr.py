@@ -26,6 +26,9 @@ SIZE_HEADING = "## Размер"
 SIZE_BLOCK_START = "<!-- pr-size:start -->"
 SIZE_BLOCK_END = "<!-- pr-size:end -->"
 NUMSTAT_SEPARATOR = "\0"
+SHARED_FILES = frozenset({"AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "engineering/backlog.md"})
+SHARED_PREFIXES = ("docs/ai/",)
+SHARED_PATTERNS = ("engineering/requirements/v*.md",)
 HEADING_START = re.compile(r"^#{1,6} ")
 FENCE_START = re.compile(r"^\s*(```|~~~)")
 
@@ -42,6 +45,29 @@ class DiffSize:
     @property
     def too_large(self) -> bool:
         return self.lines > MAX_PR_LINES or self.files > MAX_PR_FILES
+
+
+def shared_paths(paths: list[str]) -> list[str]:
+    """Return files that need a single owner across parallel PRs."""
+    return sorted(
+        path
+        for path in paths
+        if path in SHARED_FILES
+        or path.startswith(SHARED_PREFIXES)
+        or any(fnmatchcase(path, pattern) for pattern in SHARED_PATTERNS)
+    )
+
+
+def shared_warning(paths: list[str]) -> str | None:
+    """Return a warning for shared-file changes, or None."""
+    shared = shared_paths(paths)
+    if not shared:
+        return None
+    return (
+        "warning: shared files changed: "
+        + ", ".join(shared)
+        + ". Keep a single owner across parallel PRs."
+    )
 
 
 def is_generated(path: str) -> bool:
@@ -331,6 +357,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"note: {warning}\nreason: {args.allow_large}", file=sys.stderr)
         else:
             print(f"warning: {warning}", file=sys.stderr)
+
+    changed = _run_git("diff", "--name-only", f"origin/{args.base}...HEAD").splitlines()
+    warning_text = shared_warning(changed)
+    if warning_text is not None:
+        print(warning_text, file=sys.stderr)
 
     token = _token()
     existing = find_open_pr(repo, branch, token)

@@ -64,6 +64,15 @@ uv run python tools/check_wheel.py dist
 - При изменении версии обнови `engineering/requirements/index.md`, System Design, README,
   `.session-context.md` и harness-файлы, где указана актуальная версия.
 
+## Локальная настройка git
+
+```bash
+git config rerere.enabled true
+git config merge.conflictstyle zdiff3
+```
+
+`rerere` переиспользует разрешённые конфликты, `zdiff3` показывает их компактнее.
+
 ## Ветки и main
 
 `main` защищён: прямые коммиты и push запрещены. Любое изменение идёт через отдельную
@@ -127,10 +136,11 @@ generated, какие вопросы задать ревьюеру и что в�
 
 - Одна задача — одна ветка и один worktree.
 - Для каждой задачи зафиксируй owned paths.
-- Общие файлы (`AGENTS.md`, `CHANGELOG.md`, `docs/ai/**`, версии ТЗ) обновляет один
-  владелец или они меняются последовательно.
+- Общие файлы (`AGENTS.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `engineering/backlog.md`,
+  `docs/ai/**`, `engineering/requirements/v*.md`) обновляет один владелец или они
+  меняются последовательно.
 - Generated-файлы пересобирает только владелец задачи.
-- Перед merge — rebase на актуальный `main`.
+- Перед merge проверяй `mergeable_state`; rebase — только при `behind`/`dirty`.
 - При пересечении файлов задачи становятся последовательными.
 
 ## Закрытие дня
@@ -154,6 +164,8 @@ generated, какие вопросы задать ревьюеру и что в�
 - если второе ревью снова не `APPROVE`, PR не уходит в третью итерацию: оставшаяся
   работа делится на меньшие PR;
 - после `APPROVE` новых коммитов не добавляется;
+- перед rebase проверь `mergeable_state`: `clean` — мержить без rebase, rebase только при
+  `behind`/`dirty`; WIP-коммиты squash-ить перед rebase;
 - секция `## Size exception` персистентна: `create_pr.py` сохраняет её при обновлении PR,
   убрать можно только ручным редактированием body.
 
