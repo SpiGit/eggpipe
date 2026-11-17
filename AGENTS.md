@@ -33,6 +33,7 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
 | `engineering/system-design/index.md` | System Design |
 | `engineering/adr/` | Принятые архитектурные решения |
 | `engineering/reviews/` | Ревью и backlog P1/P2 |
+| `engineering/backlog.md` | Отложенные minor и технический долг |
 | `engineering/day-closure.md` | Шаблон и правила завершения дня |
 | `engineering/roadmap.md` | Направления развития и подготовка к 1.0 |
 | `engineering/decisions/eggpipe.md` | Имя, CLI/конфиг, бренд и идеи лого |
@@ -102,9 +103,9 @@ reference- и TPC-H-плагины, golden-тесты. Дальше — E9: CI, 
    Для своего PR используется `event=COMMENT`: GitHub не позволяет формально
    approve собственный PR.
 4. Если verdict `CHANGES REQUESTED` — внести **только правки по находкам**. Minor и
-   «заодно улучшим» выноси в follow-up PR, чтобы не менять уже проверенный diff.
-   После правок запустить `uv run python tools/create_pr.py`: он обновит блок размера и
-   сохранит body; карту ревью обновить, если изменился scope.
+   «заодно улучшим» выноси в `engineering/backlog.md` или follow-up PR, чтобы не менять
+   уже проверенный diff. После правок запустить `uv run python tools/create_pr.py`: он
+   обновит блок размера и сохранит body; карту ревью обновить, если изменился scope.
 5. Максимум две итерации. Если второе ревью снова не `APPROVE`, не запускать третье:
    разделить оставшуюся работу на меньшие PR и сообщить о нерешённом PR.
 6. После `APPROVE` новых коммитов не добавлять; любое изменение требует нового ревью.

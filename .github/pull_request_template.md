@@ -35,6 +35,7 @@ Generated/full-copy:
 
 - [ ] Ревью пройдено (`pr-reviewer`: APPROVE) или ревью не требуется.
 - [ ] После APPROVE новых коммитов не было.
+- [ ] Отложенные minor добавлены в `engineering/backlog.md`.
 
 ## Ручная проверка
 

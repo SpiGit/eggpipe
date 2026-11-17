@@ -15,6 +15,8 @@
 - `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
 - `tools/create_pr.py` обновляет блок размера в PR body по маркерам и сохраняет
   ручную карту ревью при повторном запуске.
+- `engineering/backlog.md` — единое место для отложенных minor и техдолга; PR-шаблон
+  и процесс ревью требуют фиксировать их там.
 - `tools/create_pr.py`: size-check корректно разбирает renames и quoted-пути в
   `git diff --numstat`, сохраняет `## Size exception` при обновлении PR и отклоняет
   пустой `--allow-large`.
