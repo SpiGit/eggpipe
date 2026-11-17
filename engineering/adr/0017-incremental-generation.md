@@ -2,7 +2,7 @@
 
 - **Статус:** принято
 - **Дата:** 2026-11-16
-- **Связанные документы:** [ТЗ v2.3 §10.7](../requirements/v2.3.md), [ADR-0004](./0004-ownership-manifest-cleanup.md), [ADR-0009](./0009-global-manifest-ownership.md), [Roadmap](../roadmap.md)
+- **Связанные документы:** [ТЗ v2.4 §10.7](../requirements/v2.4.md), [ADR-0004](./0004-ownership-manifest-cleanup.md), [ADR-0009](./0009-global-manifest-ownership.md), [Roadmap](../roadmap.md)
 
 ---
 

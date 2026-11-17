@@ -5,7 +5,7 @@ description: Контракты generator и FormatPlugin Eggpipe — публи
 
 # Контракты плагинов Eggpipe
 
-Источник истины: актуальное ТЗ v2.3 §6 и System Design §2.
+Источник истины: актуальное ТЗ v2.4 §6 и System Design §2.
 
 ## Публичный API
 
@@ -63,6 +63,7 @@ class MyGenerator(GeneratorPlugin):
     id: ClassVar[str] = "my-generator"
     name: ClassVar[str] = "My Generator"
     input_formats: ClassVar[set[str] | None] = {"entity-model"}
+    output_scope: ClassVar[Literal["model", "entity"]] = "model"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult(
@@ -140,7 +141,7 @@ class MyFormat(EntityModelFormat):
 
 ### Generator
 
-- [ ] `api_version`, `id`, `name`, `input_formats` заданы как `ClassVar`.
+- [ ] `api_version`, `id`, `name`, `input_formats`, `output_scope` заданы как `ClassVar`.
 - [ ] `input_formats` обязателен: `None` — любой, `set()` — ни один.
 - [ ] Entry point совпадает с `id`; `id` соответствует pattern.
 - [ ] Для decorator API аннотации только `ModelSlice`/`GenerationContext`/`GeneratorConfig`.

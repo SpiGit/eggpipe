@@ -1,8 +1,8 @@
 # System Design — Eggpipe
 
-> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.3](../requirements/v2.3.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
+> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.4](../requirements/v2.4.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 2.3. Дата: 2026-11-16.*
+*Версия документа: 2.4. Дата: 2026-11-17.*
 
 ---
 
@@ -155,7 +155,7 @@ class GenerationResult(BaseModel):
 **Основной API — декоратор `@generator`:**
 
 ```python
-@generator(id="tpch", input_formats={"entity-model"})
+@generator(id="tpch", input_formats={"entity-model"}, output_scope="entity")
 def tpch(
     model: ModelSlice,
     context: GenerationContext,
@@ -182,6 +182,8 @@ class GeneratorPlugin(ABC):
     name: ClassVar[str] = ""              # default → id
     input_formats: ClassVar[set[str] | None]
                                           # обязателен: None = любой; set = форматы и наследники
+    output_scope: ClassVar[Literal["model", "entity"]] = "model"
+                                          # entity = per-entity output
 
     @abstractmethod
     def generate(self, input: GeneratorInput) -> GenerationResult: ...
@@ -194,6 +196,12 @@ class GeneratorPlugin(ABC):
 с учётом цепочки `extends`; несовместимость — EG033 до вызова `generate()`.
 Это pre-flight ошибка всего запуска: артефакты не пишутся, `--plan`/`--check` падают, exit 2.
 `GenerationContext.formats` содержит форматы среза; `Entity.format` — источник истины.
+
+**Per-entity generation:** `--entity` / `Engine.build(entities=...)` фильтрует entities после
+композиции и замыкает enums/types. Режим разрешён, только если все выбранные генераторы
+объявили `output_scope="entity"`; иначе EG303. Per-entity генератор не зависит от других
+entities и пишет уникальные для каждой entity пути. Manifest location дополняется, cleanup
+не выполняется; incremental и watch с `--entity` не поддерживаются в v2.4.
 
 **Жизненный цикл:** `__init__` → `validate_config()` → `generate()`.
 
@@ -807,6 +815,7 @@ def validate(
 | EG300 | Генератор/запись/check упали или drift | error | engine |
 | EG301 | Нарушен контракт генератора | error | plugin |
 | EG302 | Неизвестный инжектируемый параметр | error | plugin |
+| EG303 | Генератор не поддерживает per-entity output | error | plugin |
 
 - Pydantic-ошибки маппятся в EG028/EG3xx с локацией.
 - `format_plugin.validate(document)` вызывается после базовой структурной валидации; его `Diagnostic[]` объединяются с ядровыми.
@@ -1039,6 +1048,7 @@ app.add_typer(format_app, name="format")   # list
 def generate(
     models: Optional[list[Path]] = typer.Argument(None),
     generator: Optional[list[str]] = typer.Option(None, "-g", "--generator"),
+    entity: Optional[list[str]] = typer.Option(None, "--entity"),
     config: Optional[Path] = typer.Option(None, "-c", "--config"),
     output: Optional[Path] = typer.Option(None, "-o", "--output"),
     var: Optional[list[str]] = typer.Option(None, "--var", help="KEY=VALUE, многократно"),
@@ -1073,6 +1083,7 @@ def clean(
 ```
 
 - `-g a,b` и повторяющийся `-g a -g b` — оба варианта; split по запятой с trim.
+- `--entity` использует тот же split; per-entity режим требует `output_scope="entity"`.
 - Позиционные `models` заменяют `sources`; `generators[].input` применяется, `sources[].input` — нет.
 - `--format` переименован в `--output-format`, чтобы не путать с форматом документа.
 - `--plan`/`--dry-run` — синонимы; `--plan` печатает create/update/skip/delete/conflict.
@@ -1275,6 +1286,7 @@ class ExecutionPlan:
 - `skipped: true` — ядро не писало файл; cleanup такие записи не удаляет.
 - `.eggpipe/` рекомендуется в `.gitignore`; manifest не предназначен для коммита.
 - `--check` и `--plan` не обновляют manifest.
+- Per-entity запись дополняет location: артефакты других entities сохраняются; cleanup не выполняется.
 - Manifest v1 не поддерживается.
 
 ### 8.4 Atomicity и блокировки
@@ -1444,7 +1456,7 @@ examples/
 ├── tpc-h-generator/
 └── tpc-h/
 docs/
-├── requirements/                # index, v1.0–v1.4, v2.0, v2.1, v2.2, v2.3
+├── requirements/                # index, v1.0–v1.4, v2.0, v2.1, v2.2, v2.3, v2.4
 ├── system-design/
 ├── reviews/
 ├── adr/
@@ -1468,7 +1480,7 @@ L1-кэш incremental — в `engine.py`; `watch/cache.py` и L2/L3 — future.
 
 ---
 
-## 11. Тестирование (охват v2.3)
+## 11. Тестирование (охват v2.4)
 
 ### 11.1 Приоритеты
 
@@ -1484,6 +1496,7 @@ L1-кэш incremental — в `engine.py`; `watch/cache.py` и L2/L3 — future.
 10. **Cleanup**: modified owned-файл не удаляется (EG050), чужой файл не удаляется, shared `output_dir`, удалённый из конфига генератор.
 11. **Concurrency**: второй запуск при held lock; stale lock.
 12. **Determinism**: повторный запуск даёт идентичные байты; порядок source/artifact/plugin стабилен; артефакты не содержат абсолютных путей.
+13. **Per-entity**: `output_scope`, `--entity`, EG303, closure enums/types, manifest merge, cleanup off, incremental/watch ограничения.
 
 ### 11.2 Property-based
 
@@ -1614,7 +1627,7 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v2.3, сводка)
+## 13. Проектировочные решения (v2.4, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|
