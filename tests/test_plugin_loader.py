@@ -28,10 +28,22 @@ def Decorated(model: ModelSlice) -> list[Artifact]:
     return []
 
 
+@generator(id="bad-signature", input_formats={"entity-model"})
+def BadSignature(model: ModelSlice, extra: str) -> Artifact:
+    return Artifact(path="a.txt", content=extra)
+
+
 class DemoGenerator(GeneratorPlugin):
     id = "demo"
     name = "Demo"
     input_formats: ClassVar[set[str] | None] = None
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult()
+
+
+class MissingGenerator(GeneratorPlugin):
+    id = "missing"
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult()
@@ -114,13 +126,7 @@ def test_decorator_generator_is_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
-    class Missing(GeneratorPlugin):
-        id = "missing"
-
-        def generate(self, input: GeneratorInput) -> GenerationResult:
-            return GenerationResult()
-
-    entries = [EntryPoint("missing", Missing)]
+    entries = [EntryPoint("missing", MissingGenerator)]
 
     def fake_entry_points(*, group: str) -> list[EntryPoint]:
         return entries
@@ -128,7 +134,83 @@ def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
     plugins, issues = plugin_loader.load_generators_with_issues()
     assert plugins == {}
-    assert issues[0].code == "EG301"
+    issue = issues[0]
+    assert issue.entry_point == "missing"
+    assert issue.code == "EG301"
+    assert "input_formats is not declared" in issue.message
+    assert "test_plugin_loader" in issue.message
+    assert "Missing" in issue.message
+    assert "EG30" not in issue.message
+    assert not issue.message.startswith("missing:")
+
+
+def test_contract_issue_prints_code_once_in_cli_format(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entries = [EntryPoint("missing", MissingGenerator)]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    _, issues = plugin_loader.load_generators_with_issues()
+    issue = issues[0]
+    line = f"warning: {issue.entry_point}: {issue.code}: {issue.message}"
+    assert line.count("EG301") == 1
+    assert line.count("warning: missing:") == 1
+
+
+def test_eg302_issue_keeps_other_plugins_and_names_location(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entries = [
+        EntryPoint("bad-signature", BadSignature),
+        EntryPoint("demo", DemoGenerator),
+    ]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    plugins, issues = plugin_loader.load_generators_with_issues()
+    assert set(plugins) == {"demo"}
+    assert len(issues) == 1
+    issue = issues[0]
+    assert issue.entry_point == "bad-signature"
+    assert issue.code == "EG302"
+    assert "'extra'" in issue.message
+    assert "test_plugin_loader" in issue.message
+    assert "BadSignature" in issue.message
+    assert "ModelSlice, GenerationContext or GeneratorConfig" in issue.message
+    assert "eggpipe.interfaces" not in issue.message
+    assert "EG30" not in issue.message
+
+
+def test_loader_level_issues_have_no_contract_code(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Duplicate(GeneratorPlugin):
+        id = "demo"
+        input_formats: ClassVar[set[str] | None] = None
+
+        def generate(self, input: GeneratorInput) -> GenerationResult:
+            return GenerationResult()
+
+    entries = [
+        EntryPoint("demo", DemoGenerator),
+        EntryPoint("demo", Duplicate),
+        EntryPoint("wrong-name", DemoGenerator),
+        EntryPoint("broken", BrokenGenerator),
+    ]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    _, issues = plugin_loader.load_generators_with_issues()
+    assert all(issue.code is None for issue in issues)
+    messages = " ".join(issue.message for issue in issues)
+    assert "duplicate generator id 'demo'" in messages
+    assert "does not match the entry point 'wrong-name'" in messages
+    assert "incompatible api_version '2'" in messages
 
 
 def test_load_formats_and_registry(monkeypatch: pytest.MonkeyPatch) -> None:

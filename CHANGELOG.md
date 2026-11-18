@@ -7,6 +7,8 @@
 
 ### Changed
 
+- Сообщения `EG301`/`EG302` называют плагин и место ошибки и подсказывают, что исправить;
+  `PluginIssue` заполняет код диагностики для contract-ошибок.
 - `engineering/requirements/index.md` разделён на реестр версий и `changelog.md`.
 - `.session-context.md` сокращён до текущего состояния; история вынесена в
   `engineering/session-log.md`.
