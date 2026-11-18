@@ -27,7 +27,9 @@ nav:
           - Generator: user/api/generator.md
           - Format: user/api/format.md
           - Модели: user/api/models.md
-      - Cookbook: user/cookbook/index.md
+      - Cookbook:
+          - Обзор: user/cookbook/index.md
+          - Reference-генераторы: user/cookbook/reference-generators.md
       - Плагины: user/plugins.md
       - Шаблон плагина: user/plugin-template.md
       - Диагностики: user/reference/diagnostics.md

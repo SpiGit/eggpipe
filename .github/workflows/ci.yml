@@ -137,6 +137,32 @@ jobs:
       - name: Test rendered template
         run: uv run pytest /tmp/eggpipe-plugin-template/tests -q
 
+  reference-generators:
+    name: Reference generators
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --frozen --extra dev
+
+      - name: Install reference generators
+        run: uv pip install -e examples/reference-generators
+
+      - name: Test reference generators
+        run: uv run pytest examples/reference-generators/tests -q
+
   docs-site:
     name: Build documentation site
     runs-on: ubuntu-latest
@@ -163,7 +189,7 @@ jobs:
   ci-success:
     name: ci-success
     if: always()
-    needs: [test, package, template, docs-site]
+    needs: [test, package, template, reference-generators, docs-site]
     runs-on: ubuntu-latest
     steps:
       - name: Check all jobs
@@ -171,4 +197,5 @@ jobs:
           test "${{ needs.test.result }}" = "success"
           test "${{ needs.package.result }}" = "success"
           test "${{ needs.template.result }}" = "success"
+          test "${{ needs.reference-generators.result }}" = "success"
           test "${{ needs.docs-site.result }}" = "success"

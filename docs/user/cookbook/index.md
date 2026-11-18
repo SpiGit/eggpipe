@@ -20,6 +20,17 @@ schema-json = "my_package.plugins:schema_json"
 
 Подробнее: [Generator API](../api/generator.md).
 
+## Готовые reference-генераторы
+
+Нужны SQL, Pydantic, TypeScript и OpenAPI из одной модели — установи пример:
+
+```bash
+pip install -e examples/reference-generators
+eggpipe gen list
+```
+
+Подробнее: [Reference-генераторы](reference-generators.md).
+
 ## Свой формат
 
 ```python

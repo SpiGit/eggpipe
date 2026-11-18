@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eggpipe-reference-generators"
+version = "0.1.0"
+description = "Reference SQL, Pydantic, TypeScript and OpenAPI generators for eggpipe"
+requires-python = ">=3.11"
+dependencies = ["eggpipe>=0.3.2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.entry-points."eggpipe.generators"]
+sql = "eggpipe_reference_generators:sql_generator"
+pydantic = "eggpipe_reference_generators:pydantic_generator"
+typescript = "eggpipe_reference_generators:typescript_generator"
+openapi = "eggpipe_reference_generators:openapi_generator"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eggpipe_reference_generators"]
