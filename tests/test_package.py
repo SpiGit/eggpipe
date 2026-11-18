@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from importlib.metadata import version
+
 import eggpipe
 
 
 def test_version() -> None:
-    assert eggpipe.__version__ == "0.3.2"
+    assert eggpipe.__version__ == version("eggpipe")
 
 
 def test_public_api_exports_core_models() -> None:

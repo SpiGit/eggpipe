@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-18
+
 ### Changed
 
 - `eggpipe gen info` и `eggpipe format info` показывают `module`, `class`, `api_version`,

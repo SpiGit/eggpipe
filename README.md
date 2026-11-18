@@ -217,5 +217,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** Eggpipe 0.3.2, ТЗ v2.4. Реализованы E0–E9, пакет опубликован на PyPI; per-entity generation реализована (ADR-0018): `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity`:
+**Стадия:** Eggpipe 0.4.0, ТЗ v2.4. Реализованы E0–E9, пакет опубликован на PyPI; per-entity generation реализована (ADR-0018): `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity`:
 CLI/config/state, форматы и слои, decorator API, глобальный manifest, CLI/JSON v2, CI и release workflow.
