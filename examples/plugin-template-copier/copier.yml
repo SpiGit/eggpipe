@@ -1,0 +1,31 @@
+_subdirectory: template
+_templates_suffix: .jinja
+_min_copier_version: "9.0.0"
+
+project_name:
+  type: str
+  help: Human-readable plugin name
+  default: My Eggpipe Plugin
+
+package_name:
+  type: str
+  help: Python package name (snake_case)
+  default: eggpipe_my_plugin
+  validator: >-
+    {% if not (package_name | regex_search('^[a-z_][a-z0-9_]*$')) %}
+    package_name must be a valid Python package name
+    {% endif %}
+
+generator_id:
+  type: str
+  help: Generator entry point id (kebab-case)
+  default: my-plugin
+  validator: >-
+    {% if not (generator_id | regex_search('^[a-z][a-z0-9]*(-[a-z0-9]+)*$')) %}
+    generator_id must be kebab-case
+    {% endif %}
+
+description:
+  type: str
+  help: Short package description
+  default: Eggpipe generator plugin

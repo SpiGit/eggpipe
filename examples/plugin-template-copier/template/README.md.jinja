@@ -1,0 +1,16 @@
+# {{ project_name }}
+
+Generator and format plugin for [Eggpipe](https://github.com/SpiGit/eggpipe).
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+Entry points:
+
+- generator `{{ generator_id }}`;
+- format `{{ generator_id }}-model` (extends `entity-model`).
+
+Use `{{ generator_id }}-model` in the model YAML and `{{ generator_id }}` in
+`.eggpipe.yaml`; see https://spigit.github.io/eggpipe/ for details.

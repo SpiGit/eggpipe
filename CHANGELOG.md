@@ -28,6 +28,7 @@
 ### Added
 
 - `engineering/backlog.md` — единое место для отложенных minor и техдолга.
+- `examples/plugin-template-copier` — one-command шаблон плагина через copier и CI-проверка рендера.
 - `--incremental` / `EGGPIPE_INCREMENTAL=true` — opt-in кэш на уровне location:
   пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов;
   отключается при `--check`, `--force`, `--clean`, `--strict`, `diagnostics.stale_dates`,
