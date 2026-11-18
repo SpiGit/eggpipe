@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -43,13 +44,17 @@ def write(
     *,
     generator_id: str = "gen",
     cleanup: str = "off",
+    merge: bool = False,
+    input_fingerprint: str | None = None,
 ) -> list[Diagnostic]:
     return writer(tmp_path).write(
         generator_id=generator_id,
         output_dir=output,
         plan=plan,
         plugin_version="1.0",
+        input_fingerprint=input_fingerprint,
         cleanup=cleanup,  # type: ignore[arg-type]
+        merge=merge,
     )
 
 
@@ -60,6 +65,13 @@ def location(tmp_path: Path, generator_id: str = "gen", output: str = "out"):
         for item in manifest.locations
         if item.generator == generator_id and item.output_dir == output
     )
+
+
+def set_generated_at(tmp_path: Path, value: str) -> None:
+    path = tmp_path / ".eggpipe" / "manifest.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["locations"][0]["generated_at"] = value
+    path.write_text(json.dumps(data), encoding="utf-8")
 
 
 def test_create_and_global_manifest(tmp_path: Path) -> None:
@@ -334,6 +346,112 @@ def test_empty_plan_runs_cleanup_for_previous_location(tmp_path: Path) -> None:
     )
     assert not (output / "old.txt").exists()
     assert writer(tmp_path).load_manifest().locations == []
+
+
+def test_merge_unions_formats_without_duplicates(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(
+        tmp_path,
+        output,
+        plan_for(
+            tmp_path,
+            output,
+            Artifact(path="a.txt", content="a"),
+            formats=frozenset(
+                {FormatInfo("entity-model", "1.0"), FormatInfo("entity-delta", "1.0")}
+            ),
+        ),
+    )
+
+    write(
+        tmp_path,
+        output,
+        plan_for(
+            tmp_path,
+            output,
+            Artifact(path="b.txt", content="b"),
+            formats=frozenset(
+                {FormatInfo("entity-model", "1.0"), FormatInfo("entity-view", "1.0")}
+            ),
+        ),
+        merge=True,
+    )
+
+    formats = [(item.name, item.version) for item in location(tmp_path).formats]
+    assert sorted(formats) == [
+        ("entity-delta", "1.0"),
+        ("entity-model", "1.0"),
+        ("entity-view", "1.0"),
+    ]
+    assert len(formats) == len({name for name, _ in formats})
+
+
+def test_merge_updates_generated_at(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(tmp_path, output, plan_for(tmp_path, output, Artifact(path="a.txt", content="a")))
+    past = "2000-01-01T00:00:00+00:00"
+    set_generated_at(tmp_path, past)
+
+    write(
+        tmp_path,
+        output,
+        plan_for(tmp_path, output, Artifact(path="b.txt", content="b")),
+        merge=True,
+    )
+
+    assert location(tmp_path).generated_at > datetime.fromisoformat(past)
+
+
+def test_merge_keeps_old_artifacts_and_input_fingerprint(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(
+        tmp_path,
+        output,
+        plan_for(tmp_path, output, Artifact(path="a.txt", content="a")),
+        input_fingerprint="first",
+    )
+
+    write(
+        tmp_path,
+        output,
+        plan_for(tmp_path, output, Artifact(path="b.txt", content="b")),
+        merge=True,
+        input_fingerprint="second",
+    )
+
+    loc = location(tmp_path)
+    assert {item.path for item in loc.artifacts} == {"a.txt", "b.txt"}
+    assert loc.input_fingerprint == "first"
+    assert (output / "a.txt").read_text(encoding="utf-8") == "a"
+
+
+def test_merge_keeps_skipped_entries_and_ownership(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    write(tmp_path, output, plan_for(tmp_path, output, Artifact(path="a.txt", content="one")))
+    skipped = plan_for(
+        tmp_path,
+        output,
+        Artifact(path="a.txt", content="two"),
+        on_conflict="skip",
+    )
+    assert skipped.artifacts[0].action == "skip"
+
+    write(tmp_path, output, skipped, merge=True)
+
+    loc = location(tmp_path)
+    entry = next(item for item in loc.artifacts if item.path == "a.txt")
+    assert entry.skipped is True
+    assert (output / "a.txt").read_text(encoding="utf-8") == "one"
+
+    owned = plan_for(tmp_path, output, Artifact(path="a.txt", content="three"))
+    assert owned.artifacts[0].action == "update"
+    foreign = plan_for(
+        tmp_path,
+        output,
+        Artifact(path="a.txt", content="four"),
+        generator_id="other",
+    )
+    assert foreign.diagnostics[0].code == "EG041"
 
 
 def test_pending_deletions_for_cleanup(tmp_path: Path) -> None:
