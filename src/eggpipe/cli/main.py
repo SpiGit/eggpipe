@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import functools
 import json
 import sys
@@ -37,6 +38,7 @@ from eggpipe.utils.exceptions import (
     ConfigValidationError,
     DocumentError,
     EggpipeError,
+    UnknownFormatError,
 )
 from eggpipe.version import __version__
 from eggpipe.watch.watcher import run_watch
@@ -165,7 +167,23 @@ def _parse_variables(values: list[str] | None) -> dict[str, str]:
 
 def _print_plugin_issues(issues: list[PluginIssue]) -> None:
     for issue in issues:
-        typer.echo(f"warning: {issue.entry_point}: {issue.message}", err=True)
+        typer.echo(f"warning: {issue.entry_point}: {_issue_message(issue)}", err=True)
+
+
+def _issue_message(issue: PluginIssue) -> str:
+    # PluginContractError already embeds the code into its message.
+    if not issue.code or issue.message.startswith(f"{issue.code}:"):
+        return issue.message
+    return f"{issue.code}: {issue.message}"
+
+
+def _print_unknown(kind: str, value: str, available: list[str]) -> None:
+    """Report an unknown plugin name with close matches and the available values."""
+    typer.echo(f"error: unknown {kind}: {value}", err=True)
+    matches = difflib.get_close_matches(value, available, n=3)
+    if matches:
+        typer.echo(f"did you mean: {', '.join(matches)}", err=True)
+    typer.echo(f"available {kind}s: {', '.join(sorted(available)) or 'none'}", err=True)
 
 
 def _load_generators(plugins: list[Path] | None) -> dict[str, GeneratorPlugin]:
@@ -653,9 +671,10 @@ def gen_list(
 @gen_app.command("info")
 def gen_info(generator_id: str) -> None:
     """Show generator information."""
-    plugin = _load_generators(None).get(generator_id)
+    generators = _load_generators(None)
+    plugin = generators.get(generator_id)
     if plugin is None:
-        typer.echo(f"error: unknown generator: {generator_id}", err=True)
+        _print_unknown("generator", generator_id, list(generators))
         raise typer.Exit(code=2)
     typer.echo(f"id: {plugin.id}")
     typer.echo(f"name: {plugin.name or plugin.id}")
@@ -663,6 +682,8 @@ def gen_info(generator_id: str) -> None:
     typer.echo(f"input_formats: {_input_formats_label(plugin.input_formats)}")
     typer.echo(f"output_scope: {plugin.output_scope}")
     typer.echo(f"entry point group: {GENERATOR_GROUP}")
+    typer.echo(f"module: {type(plugin).__module__}")
+    typer.echo(f"class: {type(plugin).__qualname__}")
 
 
 def _input_formats_label(formats: set[str] | None) -> str:
@@ -677,6 +698,9 @@ def format_info(name: str) -> None:
     registry = _load_format_registry()
     try:
         plugin = registry.get(name)
+    except UnknownFormatError:
+        _print_unknown("format", name, [item.name for item in registry.list()])
+        raise typer.Exit(code=2) from None
     except EggpipeError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
@@ -685,6 +709,16 @@ def format_info(name: str) -> None:
     typer.echo(f"extends: {plugin.extends or '-'}")
     typer.echo(f"primitive_types: {','.join(sorted(plugin.primitive_types))}")
     typer.echo(f"schemas: {','.join(sorted(plugin.schemas))}")
+    typer.echo(f"api_version: {plugin.api_version}")
+    typer.echo(f"module: {type(plugin).__module__}")
+    typer.echo(f"class: {type(plugin).__qualname__}")
+    typer.echo(f"base_versions: {_base_versions_label(getattr(plugin, 'base_versions', {}))}")
+
+
+def _base_versions_label(base_versions: dict[str, str]) -> str:
+    if not base_versions:
+        return "-"
+    return ",".join(f"{version}->{base}" for version, base in sorted(base_versions.items()))
 
 
 @format_app.command("list")

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, ClassVar
 
 import pytest
 from reference_generator import ReferenceGenerator
 from typer.testing import CliRunner
 
+from eggpipe import EntityModelFormat, GenerationResult, GeneratorInput
 from eggpipe.cli.main import ReportOptions, _print_report, app
 from eggpipe.engine import plugin_loader
 from eggpipe.engine.report import EngineReport
@@ -181,11 +183,11 @@ def test_clean_requires_yes_in_non_tty(tmp_path: Path) -> None:
 
 
 class EntryPoint:
-    def __init__(self, name: str, value: type[GeneratorPlugin]) -> None:
+    def __init__(self, name: str, value: type[Any]) -> None:
         self.name = name
         self.value = value
 
-    def load(self) -> type[GeneratorPlugin]:
+    def load(self) -> type[Any]:
         return self.value
 
 
@@ -619,3 +621,103 @@ def test_generate_empty_entity_exits_2(tmp_path: Path, value: str) -> None:
         ["generate", "-c", str(rules), "--plugin", str(plugin), "--entity", value],
     )
     assert result.exit_code == 2
+
+
+def _patch_entry_points(monkeypatch: pytest.MonkeyPatch, entries: list[EntryPoint]) -> None:
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        del group
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+
+
+class DemoModelFormat(EntityModelFormat):
+    """Format plugin for `format info` tests: extends entity-model."""
+
+    format_names: ClassVar[list[str]] = ["demo-model"]
+    supported_versions: ClassVar[list[str]] = ["1.0"]
+    extends: ClassVar[str | None] = "entity-model"
+    base_versions: ClassVar[dict[str, str]] = {"1.0": "1.0"}
+
+
+class BrokenGenerator(GeneratorPlugin):
+    """Generator with an invalid id: triggers a coded plugin issue."""
+
+    id = "Broken"
+    input_formats = None
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return GenerationResult()
+
+
+def test_gen_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [EntryPoint("reference", ReferenceGenerator)])
+    result = CliRunner().invoke(app, ["gen", "info", "reference"])
+    assert result.exit_code == 0
+    lines = result.stdout.splitlines()
+    assert lines[:6] == [
+        "id: reference",
+        "name: Reference Generator",
+        "api_version: 1",
+        "input_formats: entity-model",
+        "output_scope: model",
+        "entry point group: eggpipe.generators",
+    ]
+    assert lines[6:] == ["module: reference_generator", "class: ReferenceGenerator"]
+
+
+def test_gen_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [EntryPoint("reference", ReferenceGenerator)])
+    result = CliRunner().invoke(app, ["gen", "info", "referense"])
+    assert result.exit_code == 2
+    assert "error: unknown generator: referense" in result.stderr
+    assert "did you mean: reference" in result.stderr
+    assert "available generators: reference" in result.stderr
+
+
+def test_format_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [])
+    result = CliRunner().invoke(app, ["format", "info", "entity-model"])
+    assert result.exit_code == 0
+    lines = result.stdout.splitlines()
+    assert lines[:5] == [
+        "name: entity-model",
+        "versions: 1.0",
+        "extends: -",
+        "primitive_types: bigint,boolean,date,datetime,float,integer,json,string,text,uuid",
+        "schemas: 1.0",
+    ]
+    assert lines[5:] == [
+        "api_version: 1",
+        "module: eggpipe.interfaces.formats",
+        "class: EntityModelFormat",
+        "base_versions: -",
+    ]
+
+
+def test_format_info_shows_base_versions(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [EntryPoint("demo-model", DemoModelFormat)])
+    result = CliRunner().invoke(app, ["format", "info", "demo-model"])
+    assert result.exit_code == 0
+    assert "extends: entity-model" in result.stdout
+    assert "class: DemoModelFormat" in result.stdout
+    assert "base_versions: 1.0->1.0" in result.stdout
+
+
+def test_format_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [])
+    result = CliRunner().invoke(app, ["format", "info", "entity-modell"])
+    assert result.exit_code == 2
+    assert "error: unknown format: entity-modell" in result.stderr
+    assert "did you mean: entity-model" in result.stderr
+    assert "available formats: entity-model" in result.stderr
+
+
+def test_plugin_issue_warning_includes_code(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [EntryPoint("broken", BrokenGenerator)])
+    result = CliRunner().invoke(app, ["gen", "list", "--all"])
+    assert result.exit_code == 0
+    assert (
+        "warning: broken: EG301: test_cli:BrokenGenerator: generator id 'Broken'" in result.stderr
+    )
+    assert result.stderr.count("EG301") == 1

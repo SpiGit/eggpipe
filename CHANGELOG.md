@@ -7,6 +7,8 @@
 
 ### Changed
 
+- `eggpipe gen info` и `eggpipe format info` показывают `module`, `class`, `api_version`,
+  `base_versions`, а при неизвестном id подсказывают ближайшие имена и доступные плагины.
 - Сообщения `EG301`/`EG302` называют плагин и место ошибки и подсказывают, что исправить;
   `PluginIssue` заполняет код диагностики для contract-ошибок.
 - `engineering/requirements/index.md` разделён на реестр версий и `changelog.md`.
@@ -31,6 +33,7 @@
 
 - `engineering/backlog.md` — единое место для отложенных minor и техдолга.
 - `examples/plugin-template-copier` — one-command шаблон плагина через copier и CI-проверка рендера.
+- Раздел «Первый плагин за 10 минут» в `docs/user/plugin-template.md`.
 - `--incremental` / `EGGPIPE_INCREMENTAL=true` — opt-in кэш на уровне location:
   пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов;
   отключается при `--check`, `--force`, `--clean`, `--strict`, `diagnostics.stale_dates`,
