@@ -28,6 +28,11 @@ def Decorated(model: ModelSlice) -> list[Artifact]:
     return []
 
 
+@generator(id="bad-signature", input_formats={"entity-model"})
+def BadSignature(model: ModelSlice, extra: str) -> Artifact:
+    return Artifact(path="a.txt", content=extra)
+
+
 class DemoGenerator(GeneratorPlugin):
     id = "demo"
     name = "Demo"
@@ -128,7 +133,35 @@ def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
     plugins, issues = plugin_loader.load_generators_with_issues()
     assert plugins == {}
-    assert issues[0].code == "EG301"
+    issue = issues[0]
+    assert issue.code == "EG301"
+    assert "missing" in issue.message
+    assert "input_formats is not declared" in issue.message
+    assert "plugin_loader" in issue.message
+
+
+def test_eg302_issue_keeps_other_plugins_and_names_location(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entries = [
+        EntryPoint("bad-signature", BadSignature),
+        EntryPoint("demo", DemoGenerator),
+    ]
+
+    def fake_entry_points(*, group: str) -> list[EntryPoint]:
+        return entries
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    plugins, issues = plugin_loader.load_generators_with_issues()
+    assert set(plugins) == {"demo"}
+    assert len(issues) == 1
+    issue = issues[0]
+    assert issue.entry_point == "bad-signature"
+    assert issue.code == "EG302"
+    assert "bad-signature" in issue.message
+    assert "'extra'" in issue.message
+    assert "plugin_loader" in issue.message
+    assert "ModelSlice, GenerationContext or GeneratorConfig" in issue.message
 
 
 def test_load_formats_and_registry(monkeypatch: pytest.MonkeyPatch) -> None:

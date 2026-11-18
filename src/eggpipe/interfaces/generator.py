@@ -90,6 +90,24 @@ class GeneratorPlugin(ABC):
 
 
 _INJECTABLE = (ModelSlice, GenerationContext, GeneratorConfig)
+_INJECTABLE_HINT = "ModelSlice, GenerationContext or GeneratorConfig"
+_RETURN_HINT = "return GenerationResult, Artifact, list[Artifact] or tuple[Artifact, ...]"
+
+
+def _callable_location(owner: Any) -> str:
+    """Return ``module:qualname`` for a class or function."""
+    module = getattr(owner, "__module__", None) or "unknown module"
+    qualname = getattr(owner, "__qualname__", None) or getattr(owner, "__name__", None)
+    if not isinstance(qualname, str) or not qualname:
+        qualname = type(owner).__name__
+    return f"{module}:{qualname}"
+
+
+def describe_generator_location(plugin: GeneratorPlugin) -> str:
+    """Return the module and qualified name of a generator class or decorated function."""
+    plugin_type = type(plugin)
+    function = getattr(plugin_type, "_function", None)
+    return _callable_location(function if function is not None else plugin_type)
 
 
 def generator(
@@ -105,15 +123,29 @@ def generator(
         not isinstance(input_formats, set)
         or any(not isinstance(item, str) or not item for item in input_formats)
     ):
-        raise PluginContractError("EG301", "input_formats must be set[str] or None")
+        raise PluginContractError(
+            "EG301",
+            "generator decorator: input_formats must be set[str] or None; "
+            "pass input_formats = {'entity-model'} or None (None accepts every format)",
+        )
     formats = set(input_formats) if input_formats is not None else None
     if output_scope not in {"model", "entity"}:
-        raise PluginContractError("EG301", "output_scope must be 'model' or 'entity'")
+        raise PluginContractError(
+            "EG301",
+            "generator decorator: output_scope must be 'model' or 'entity'; "
+            "set output_scope = 'model' (all entities) or 'entity' (per-entity run)",
+        )
 
     def decorate(function: Callable[..., Any]) -> type[GeneratorPlugin]:
+        location = _callable_location(function)
         generator_id = id or function.__name__.lower().replace("_", "-")
         if not re.fullmatch(r"^[a-z][a-z0-9-]*$", generator_id):
-            raise PluginContractError("EG301", f"invalid generator id: {generator_id!r}")
+            raise PluginContractError(
+                "EG301",
+                f"generator {generator_id!r} ({location}): id must match "
+                "^[a-z][a-z0-9-]*$; use lowercase letters, digits and hyphens, "
+                "starting with a letter",
+            )
         generator_name = name or function.__name__.replace("_", " ").title()
         adapter_version = api_version
         adapter_formats = formats
@@ -128,8 +160,9 @@ def generator(
             _function: ClassVar[Callable[..., Any]] = staticmethod(function)
 
             def generate(self, input: GeneratorInput) -> GenerationResult:
-                value = _invoke_generator(type(self)._function, input)
-                return _normalize_generation_result(value)
+                function = type(self)._function
+                value = _invoke_generator(function, input)
+                return _normalize_generation_result(value, function)
 
         Adapter.__name__ = f"{function.__name__}_generator"
         Adapter.__qualname__ = Adapter.__name__
@@ -141,53 +174,90 @@ def generator(
 def validate_generator_contract(plugin: GeneratorPlugin) -> None:
     plugin_type = type(plugin)
     plugin_id = getattr(plugin_type, "id", None)
+    function = getattr(plugin_type, "_function", None)
+    location = _callable_location(function if function is not None else plugin_type)
+    where = f"generator {plugin_id!r} ({location})"
     if not isinstance(plugin_id, str) or not re.fullmatch(r"^[a-z][a-z0-9-]*$", plugin_id):
-        raise PluginContractError("EG301", f"invalid generator id: {plugin_id!r}")
+        raise PluginContractError(
+            "EG301",
+            f"{where}: id must match ^[a-z][a-z0-9-]*$; use lowercase letters, "
+            "digits and hyphens, starting with a letter",
+        )
     if not hasattr(plugin_type, "input_formats"):
-        raise PluginContractError("EG301", "input_formats is required")
+        raise PluginContractError(
+            "EG301",
+            f"{where}: input_formats is not declared; declare "
+            "input_formats = {'entity-model'} or None (None accepts every format)",
+        )
     formats = plugin_type.input_formats
     if formats is not None and (
         not isinstance(formats, set)
         or any(not isinstance(item, str) or not item for item in formats)
     ):
-        raise PluginContractError("EG301", "input_formats must be set[str] or None")
+        raise PluginContractError(
+            "EG301",
+            f"{where}: input_formats must be set[str] or None; declare "
+            "input_formats = {'entity-model'} or None",
+        )
     scope = getattr(plugin_type, "output_scope", "model")
     if scope not in {"model", "entity"}:
-        raise PluginContractError("EG301", "output_scope must be 'model' or 'entity'")
-    function = getattr(plugin_type, "_function", None)
+        raise PluginContractError(
+            "EG301",
+            f"{where}: output_scope must be 'model' or 'entity'; "
+            "set output_scope = 'model' or 'entity'",
+        )
     if function is not None:
         validate_generator_function(function)
 
 
 def validate_generator_function(function: Callable[..., Any]) -> None:
+    where = _callable_location(function)
     try:
         hints = get_type_hints(function)
         signature = inspect.signature(function)
     except (NameError, TypeError) as exc:
-        raise PluginContractError("EG301", f"failed to read the signature: {exc}") from exc
+        raise PluginContractError(
+            "EG301",
+            f"{where}: cannot read the signature ({exc}); annotate parameters as "
+            f"{_INJECTABLE_HINT}",
+        ) from exc
 
     injected: set[type[Any]] = set()
     for parameter in signature.parameters.values():
         if parameter.kind in (parameter.VAR_POSITIONAL, parameter.VAR_KEYWORD):
-            raise PluginContractError("EG301", "*args/**kwargs are not supported")
+            kind = "*args" if parameter.kind is parameter.VAR_POSITIONAL else "**kwargs"
+            raise PluginContractError(
+                "EG301",
+                f"{where}: parameter {parameter.name!r} is {kind}; declare explicit "
+                f"parameters annotated as {_INJECTABLE_HINT}",
+            )
         hint = hints.get(parameter.name)
         if hint is None:
             raise PluginContractError(
                 "EG301",
-                f"parameter {parameter.name} has no annotation",
+                f"{where}: parameter {parameter.name!r} has no annotation; "
+                f"annotate it as {_INJECTABLE_HINT}",
             )
         if hint not in _INJECTABLE:
             raise PluginContractError(
                 "EG302",
-                f"unknown injectable parameter {parameter.name}: {hint!r}",
+                f"{where}: parameter {parameter.name!r} has unsupported annotation "
+                f"{hint!r}; annotate it as {_INJECTABLE_HINT}",
             )
         if hint in injected:
-            raise PluginContractError("EG301", f"duplicate injection of {hint.__name__}")
+            raise PluginContractError(
+                "EG301",
+                f"{where}: {hint.__name__} is injected more than once; "
+                "keep a single parameter with this annotation",
+            )
         injected.add(hint)
 
     result_hint = hints.get("return")
     if not _is_valid_return_hint(result_hint):
-        raise PluginContractError("EG301", f"invalid return type: {result_hint!r}")
+        raise PluginContractError(
+            "EG301",
+            f"{where}: unsupported return annotation {result_hint!r}; {_RETURN_HINT}",
+        )
 
 
 def _invoke_generator(function: Callable[..., Any], input: GeneratorInput) -> Any:
@@ -209,7 +279,10 @@ def _invoke_generator(function: Callable[..., Any], input: GeneratorInput) -> An
     return function(*args, **kwargs)
 
 
-def _normalize_generation_result(value: Any) -> GenerationResult:
+def _normalize_generation_result(
+    value: Any,
+    function: Callable[..., Any],
+) -> GenerationResult:
     if isinstance(value, GenerationResult):
         return value
     if isinstance(value, Artifact):
@@ -218,7 +291,8 @@ def _normalize_generation_result(value: Any) -> GenerationResult:
         return GenerationResult(artifacts=list(value))
     raise PluginContractError(
         "EG301",
-        f"invalid return type: {type(value).__name__}",
+        f"{_callable_location(function)}: generate() returned {type(value).__name__}; "
+        f"{_RETURN_HINT}",
     )
 
 

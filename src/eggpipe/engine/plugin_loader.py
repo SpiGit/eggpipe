@@ -25,6 +25,47 @@ class PluginIssue:
     code: str | None = None
 
 
+def _module_name(value: Any) -> str | None:
+    module = getattr(value, "__module__", None)
+    return module if isinstance(module, str) and module else None
+
+
+def _entry_module(entry_point: EntryPoint) -> str | None:
+    module = getattr(entry_point, "module", None)
+    if isinstance(module, str) and module:
+        return module
+    value = getattr(entry_point, "value", None)
+    if isinstance(value, str) and value:
+        return value.partition(":")[0] or None
+    return None
+
+
+def _issue(
+    entry_name: str,
+    message: str,
+    *,
+    code: str | None = None,
+    module: str | None = None,
+) -> PluginIssue:
+    location = f"{entry_name} ({module})" if module else entry_name
+    return PluginIssue(entry_name, f"{location}: {message}", code)
+
+
+def _entry_issue(
+    entry_point: EntryPoint,
+    message: str,
+    *,
+    code: str | None = None,
+    module: str | None = None,
+) -> PluginIssue:
+    return _issue(
+        entry_point.name,
+        message,
+        code=code,
+        module=module or _entry_module(entry_point),
+    )
+
+
 def load_generators_with_issues() -> tuple[dict[str, GeneratorPlugin], list[PluginIssue]]:
     result: dict[str, GeneratorPlugin] = {}
     issues: list[PluginIssue] = []
@@ -36,7 +77,14 @@ def load_generators_with_issues() -> tuple[dict[str, GeneratorPlugin], list[Plug
             continue
         assert plugin is not None
         if plugin.id in result:
-            issues.append(PluginIssue(entry_point.name, f"duplicate generator id: {plugin.id}"))
+            issues.append(
+                _entry_issue(
+                    entry_point,
+                    f"duplicate generator id {plugin.id!r}; keep a single entry point for this id",
+                    code="EG301",
+                    module=_module_name(type(plugin)),
+                )
+            )
             continue
         result[plugin.id] = plugin
     return result, issues
@@ -97,9 +145,11 @@ def load_local_generators_with_issues(
             assert plugin is not None
             if plugin.id in result:
                 issues.append(
-                    PluginIssue(
+                    _issue(
                         f"{entry_name}:{value.__name__}",
-                        f"duplicate generator id: {plugin.id}",
+                        f"duplicate generator id {plugin.id!r}; keep a single class for this id",
+                        code="EG301",
+                        module=_module_name(value),
                     )
                 )
                 continue
@@ -118,7 +168,13 @@ def _generator_from_entry(
     if issue is not None:
         return None, issue
     if not isinstance(loaded, GeneratorPlugin):
-        return None, PluginIssue(entry_point.name, "is not a GeneratorPlugin")
+        return None, _entry_issue(
+            entry_point,
+            "object is not a GeneratorPlugin; the entry point must point to a "
+            "GeneratorPlugin subclass or a @generator-decorated function",
+            code="EG301",
+            module=_module_name(type(loaded)),
+        )
     return _validated_generator(loaded, entry_point.name)
 
 
@@ -127,11 +183,17 @@ def _format_from_entry(entry_point: EntryPoint) -> tuple[FormatPlugin | None, Pl
     if issue is not None:
         return None, issue
     if not isinstance(loaded, FormatPlugin):
-        return None, PluginIssue(entry_point.name, "is not a FormatPlugin")
+        return None, _entry_issue(
+            entry_point,
+            "object is not a FormatPlugin; the entry point must point to a FormatPlugin subclass",
+            module=_module_name(type(loaded)),
+        )
     if loaded.api_version != "1":
-        return None, PluginIssue(
-            entry_point.name,
-            f"incompatible api_version: {loaded.api_version}",
+        return None, _entry_issue(
+            entry_point,
+            f"incompatible api_version {loaded.api_version!r}; contract version 1 "
+            'is required (api_version = "1")',
+            module=_module_name(type(loaded)),
         )
     return loaded, None
 
@@ -139,9 +201,14 @@ def _format_from_entry(entry_point: EntryPoint) -> tuple[FormatPlugin | None, Pl
 def _instantiate_entry(entry_point: EntryPoint) -> tuple[Any | None, PluginIssue | None]:
     try:
         loaded = entry_point.load()
-        return loaded() if isinstance(loaded, type) else loaded, None
+        instance = loaded() if isinstance(loaded, type) else loaded
+        return instance, None
     except Exception as exc:
-        return None, PluginIssue(entry_point.name, f"failed to load: {exc}")
+        return None, _entry_issue(
+            entry_point,
+            f"failed to load ({exc}); check that the module is installed and the "
+            "entry point attribute path is correct",
+        )
 
 
 def _validated_generator(
@@ -150,16 +217,26 @@ def _validated_generator(
     *,
     check_entry_name: bool = True,
 ) -> tuple[GeneratorPlugin | None, PluginIssue | None]:
+    module = _module_name(type(plugin))
     try:
         validate_generator_contract(plugin)
     except PluginContractError as exc:
-        return None, PluginIssue(entry_name, str(exc), exc.code)
+        return None, _issue(entry_name, str(exc), code=exc.code, module=module)
     if plugin.api_version != "1":
-        return None, PluginIssue(entry_name, f"incompatible api_version: {plugin.api_version}")
-    if check_entry_name and entry_name != plugin.id:
-        return None, PluginIssue(
+        return None, _issue(
             entry_name,
-            f"plugin id {plugin.id!r} does not match the entry point",
+            f"incompatible api_version {plugin.api_version!r}; contract version 1 "
+            'is required (api_version = "1")',
+            code="EG301",
+            module=module,
+        )
+    if check_entry_name and entry_name != plugin.id:
+        return None, _issue(
+            entry_name,
+            f"plugin id {plugin.id!r} does not match the entry point {entry_name!r}; "
+            "the entry point name must equal the generator id",
+            code="EG301",
+            module=module,
         )
     return plugin, None
 
@@ -171,12 +248,18 @@ def _load_local_module(
 ) -> tuple[Any | None, PluginIssue | None]:
     spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
-        return None, PluginIssue(entry_name, "failed to create an import spec")
+        return None, _issue(
+            entry_name,
+            "failed to create an import spec; check the file path and Python syntax",
+        )
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
     except Exception as exc:
-        return None, PluginIssue(entry_name, f"failed to import: {exc}")
+        return None, _issue(
+            entry_name,
+            f"failed to import ({exc}); fix the import error before loading the plugin",
+        )
     return module, None
 
 
@@ -196,7 +279,11 @@ def _local_generator(
     try:
         plugin = value()
     except Exception as exc:
-        return None, PluginIssue(label, f"failed to create plugin: {exc}")
+        return None, _issue(
+            label,
+            f"failed to create plugin ({exc}); the class must be instantiable without arguments",
+            module=_module_name(value),
+        )
     return _validated_generator(plugin, label, check_entry_name=False)
 
 
