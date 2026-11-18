@@ -10,7 +10,7 @@
 | [0006](./0006-format-extension.md) | Расширение формата документа | Принято (уточнено ADR-0007/0008) |
 | [0007](./0007-format-inheritance.md) | Наследование форматов и совместимость генераторов | Принято |
 | [0008](./0008-model-units-and-source-layouts.md) | Model unit, раскладки источников и layer merge | Принято |
-| [0009](./0009-global-manifest-ownership.md) | Глобальный manifest и ownership | Принято |
+| [0009](./0009-global-manifest-ownership.md) | Глобальный manifest и ownership | Принято (уточнено ADR-0017/0018) |
 | [0010](./0010-decorator-generator-api.md) | Decorator API для генераторов | Принято |
 | [0011](./0011-public-api-v2-identity.md) | Публичный API v2.1 и идентичность Eggpipe | Принято |
 | [0012](./0012-english-only-source.md) | English-only source, docstrings и diagnostics | Принято |
@@ -23,4 +23,4 @@
 
 Решения ADR-0007–0010 сформулированы для ТЗ v1.4 и вошли в v2.0 без изменения смысла.
 ADR-0011 фиксирует публичный API и идентичность Eggpipe для v2.1.
-Ссылки внутри ADR на v1.4 — исторические.
+Ссылки внутри ADR на v1.4 — исторические. В ADR-0003–0006 и 0011–0012 коды `MGxxx` читать как `EGxxx` (ADR-0013), `GeneratorRules*` — как `ProjectConfig*`; действующие контракты — ТЗ v2.4.

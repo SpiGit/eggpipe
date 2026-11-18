@@ -18,8 +18,10 @@
 
 1. Обновить версию в `pyproject.toml` (SemVer).
 2. Перенести `[Unreleased]` в `[<version>] - <date>` в `CHANGELOG.md`.
-3. Проверить `uv lock --check`.
-4. Прогнать локально:
+3. Обновить версию в `.github/workflows/pages.yml` (`mike deploy ... <major.minor> latest`).
+4. Обновить стадию/версию в `README.md`, `docs/user/status.md`, `docs/ai/context.md`.
+5. Проверить `uv lock --check`.
+6. Прогнать локально:
 
    ```bash
    uv run python tools/check_docs.py --strict
@@ -32,10 +34,10 @@
    uv run mkdocs build --strict
    ```
 
-5. Проверить, что все deprecated-элементы либо остаются в окне поддержки, либо удалены
+7. Проверить, что все deprecated-элементы либо остаются в окне поддержки, либо удалены
    по [ADR-0016](adr/0016-deprecation-policy.md).
-6. Убедиться, что `LICENSE`, `README.md` и `CHANGELOG.md` попадают в sdist.
-7. Проверить доступность имени `eggpipe` и команды `eggpipe` на PyPI.
+8. Убедиться, что `LICENSE`, `README.md` и `CHANGELOG.md` попадают в sdist.
+9. Проверить доступность имени `eggpipe` и команды `eggpipe` на PyPI.
 
 ## Публикация
 

@@ -1,6 +1,6 @@
 ---
 name: plugin-contract
-description: Контракты generator и FormatPlugin Eggpipe — публичный API v2.0, decorator API, версии и чек-лист
+description: Контракты generator и FormatPlugin Eggpipe — публичный API v2.4, decorator API, версии и чек-лист
 ---
 
 # Контракты плагинов Eggpipe

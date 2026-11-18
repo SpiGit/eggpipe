@@ -48,7 +48,7 @@ UNSET, PRIMITIVE_TYPES, Constraints
 ## Команды CLI
 
 ```text
-eggpipe generate [MODELS] [-g ID] [--plan|--check] [--output-format json]
+eggpipe generate [MODELS] [-g ID] [--entity NAME] [--plan|--check] [--output-format json]
 eggpipe watch [MODELS] [-g ID] [--debounce-ms N]
 eggpipe init [PATH] --layout monolith|file-per-model|directory-per-model
 eggpipe config show|validate|schema
@@ -145,7 +145,7 @@ uv run python tools/check_wheel.py dist
 
 - Актуальное ТЗ — только файл со статусом **Актуальная** в
   `engineering/requirements/index.md` (сейчас `v2.4.md`).
-- Исторические ТЗ (`v1.0`–`v2.0`) и старые ADR не редактировать.
+- Все версии ТЗ кроме файла со статусом «Актуальная» — read-only; старые ADR не переписывать.
 - Новое поведение — новая версия ТЗ; ADR не переписываются задним числом.
 - Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `Entity`, `FieldDef`, `EnumDef`,
   `UNSET`, `GeneratorPlugin`, `FormatPlugin`, `GenerationResult`.
@@ -566,7 +566,7 @@ eggpipe generate -g oracle-ddl
 | `--force` | перезаписать unowned-файлы |
 | `--strict` | warnings → errors |
 | `--ignore` | коды warnings через запятую |
-| `--clean` | cleanup enabled для запуска; игнорируется с `--entity` |
+| `--clean` | cleanup enabled для запуска; в per-entity не выполняется (+ Warning EG030) |
 | `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict`/`--entity` |
 | `--include-disabled` | включить `enabled: false` |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |
@@ -616,7 +616,7 @@ eggpipe format info entity-model
 | Команда | Флаг | Значение |
 |---------|------|----------|
 | `config show` | `--show-secrets` | не редактировать секреты в выводе |
-| `gen list` | `--all` | показать также disabled-генераторы |
+| `gen list` | `--all` | показать также плагины с ошибками/несовместимым `api_version` |
 
 ## clean
 

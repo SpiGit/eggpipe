@@ -16,14 +16,13 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 могут меняться. Главная задача следующего этапа — не добавлять всё подряд, а сделать
 ядро предсказуемым, плагины удобными, а релизы регулярными.
 
-### 1.1. Текущая точка (2026-11-17)
+### 1.1. Текущая точка (2026-11-18)
 
-- `main`: `86cee35`; актуальное ТЗ — v2.4 (per-entity generation).
+- `main`: актуальная ветка на 2026-11-18 (после #38); ТЗ — v2.4.
 - Текущий релиз — **0.4.0**; последний опубликованный — `0.3.2`.
-- В 0.4.0 уже входят: incremental generation (ADR-0017, #18), per-entity generation (ADR-0018, #26/#32/#33), PR-процесс и backlog (#19–#25, #27–#31), а также всё из CHANGELOG `[Unreleased]` (ADR-0016, mike, SBOM, benchmarks).
-- Осталось до 0.4.0: Plugin DX (one-command template, contract-test kit, examples, docs).
-- Открыто в backlog: B-023 (tests/coverage в PR body), B-024 (тесты merge `formats`/`generated_at`).
-- Следующая веха после 0.4.0 — **0.5.0**: watch, L2/L3 cache, auto-discovery, benchmarks.
+- Фактический scope и статусы 0.4.0 — в §4; здесь не дублируются.
+- Открытый backlog пуст после B-023/B-024 (#37/#38).
+- Следующая веха после 0.4.0 — **0.5.0**: watch, L2/L3 cache, auto-discovery, метрики, benchmarks.
 - Живое состояние — [.session-context.md](../.session-context.md); мелкие задачи — [backlog.md](./backlog.md).
 
 ## 2. Принципы
@@ -56,13 +55,14 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 
 - [x] incremental generation (ADR-0017, #18);
 - [x] per-entity generation (ADR-0018, #26/#32/#33);
-- [x] PR-процесс и backlog (#19–#25, #27–#31).
+- [x] PR-процесс и backlog (#19–#25, #27–#31, #37/#38);
+- [x] ручной шаблон плагина `examples/plugin-template` и contract-тесты;
+- [x] всё из CHANGELOG `[Unreleased]` (ADR-0016, mike, SBOM, benchmarks).
 
 Осталось:
 
 - [ ] one-command шаблон плагина (`cookiecutter`/`uv`-template);
-- [ ] contract-test kit;
-- [ ] примеры SQL, Pydantic, TypeScript, OpenAPI;
+- [ ] примеры SQL, Pydantic, TypeScript, OpenAPI вне TPC-H;
 - [ ] улучшение `eggpipe gen info` и `eggpipe format info`;
 - [ ] понятные ошибки контракта плагина;
 - [ ] раздел «Первый плагин за 10 минут».
@@ -116,7 +116,7 @@ release workflow проверен, тег `0.4.0` поставлен на `main`
 | Задача | Область | Релиз | Результат | Статус |
 |--------|---------|-------|-----------|--------|
 | Шаблон плагина | Плагины | 0.4.0 | Новый плагин создаётся одной командой | Частично |
-| Contract-test kit | Плагины | 0.4.0 | Автор плагина проверяет контракт локально | Частично |
+| Contract-test kit | Плагины | 0.4.0 | Автор плагина проверяет контракт локально | Готово (шаблон) |
 | Политика deprecation | API | 0.4.0 | Понятно, как менять API до 1.0 | Готово (ADR-0016) |
 | Версионирование документации | Docs | 0.4.0 | Старые версии docs не теряются | Готово |
 | Бенчмарк-набор | Ядро | 0.4.0 | Есть базовые цифры до оптимизаций | Готово |
@@ -190,11 +190,10 @@ Relations в ядре остаются открытым вопросом 2.
 4. Нужна ли отдельная версия контракта plugin API или достаточно `api_version`?
 5. Делать ли i18n документации до или после `1.0`?
 
-## 8. Ближайшие две недели
+## 8. Следующие шаги
 
-1. [x] Инкрементальная генерация (ADR-0017, #18) — входит в 0.4.0.
-2. [x] Per-entity generation (ADR-0018, #26/#32/#33) — входит в 0.4.0.
-3. [ ] B-023: tests/coverage в PR body; B-024: тесты merge `formats`/`generated_at`.
-4. [ ] Аудит инженерной документации.
-5. [ ] Добить 0.4.0 Plugin DX: one-command template, contract-test kit, examples, docs.
-6. [ ] Выпустить 0.4.0; после этого — watch и L2/L3 в 0.5.0.
+1. [x] B-023/B-024: coverage в PR body и тесты merge manifest (#37/#38).
+2. [ ] Аудит инженерной документации (текущий PR).
+3. [ ] 0.4.0 Plugin DX: one-command template, examples, gen/format info, ошибки контракта, docs.
+4. [ ] Выпустить 0.4.0.
+5. [ ] После 0.4.0 — watch, L2/L3 и метрики в 0.5.0.

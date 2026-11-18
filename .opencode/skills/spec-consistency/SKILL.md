@@ -50,9 +50,9 @@ description: Проверка согласованности документо�
 - [ ] Команды: `generate`, `watch`, `init`, `clean`; sub-apps `config`, `model`, `gen`, `format`.
 - [ ] Флаги совпадают: `--plan`, `--check`, `--dry-run`, `--force`, `--yes`,
       `--include-disabled`, `--allow-outside-imports`, `--output-format`, `--var`,
-      `--ignore`, `--show-secrets`.
+      `--ignore`, `--show-secrets`, `--entity`.
 - [ ] `--format` не существует как имя CLI-флага; вывод управляется `--output-format`.
-- [ ] Exit codes: 0 — успех, 1 — errors/drift/strict, 2 — config/usage, 130 — Ctrl+C.
+- [ ] Exit codes: 0 — успех, 1 — errors/drift/strict, 2 — config/usage (включая EG303), 130 — Ctrl+C.
 - [ ] Коды `EGxxx` не переиспользованы; диапазоны §9.3 соответствуют фактическим кодам §9.1.
 - [ ] `--plan`/`--dry-run` не создают каталоги и не берут write-lock; `--check` не пишет файлы
       и не обновляет манифест.
@@ -61,6 +61,8 @@ description: Проверка согласованности документо�
 
 - [ ] Ownership: перезапись и удаление только owned-файлов; чужие — `EG041` / `--force`.
 - [ ] Manifest: глобальный `.eggpipe/manifest.json`, locations `(generator, output_dir)`.
+- [ ] Per-entity: `output_scope="entity"`, `--entity`/`entities=...`, manifest дополняется,
+      cleanup и incremental отключены; иначе EG303.
 - [ ] `on_conflict: overwrite | skip | error`; `skip` не захватывает чужие файлы (`EG043`).
 - [ ] `cleanup` по умолчанию `off`; удаляются только неизменённые owned-файлы.
 - [ ] `skipped: true` не удаляется; failed generator не управляет cleanup.

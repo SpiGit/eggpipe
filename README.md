@@ -193,7 +193,16 @@ uv run python tools/check_docs.py --strict
 - [ADR-0008: model units и раскладки источников](./engineering/adr/0008-model-units-and-source-layouts.md)
 - [ADR-0009: глобальный manifest](./engineering/adr/0009-global-manifest-ownership.md)
 - [ADR-0010: decorator API генераторов](./engineering/adr/0010-decorator-generator-api.md)
+- [ADR-0011: публичный API и идентичность](./engineering/adr/0011-public-api-v2-identity.md)
+- [ADR-0012: English-only source](./engineering/adr/0012-english-only-source.md)
+- [ADR-0013: EG-коды](./engineering/adr/0013-diagnostic-code-namespace.md)
+- [ADR-0014: beta и совместимость](./engineering/adr/0014-beta-status-and-compatibility.md)
+- [ADR-0015: ветвление и релизы](./engineering/adr/0015-branching-and-release-policy.md)
+- [ADR-0016: deprecation](./engineering/adr/0016-deprecation-policy.md)
+- [ADR-0017: incremental generation](./engineering/adr/0017-incremental-generation.md)
+- [ADR-0018: per-entity generation](./engineering/adr/0018-per-entity-generation.md)
 - [Ревью проекта (2026-11-10)](./engineering/reviews/2026-11-10-project-review.md)
+- [Ревью проекта (2026-11-13)](./engineering/reviews/2026-11-13-project-review.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)
 - [Каталог диагностик](./docs/user/reference/diagnostics.md)
@@ -207,5 +216,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** Eggpipe 0.3.2, ТЗ v2.4. Реализованы E0–E9, пакет опубликован на PyPI; per-entity generation реализована (ADR-0018): `output_scope`, `Engine.entities`, CLI `--entity`:
+**Стадия:** Eggpipe 0.3.2, ТЗ v2.4. Реализованы E0–E9, пакет опубликован на PyPI; per-entity generation реализована (ADR-0018): `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity`:
 CLI/config/state, форматы и слои, decorator API, глобальный manifest, CLI/JSON v2, CI и release workflow.

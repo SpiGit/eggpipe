@@ -13,6 +13,7 @@
 - [System Design](system-design/index.md) — проектирование реализации.
 - [ADR](adr/index.md) — принятые архитектурные решения.
 - [Ревью](reviews/2026-11-13-project-review.md) — документация и код.
+- [Аудит документации](reviews/2026-11-18-engineering-audit.md) — P0/P1 и P2.
 - [План v2.0](plan-v2.md) — эпики, зависимости и критерии готовности.
 - [Roadmap](roadmap.md) — направления развития после 0.3.2 и подготовка к 1.0.
 - [Benchmarks](benchmarks.md) — базовые замеры TPC-H.

@@ -42,7 +42,7 @@ UNSET, PRIMITIVE_TYPES, Constraints
 ## Команды CLI
 
 ```text
-eggpipe generate [MODELS] [-g ID] [--plan|--check] [--output-format json]
+eggpipe generate [MODELS] [-g ID] [--entity NAME] [--plan|--check] [--output-format json]
 eggpipe watch [MODELS] [-g ID] [--debounce-ms N]
 eggpipe init [PATH] --layout monolith|file-per-model|directory-per-model
 eggpipe config show|validate|schema
