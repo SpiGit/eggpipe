@@ -42,6 +42,7 @@ eggpipe generate -g oracle-ddl
 | `--include-disabled` | включить `enabled: false` |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |
 | `--output-format` | `text` или `json` |
+| `--no-color` | отключить цвет/emoji (также `NO_COLOR`) |
 | `--quiet, -q` | только ошибки |
 | `--verbose, -v` | подробный вывод |
 

@@ -2,7 +2,7 @@
 
 > Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.4](../requirements/v2.4.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 2.4. Дата: 2026-11-17.*
+*Версия документа: 2.4. Дата: 2026-11-18.*
 
 ---
 
@@ -788,7 +788,7 @@ def validate(
 | EG015 | Пустой description у required-поля | warning | validate |
 | EG016 | `default` не приводится к итоговому type | error | validate |
 | EG017 | `default` нарушает constraints/enum | error | validate |
-| EG018 | Неизвестное имя в `input` | error | slice |
+| EG018 | Неизвестное имя в `input`/`--entity` | error | slice |
 | EG019 | Пустой enum / дубликат имени/значения | error | validate |
 | EG020 | Цикл `CustomType.base` / depth > 10 | error | validate |
 | EG021 | Неприменимый/противоречивый constraint | error | validate |
@@ -1292,7 +1292,7 @@ class ExecutionPlan:
 - `--check` и `--plan` не обновляют manifest.
 - Per-entity запись дополняет location: артефакты других entities и `formats` сохраняются,
   `generated_at` обновляется, `plugin_version` берётся из плагина, `input_fingerprint` не
-  обновляется; cleanup не выполняется.
+  обновляется; cleanup не выполняется (+ Warning EG030).
 - Manifest v1 не поддерживается.
 
 ### 8.4 Atomicity и блокировки

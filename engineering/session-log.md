@@ -30,6 +30,7 @@
 Документация и код приведены к ТЗ v2.4 (E0–E9). Актуальные решения:
 
 - `ModelDocument` → `SourceModel` → `ModelSlice`; `imports` на уровне документа.
+- Per-entity generation реализована: `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity` (ADR-0018).
 - `UNSET` vs `default: null`; полная null-матрица.
 - `version` формата опционален (latest); смешанные форматы разрешены.
 - Model units: `monolith`, `file-per-model`, `directory-per-model`; слои и resources.

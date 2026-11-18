@@ -203,6 +203,7 @@ uv run python tools/check_docs.py --strict
 - [ADR-0018: per-entity generation](./engineering/adr/0018-per-entity-generation.md)
 - [Ревью проекта (2026-11-10)](./engineering/reviews/2026-11-10-project-review.md)
 - [Ревью проекта (2026-11-13)](./engineering/reviews/2026-11-13-project-review.md)
+- [Аудит документации (2026-11-18)](./engineering/reviews/2026-11-18-engineering-audit.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)
 - [Каталог диагностик](./docs/user/reference/diagnostics.md)

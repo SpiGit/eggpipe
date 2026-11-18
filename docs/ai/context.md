@@ -66,5 +66,5 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 - Плагин не пишет файлы сам; только возвращает `Artifact`.
 - `GenerationContext` и входы плагина immutable/read-only.
 - Ownership только через `.eggpipe/manifest.json`.
-- EG033/EG034/EG301/EG302 — config/plugin errors, exit 2.
+- EG033/EG034/EG301/EG302/EG303 — config/plugin errors, exit 2.
 - `--plan`/`--check` не пишут файлы и не берут lock.

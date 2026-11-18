@@ -61,8 +61,8 @@ description: Проверка согласованности документо�
 
 - [ ] Ownership: перезапись и удаление только owned-файлов; чужие — `EG041` / `--force`.
 - [ ] Manifest: глобальный `.eggpipe/manifest.json`, locations `(generator, output_dir)`.
-- [ ] Per-entity: `output_scope="entity"`, `--entity`/`entities=...`, manifest дополняется,
-      cleanup и incremental отключены; иначе EG303.
+- [ ] Per-entity: `output_scope="entity"`; иначе EG303. Manifest дополняется, cleanup
+      и incremental отключены.
 - [ ] `on_conflict: overwrite | skip | error`; `skip` не захватывает чужие файлы (`EG043`).
 - [ ] `cleanup` по умолчанию `off`; удаляются только неизменённые owned-файлы.
 - [ ] `skipped: true` не удаляется; failed generator не управляет cleanup.
