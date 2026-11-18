@@ -12,16 +12,17 @@
 - 2026-11-13 (девятая сессия: v2.2, English-only, EG-коды, версия 0.3.0, E9)
 - 2026-11-16 (десятая сессия: incremental generation, ADR-0017, ТЗ v2.3, PR-процесс)
 - 2026-11-17 (одиннадцатая сессия: per-entity spec, ADR-0018, ТЗ v2.4, PR-процесс)
+- 2026-11-18 (двенадцатая сессия: аудит документации, Plugin DX, релиз 0.4.0)
 
 **Статус ТЗ:** v2.4 — рабочая версия (замещает v2.3)
 **Статус проекта:** beta (0.x); до 1.0 breaking changes возможны (ADR-0014)
 **Идентичность:** Eggpipe: package/CLI/config/state; старые имена остаются только в истории и ADR.
-**Реализация:** E0–E9 выполнены, релиз `0.3.2` опубликован на PyPI; код и сообщения English-only, EG-коды.
+**Реализация:** E0–E9 выполнены, релиз `0.4.0` опубликован на PyPI; код и сообщения English-only, EG-коды.
 **Code review:** `engineering/reviews/2026-11-13-code-quality-review.md`; skill `clean-code` добавлен; M1/M2/M4/M6/M8 исправлены.
 **Patterns review:** `engineering/reviews/2026-11-13-patterns-review.md`; skill `python-patterns` добавлен; P1–P15 применены; continue-аудит: 74 → 39, оставшиеся — guard clauses.
 **Project review (2026-11-13):** `engineering/reviews/2026-11-13-project-review.md` — ревью ТЗ и кода (Qwen3.8 Max). Документация: 2 P0 (`GeneratorContext` в примерах README/plugin-guide/ТЗ; skill `plugin-contract` со старым контрактом), 11 P1 (JSON-отчёт `action` vs `status`, `timings`, EG014, дерево модулей, `--plugin`, ТЗ v2.1 и ADR-0011 выпущены), 15 P2. Код: 0 P0, 3 P1 (те же `status`/`timings`; пустой план в `artifact_writer.write()` ломает cleanup), 16 P2; 203 теста passed, ruff/pyrefly чистые. Исправлены P0-1, P0-2, P1-8, P1-10, P1-12, P1-13, K3, K5; ТЗ v2.1 и ADR-0011 выпущены; код P1 исправлен; код P2 K4/K8/K12–K14/K16–K18 исправлен; K10: core → engine устранён; остаётся core.discovery ↔ config.
 **Harness:** этапы 0–4 завершены.
-**Roadmap:** `engineering/roadmap.md` — направления после 0.3.2 и подготовка к 1.0.
+**Roadmap:** `engineering/roadmap.md` — направления после 0.4.0 и подготовка к 1.0.
 **Ветвление:** trunk-based, без постоянной `develop`; релизы с тегов на `main` (ADR-0015).
 **Deprecation:** окно и механизмы предупреждений зафиксированы в ADR-0016.
 
@@ -517,3 +518,58 @@ PR C — после PR A.
 | 2 | B-024: merge formats/generated_at tests | per-entity manifest | Закрыть пробел покрытия | test, ~50 строк |
 | 3 | Аудит инженерной документации | ТЗ, ADR, System Design, roadmap, session-log | Убрать stale-статусы | docs |
 | 4 | 0.4.0 Plugin DX | template, contract-test kit, examples, docs | Закрыть текущий релиз | feat/docs |
+
+---
+
+## 2026-11-18 — релиз 0.4.0 и Plugin DX
+
+### 1. План на день
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | B-023: coverage в PR body | Выполнено (#38) |
+| 2 | B-024: тесты merge `formats`/`generated_at` | Выполнено (#37) |
+| 3 | Аудит инженерной документации | Выполнено (#39) |
+| 4 | 0.4.0 Plugin DX | Выполнено (#40–#43), релиз (#45) |
+
+### 2. Выполнено
+
+| Задача | Результат |
+|--------|-----------|
+| create_pr coverage | #38: `--tests`/`--coverage`, блок «Проверки», warning по shared-файлам |
+| Manifest merge tests | #37: тесты merge `formats`/`generated_at` |
+| Аудит документации | #39: P0/P1 исправлены, отчёт `reviews/2026-11-18-engineering-audit.md`, P2 → B-025 |
+| Copier-шаблон | #40: `examples/plugin-template-copier`, валидаторы, CI рендера |
+| Info-команды | #41: `module`/`class`/`api_version`/`base_versions`, did-you-mean, EG-код в warning, «Первый плагин за 10 минут» |
+| Reference-примеры | #42: `examples/reference-generators` (SQL, Pydantic, TypeScript, OpenAPI), cookbook, CI job |
+| Ошибки контракта | #43: EG301/EG302 с плагином, местом и hint; `PluginIssue.code`; границы кода по ТЗ v2.4 |
+| Backlog closeout | #44: B-026–B-033 из ревью, roadmap/session-context синхронизированы |
+| Релиз 0.4.0 | #45: версия, CHANGELOG, mike `0.4`, матрица ТЗ; тег `v0.4.0`, PyPI, GitHub Release, SBOM, docs `/0.4/` |
+| Пост-релиз | #46: статус «опубликован», ТЗ v2.4, roadmap §1/§4/§8, B-034 |
+| Итог | `main` d76ff65; 324 теста; coverage 84.88% |
+
+### 3. Вне плана
+
+| Что | Причина | Импакт |
+|-----|---------|--------|
+| Параллельные потоки в worktree | Plugin DX состоял из трёх независимых задач | Три PR одновременно; конфликт только в `CHANGELOG.md` |
+| #41 закрыт без merge | Ошибка при мерже, обнаружилась по `merged=false` | PR переоткрыт, отребейзен на #43, тест warning выровнен; код контракта снова печатается |
+| Backlog вырос до 10 | Minor из ревью #41–#46 | B-026–B-034; лимит достигнут, перед добавлением нужен grooming |
+| Удаление старых веток | `origin/feat/plugin-dx-contract` (#43) и локальная `chore/create-pr-followup` (#21) остались | Ветки удалены, остался только `main` |
+
+### 4. Не выполнено
+
+| Задача | Причина | Перенос |
+|--------|---------|---------|
+| B-025: P2 аудита (v2.1 refs, ADR legacy, терминология, docs/ai freshness, format API) | Не начинали | следующий этап, до 0.5.0 |
+| 0.5.0: watch, L2/L3, auto-discovery, метрики | Не начинали по правилу «не начинать до релиза 0.4.0» | 0.5.0 |
+| Minor из ревью #45/#46 | Лимит backlog 10 | Grooming + B-034 |
+
+### 5. План на следующий день
+
+| # | Задача | Контекст | Импакт | Формат / оценка |
+|---|--------|----------|--------|-----------------|
+| 1 | Grooming backlog B-025–B-034 | Лимит 10, есть дубли и разросшиеся записи | Освободить место, сгруппировать долг | docs, ~1 ч |
+| 2 | B-034 + кандидаты из #46 | CHANGELOG-дубль, примеры `system-design`, stale-раздел аудита | Документы без stale-ссылок | docs |
+| 3 | B-026/B-033: CLI info | `format list` поля, did-you-mean в `cli.md`, тестовые пробелы | Полная картина плагинов | feat/docs, ~150 строк |
+| 4 | План 0.5.0 | watch, L2/L3, auto-discovery, метрики | Зафиксировать scope вехи | docs/spec |
