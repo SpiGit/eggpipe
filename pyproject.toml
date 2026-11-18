@@ -113,6 +113,7 @@ pythonpath = [
     "src",
     ".",
     "examples/reference-generator/src",
+    "examples/reference-generators/src",
     "examples/tpc-h-generator/src",
 ]
 filterwarnings = ["error"]
