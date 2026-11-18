@@ -18,10 +18,10 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 
 ### 1.1. Текущая точка (2026-11-18)
 
-- `main`: актуальная ветка на 2026-11-18 (после #38); ТЗ — v2.4.
+- `main`: актуальная ветка на 2026-11-18 (после #43); ТЗ — v2.4.
 - Текущий релиз — **0.4.0**; последний опубликованный — `0.3.2`.
 - Фактический scope и статусы 0.4.0 — в §4; здесь не дублируются.
-- Открыт B-025 (P2 аудита 2026-11-18); B-023/B-024 закрыты (#37/#38).
+- Открыты B-025–B-033; B-024 закрыт (#37), B-023 — (#38).
 - Следующая веха после 0.4.0 — **0.5.0**: watch, L2/L3 cache, auto-discovery, метрики, benchmarks.
 - Живое состояние — [.session-context.md](../.session-context.md); мелкие задачи — [backlog.md](./backlog.md).
 
@@ -58,14 +58,15 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 - [x] PR-процесс и backlog (#19–#25, #27–#31, #37/#38);
 - [x] ручной шаблон плагина `examples/plugin-template` и contract-тесты;
 - [x] one-command шаблон через copier (`examples/plugin-template-copier`);
+- [x] reference-примеры SQL, Pydantic, TypeScript, OpenAPI (`examples/reference-generators`, #42);
+- [x] `gen info`/`format info`: module/class/api_version/base_versions и did-you-mean (#41);
+- [x] понятные ошибки контракта EG301/EG302 (#43);
+- [x] раздел «Первый плагин за 10 минут» (#41);
 - [x] всё из CHANGELOG `[Unreleased]` (ADR-0016, mike, SBOM, benchmarks).
 
 Осталось:
 
-- [ ] примеры SQL, Pydantic, TypeScript, OpenAPI вне TPC-H;
-- [ ] улучшение `eggpipe gen info` и `eggpipe format info`;
-- [ ] понятные ошибки контракта плагина;
-- [ ] раздел «Первый плагин за 10 минут».
+- [ ] выпуск 0.4.0: версия, CHANGELOG, release checklist, тег.
 
 Не входит в 0.4.0: watch improvement, L2/L3 cache, auto-discovery, метрики.
 Это 0.5.0+. Relations/FK не зафиксированы: P2 и открытый вопрос 2.
@@ -82,7 +83,6 @@ release workflow проверен, тег `0.4.0` поставлен на `main`
 - авто-discovery ресурсов (если подтвердится сценарием);
 - метрики и structured logging;
 - регулярные и регрессионные бенчмарки, синтетические модели (база уже в 0.4.0);
-- reference examples, если не успеют в 0.4.0.
 
 ### 0.6.0 — 1.0 readiness
 
@@ -129,7 +129,7 @@ release workflow проверен, тег `0.4.0` поставлен на `main`
 | Инкрементальная генерация | Ядро | 0.4.0 | Повторный запуск быстрее | Готово (#18) |
 | Per-entity generate | Ядро | 0.4.0 | Генерация без полного прогона | Готово (#26/#32/#33) |
 | Улучшение watch | Ядро | 0.5.0 | Нет параллельных запусков и лишних пересборок | Следующая |
-| Reference-плагины SQL/Pydantic/TS | Экосистема | 0.4.0 | Переиспользуемые примеры, не только TPC-H | Не начато |
+| Reference-плагины SQL/Pydantic/TS/OpenAPI | Экосистема | 0.4.0 | Переиспользуемые примеры, не только TPC-H | Готово (#42) |
 | PostgreSQL transform/upsert example | Экосистема | 0.5.0 | Пример процедур; кандидат в 0.5.0 | Не начато |
 | PyPI attestations / SBOM | Безопасность | 0.3.2 / 0.4.0 | Attestations — 0.3.2; SBOM — 0.4.0 | Готово |
 | Метрики и structured logging | Эксплуатация | 0.5.0 | Проще диагностировать проблемы | Не начато |
@@ -151,9 +151,8 @@ Scope следующей задачи:
 
 ### Reference examples
 
-- SQL/Pydantic — пока только внутри TPC-H как часть бенчмарка; вынос в общий
-  переиспользуемый reference-плагин — отдельная задача.
-- TypeScript/OpenAPI — следующие кандидаты.
+- SQL/Pydantic/TypeScript/OpenAPI вынесены в `examples/reference-generators` (#42).
+- Внутри TPC-H остаётся бенчмарк-специфичный генератор.
 - PostgreSQL transform/upsert — кандидат в `0.5.0`:
   - формат-плагин, наследник `entity-model`; имя формата и namespace выбирает плагин;
   - в примере используется namespace `metadata.transform`;
@@ -192,8 +191,8 @@ Relations в ядре остаются открытым вопросом 2.
 
 ## 8. Следующие шаги
 
-1. [x] B-023/B-024: coverage в PR body и тесты merge manifest (#37/#38).
+1. [x] B-023/B-024: coverage в PR body (#38) и тесты merge manifest (#37).
 2. [x] Аудит инженерной документации (#39).
-3. [ ] 0.4.0 Plugin DX: examples, gen/format info, ошибки контракта, docs.
+3. [x] 0.4.0 Plugin DX: copier-шаблон, examples, gen/format info, ошибки контракта, docs (#40–#43).
 4. [ ] Выпустить 0.4.0.
 5. [ ] После 0.4.0 — watch, L2/L3 и метрики в 0.5.0.
