@@ -1,4 +1,4 @@
-"""Общие помощники reference-генераторов."""
+"""Shared helpers for the reference generators."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ _MAX_TYPE_DEPTH = 8
 
 
 def sorted_entities(model: ModelSlice) -> tuple[Entity, ...]:
-    """Вернуть сущности в стабильном порядке — по имени."""
+    """Return entities in a stable order: by name."""
     return tuple(sorted(model.entities, key=lambda entity: entity.name))
 
 
@@ -25,10 +25,10 @@ def pascal_case(name: str) -> str:
 
 
 def primitive_type(field_type: str, model: ModelSlice) -> str:
-    """Свести тип поля к примитиву, разворачивая custom types.
+    """Reduce a field type to a primitive, unwrapping custom types.
 
-    Перечисления и неизвестные типы маппятся в `string`: пример намеренно
-    не выводит enum-типы и полагается на строковое представление.
+    Enums and unknown types map to `string`: the example intentionally does not
+    emit enum types and relies on the string representation.
     """
     bases = {custom.name: custom.base for custom in model.types}
     current = field_type

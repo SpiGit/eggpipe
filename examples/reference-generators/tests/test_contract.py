@@ -1,4 +1,4 @@
-"""Contract-тесты reference-генераторов."""
+"""Contract tests for the reference generators."""
 
 from __future__ import annotations
 
@@ -86,7 +86,7 @@ def test_content(factory: GeneratorFactory, fragments: list[str]) -> None:
     content = plugin.generate(sample_input(plugin.id)).artifacts[0].content
     for fragment in fragments:
         assert fragment in content
-    # Custom type `Email` разворачивается в строку, все артефакты — с финальным LF.
+    # The custom type `Email` resolves to a string; every artifact ends with LF.
     assert content.endswith("\n")
 
 

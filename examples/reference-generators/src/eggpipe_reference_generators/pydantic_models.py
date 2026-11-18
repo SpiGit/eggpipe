@@ -1,4 +1,4 @@
-"""Генератор Pydantic v2-моделей (`models.py`)."""
+"""Pydantic v2 models generator (`models.py`)."""
 
 from __future__ import annotations
 
@@ -32,10 +32,9 @@ _DATETIME_TYPES = {"date", "datetime"}
     id="pydantic",
     name="Pydantic Models",
     input_formats={"entity-model"},
-    output_scope="model",
 )
 def pydantic_generator(model: ModelSlice) -> list[Artifact]:
-    """Сгенерировать `models.py` с BaseModel на сущность."""
+    """Generate `models.py` with one BaseModel per entity."""
     entities = sorted_entities(model)
     used = {primitive_type(field.type, model) for entity in entities for field in entity.fields}
 

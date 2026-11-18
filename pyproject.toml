@@ -97,12 +97,14 @@ project-includes = [
     "tests",
     "tools",
     "examples/reference-generator/src",
+    "examples/reference-generators/src",
     "examples/tpc-h-generator/src",
 ]
 search-path = [
     "src",
     ".",
     "examples/reference-generator/src",
+    "examples/reference-generators/src",
     "examples/tpc-h-generator/src",
 ]
 

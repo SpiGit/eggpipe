@@ -1,4 +1,4 @@
-"""Генератор SQL DDL (`schema.sql`)."""
+"""SQL DDL generator (`schema.sql`)."""
 
 from __future__ import annotations
 
@@ -29,15 +29,14 @@ _SQL_TYPES = {
     id="sql",
     name="SQL DDL",
     input_formats={"entity-model"},
-    output_scope="model",
 )
 def sql_generator(model: ModelSlice) -> list[Artifact]:
-    """Сгенерировать `schema.sql`: CREATE TABLE на сущность, snake_case имена."""
+    """Generate `schema.sql`: one CREATE TABLE per entity, snake_case names."""
     lines = [_HEADER]
     for entity in sorted_entities(model):
         columns = [_column(field, model) for field in entity.fields]
         if not columns:
-            # Пустая сущность не даёт валидного DDL.
+            # An empty entity does not produce valid DDL.
             continue
         lines.extend(["", f"CREATE TABLE {snake_case(entity.name)} ("])
         lines.append(",\n".join(columns))

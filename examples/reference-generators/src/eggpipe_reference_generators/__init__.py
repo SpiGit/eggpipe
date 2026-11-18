@@ -1,4 +1,4 @@
-"""Reference-генераторы Eggpipe: SQL, Pydantic, TypeScript и OpenAPI."""
+"""Reference generators for Eggpipe: SQL, Pydantic, TypeScript and OpenAPI."""
 
 from eggpipe_reference_generators.openapi import openapi_generator
 from eggpipe_reference_generators.pydantic_models import pydantic_generator

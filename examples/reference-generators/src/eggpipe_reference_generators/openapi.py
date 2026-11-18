@@ -1,4 +1,4 @@
-"""Генератор OpenAPI 3.1-схем (`openapi.json`)."""
+"""OpenAPI 3.1 schemas generator (`openapi.json`)."""
 
 from __future__ import annotations
 
@@ -31,10 +31,9 @@ _OPENAPI_TYPES: dict[str, dict[str, str]] = {
     id="openapi",
     name="OpenAPI Schemas",
     input_formats={"entity-model"},
-    output_scope="model",
 )
 def openapi_generator(model: ModelSlice) -> list[Artifact]:
-    """Сгенерировать `openapi.json` с components.schemas на сущность."""
+    """Generate `openapi.json` with components.schemas per entity."""
     schemas = {
         pascal_case(entity.name): _entity_schema(entity.fields, model)
         for entity in sorted_entities(model)
@@ -59,7 +58,7 @@ def _entity_schema(fields: tuple[FieldDef, ...], model: ModelSlice) -> dict[str,
 
 
 def _property(field: FieldDef, model: ModelSlice) -> dict[str, Any]:
-    base = dict(_OPENAPI_TYPES[primitive_type(field.type, model)])
+    base: dict[str, Any] = dict(_OPENAPI_TYPES[primitive_type(field.type, model)])
     if field.nullable:
         base["type"] = [base["type"], "null"]
     return base

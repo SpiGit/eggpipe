@@ -12,7 +12,8 @@ examples/reference-generators/
 └── tests/test_contract.py
 ```
 
-Все генераторы объявлены через `@generator(..., output_scope="model")`, возвращают
+Все генераторы объявлены через `@generator(...)`; `output_scope` по умолчанию —
+`model`, поэтому пример работает и на eggpipe 0.3.2. Генераторы возвращают
 `list[Artifact]` и не пишут файлы сами: записью занимается ядро.
 
 | Генератор `id` | Артефакт |

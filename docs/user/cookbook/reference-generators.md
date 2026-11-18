@@ -15,7 +15,8 @@ TypeScript и OpenAPI 3.1. Один и тот же `ModelSlice` превраща
 | `typescript` | `models.ts` | `export interface` на сущность |
 | `openapi` | `openapi.json` | OpenAPI 3.1, `components.schemas` |
 
-Все генераторы объявлены как `@generator(..., output_scope="model")`, возвращают
+Все генераторы объявлены как `@generator(...)`; `output_scope` по умолчанию —
+`model`, поэтому пример работает и на eggpipe 0.3.2. Генераторы возвращают
 `list[Artifact]` и не пишут файлы сами — записью занимается ядро.
 
 ## Установка

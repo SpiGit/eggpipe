@@ -1,4 +1,4 @@
-"""Генератор TypeScript-интерфейсов (`models.ts`)."""
+"""TypeScript interfaces generator (`models.ts`)."""
 
 from __future__ import annotations
 
@@ -30,10 +30,9 @@ _TS_TYPES = {
     id="typescript",
     name="TypeScript Models",
     input_formats={"entity-model"},
-    output_scope="model",
 )
 def typescript_generator(model: ModelSlice) -> list[Artifact]:
-    """Сгенерировать `models.ts` с interface на сущность."""
+    """Generate `models.ts` with one interface per entity."""
     lines = [_HEADER]
     for entity in sorted_entities(model):
         lines.extend(["", f"export interface {pascal_case(entity.name)} {{"])
