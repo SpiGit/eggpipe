@@ -54,3 +54,4 @@
 | B-031 | open | Contract errors: код для ошибок времени декорирования; вынести `_describe_generator_location` в общий внутренний модуль; hint-литералы — в константы | PR #43 review | Непоследовательный вывод, дублирование | — | — |
 | B-032 | open | `docs/user/plugins.md` в `LLMS_FULL_SOURCES`; freshness-проверка `docs/ai` — в B-025 | PR #43 review | Гайд по плагинам не попадает в llms-full | — | — |
 | B-033 | open | CLI info docs/tests: в `cli.md` указать, что did-you-mean работает для `gen info` и `format info`; покрыть пустой список доступных и отсутствие близких совпадений | PR #41 review | Неточная документация, пробелы в тестах | — | — |
+| B-034 | open | Пост-релизные правки docs: дубль записи про `create_pr.py` в CHANGELOG (Changed и Fixed), порядок секций как в прежних релизах; устаревшая версия в примерах `system-design` §8 (`eggpipe_version`) и §12 (`pyproject.toml`) | PR #45 review | Читаемость заметок, доверие к примерам | — | — |
