@@ -90,6 +90,50 @@ eggpipe format info entity-model
 | `config show` | `--show-secrets` | не редактировать секреты в выводе |
 | `gen list` | `--all` | показать также плагины с ошибками/несовместимым `api_version` |
 
+### Вывод `gen info`
+
+```text
+$ eggpipe gen info reference
+id: reference
+name: Reference Generator
+api_version: 1
+input_formats: entity-model
+output_scope: model
+entry point group: eggpipe.generators
+module: reference_generator
+class: ReferenceGenerator
+```
+
+`module` и `class` показывают, какой объект загружен по entry point: если пакет
+установлен не тот, это видно сразу.
+
+### Вывод `format info`
+
+```text
+$ eggpipe format info template-model
+name: template-model
+versions: 1.0
+extends: entity-model
+primitive_types: bigint,boolean,date,datetime,float,integer,json,string,text,uuid
+schemas: 1.0
+api_version: 1
+module: eggpipe_plugin_template
+class: TemplateFormat
+base_versions: 1.0->1.0
+```
+
+`base_versions` показывает версию базового формата для каждой версии плагина;
+`-` — формат не наследует другой формат.
+
+Неизвестный id или имя завершается с exit code 2 и подсказывает ближайшие варианты:
+
+```text
+$ eggpipe format info entity-modell
+error: unknown format: entity-modell
+did you mean: entity-model
+available formats: entity-model
+```
+
 ## clean
 
 ```bash
