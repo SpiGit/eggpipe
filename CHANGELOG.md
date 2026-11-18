@@ -22,6 +22,8 @@
 - PR-шаблон и процесс ревью требуют фиксировать отложенные minor в `Backlog candidates`.
 - `tools/create_pr.py`: size-check использует `git diff --numstat -z`, сохраняет
   `## Size exception` при обновлении PR и отклоняет пустой `--allow-large`.
+- `tools/create_pr.py`: `--tests` и `--coverage` добавляют в PR body блок «Проверки»
+  по маркерам и сохраняют остальные секции при обновлении.
 
 ### Added
 

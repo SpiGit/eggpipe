@@ -25,6 +25,9 @@ SIZE_EXCEPTION_HEADING = "## Size exception"
 SIZE_HEADING = "## Размер"
 SIZE_BLOCK_START = "<!-- pr-size:start -->"
 SIZE_BLOCK_END = "<!-- pr-size:end -->"
+CHECKS_HEADING = "## Проверки"
+CHECKS_BLOCK_START = "<!-- checks:start -->"
+CHECKS_BLOCK_END = "<!-- checks:end -->"
 NUMSTAT_SEPARATOR = "\0"
 SHARED_FILES = frozenset({"AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "engineering/backlog.md"})
 SHARED_PREFIXES = ("docs/ai/",)
@@ -196,8 +199,28 @@ def upsert_size_block(body: str, size: DiffSize) -> str:
         return f"{body.rstrip()}\n\n{SIZE_HEADING}\n\n{block}\n"
     end = body.find(SIZE_BLOCK_END, start)
     if end == -1:
-        return _replace_open_size_block(body, start, block)
+        return _replace_open_block(body, start, SIZE_BLOCK_START, block)
     end += len(SIZE_BLOCK_END)
+    return f"{body[:start]}{block}{body[end:]}"
+
+
+def checks_block(tests: str, coverage: str) -> str:
+    """Render the machine-maintained test and coverage block."""
+    return f"{CHECKS_BLOCK_START}\n- Tests: {tests}\n- Coverage: {coverage}\n{CHECKS_BLOCK_END}"
+
+
+def upsert_checks_block(body: str, tests: str | None, coverage: str | None) -> str:
+    """Replace the checks block or append a new section; skip when no values are given."""
+    if tests is None or coverage is None:
+        return body
+    block = checks_block(tests, coverage)
+    start = body.find(CHECKS_BLOCK_START)
+    if start == -1:
+        return f"{body.rstrip()}\n\n{CHECKS_HEADING}\n\n{block}\n"
+    end = body.find(CHECKS_BLOCK_END, start)
+    if end == -1:
+        return _replace_open_block(body, start, CHECKS_BLOCK_START, block)
+    end += len(CHECKS_BLOCK_END)
     return f"{body[:start]}{block}{body[end:]}"
 
 
@@ -214,9 +237,9 @@ def _next_section_start(text: str) -> int | None:
     return None
 
 
-def _replace_open_size_block(body: str, start: int, block: str) -> str:
-    """Replace a size block whose end marker is missing, keeping the manual sections after it."""
-    tail = body[start + len(SIZE_BLOCK_START) :]
+def _replace_open_block(body: str, start: int, start_marker: str, block: str) -> str:
+    """Replace a block whose end marker is missing, keeping the manual sections after it."""
+    tail = body[start + len(start_marker) :]
     following = _next_section_start(tail)
     if following is None:
         return f"{body[:start]}{block}\n"
@@ -277,6 +300,20 @@ def pr_details(repo: str, number: int, token: str) -> tuple[str, str]:
     )
 
 
+def _checks_args(
+    parser: argparse.ArgumentParser, tests: str | None, coverage: str | None
+) -> tuple[str | None, str | None]:
+    """Validate --tests and --coverage as an all-or-nothing pair."""
+    if tests is None and coverage is None:
+        return None, None
+    if tests is None or coverage is None:
+        parser.error("--tests and --coverage must be passed together")
+    tests, coverage = tests.strip(), coverage.strip()
+    if not tests or not coverage:
+        parser.error("--tests and --coverage require non-empty values")
+    return tests, coverage
+
+
 def _token() -> str:
     token = os.environ.get("GH_TOKEN")
     if token:
@@ -322,7 +359,18 @@ def main(argv: list[str] | None = None) -> int:
         metavar="REASON",
         help="acknowledge a PR above the size budget",
     )
+    parser.add_argument(
+        "--tests",
+        metavar="SUMMARY",
+        help='test summary for the PR body, e.g. "295 passed" (requires --coverage)',
+    )
+    parser.add_argument(
+        "--coverage",
+        metavar="PERCENT",
+        help='coverage percentage for the PR body, e.g. "84.60%%" (requires --tests)',
+    )
     args = parser.parse_args(argv)
+    tests, coverage = _checks_args(parser, args.tests, args.coverage)
     if args.allow_large is not None:
         args.allow_large = args.allow_large.strip()
         if not args.allow_large:
@@ -371,6 +419,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     body = args.body or (previous_body if existing is not None else build_body(subjects))
     body = upsert_size_block(body, size)
+    body = upsert_checks_block(body, tests, coverage)
     if warning is not None:
         body = with_size_exception(body, args.allow_large)
 

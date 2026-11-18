@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 import tools.create_pr as create_pr
 from tools.create_pr import (
+    CHECKS_BLOCK_END,
+    CHECKS_BLOCK_START,
     MAX_PR_FILES,
     MAX_PR_LINES,
     SIZE_BLOCK_END,
@@ -12,6 +14,7 @@ from tools.create_pr import (
     DiffSize,
     _next_section_start,
     build_body,
+    checks_block,
     default_title,
     is_generated,
     main,
@@ -22,6 +25,7 @@ from tools.create_pr import (
     shared_warning,
     size_block,
     size_warning,
+    upsert_checks_block,
     upsert_size_block,
     with_size_exception,
 )
@@ -230,6 +234,64 @@ def test_upsert_size_block_preserves_size_exception() -> None:
     assert "3 строки, 1 файл" in updated
 
 
+def test_checks_block_contains_values() -> None:
+    block = checks_block("295 passed", "84.60%")
+    assert block.startswith(CHECKS_BLOCK_START)
+    assert block.endswith(CHECKS_BLOCK_END)
+    assert "- Tests: 295 passed" in block
+    assert "- Coverage: 84.60%" in block
+
+
+def test_upsert_checks_block_appends_section() -> None:
+    updated = upsert_checks_block("## Что изменено\n\n- feat\n", "295 passed", "84.60%")
+    assert "## Что изменено\n\n- feat" in updated
+    assert "## Проверки" in updated
+    assert "- Tests: 295 passed" in updated
+    assert updated.count(CHECKS_BLOCK_START) == 1
+
+
+def test_upsert_checks_block_replaces_markers() -> None:
+    body = (
+        "## Проверки\n\n"
+        f"{CHECKS_BLOCK_START}\n- Tests: 1 passed\n- Coverage: 10.00%\n{CHECKS_BLOCK_END}\n\n"
+        "## Карта ревью\n\n- src/engine.py\n"
+    )
+    updated = upsert_checks_block(body, "295 passed", "84.60%")
+    assert "- Tests: 1 passed" not in updated
+    assert "- Tests: 295 passed" in updated
+    assert updated.count(CHECKS_BLOCK_START) == 1
+    assert f"{CHECKS_BLOCK_END}\n\n## Карта ревью\n\n- src/engine.py" in updated
+
+
+def test_upsert_checks_block_keeps_tail_when_end_marker_missing() -> None:
+    body = f"## Проверки\n\n{CHECKS_BLOCK_START}\n- stale stats\n"
+    body += "\n## Карта ревью\n\n- src/engine.py\n"
+    updated = upsert_checks_block(body, "295 passed", "84.60%")
+    assert "- stale stats" not in updated
+    assert "- Tests: 295 passed" in updated
+    assert updated.count(CHECKS_BLOCK_END) == 1
+    assert f"{CHECKS_BLOCK_END}\n\n## Карта ревью\n\n- src/engine.py" in updated
+
+
+def test_upsert_checks_block_without_values_keeps_body() -> None:
+    body = "## Что изменено\n\n- feat\n"
+    assert upsert_checks_block(body, None, None) == body
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--tests", "295 passed"],
+        ["--coverage", "84.60%"],
+        ["--tests", "295 passed", "--coverage", " "],
+        ["--tests", " ", "--coverage", "84.60%"],
+    ],
+)
+def test_main_requires_both_checks_args(argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        main(argv)
+
+
 PREVIOUS_BODY = (
     "## Что изменено\n\n- feat: old work\n\n"
     "## Размер\n\n"
@@ -238,7 +300,13 @@ PREVIOUS_BODY = (
 )
 
 
-def test_main_updates_existing_pr_and_keeps_title(monkeypatch: pytest.MonkeyPatch) -> None:
+def _install_fakes(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    existing: int | None,
+    previous: tuple[str, str] = ("", ""),
+) -> tuple[list[tuple[str, ...]], list[tuple[str, str, dict[str, object] | None]]]:
+    """Stub git and the GitHub API for a PR that is created or updated."""
     git_calls: list[tuple[str, ...]] = []
     api_calls: list[tuple[str, str, dict[str, object] | None]] = []
 
@@ -263,16 +331,31 @@ def test_main_updates_existing_pr_and_keeps_title(monkeypatch: pytest.MonkeyPatc
     ) -> object:
         api_calls.append((method, path, payload))
         if method == "GET" and path.startswith("/repos/SpiGit/eggpipe/pulls?head="):
-            return [{"number": 42}]
-        if method == "GET" and path == "/repos/SpiGit/eggpipe/pulls/42":
-            return {"title": "Старый заголовок", "body": PREVIOUS_BODY}
+            pull_requests: list[dict[str, object]] = (
+                [] if existing is None else [{"number": existing}]
+            )
+            return pull_requests
+        if method == "GET" and path == f"/repos/SpiGit/eggpipe/pulls/{existing}":
+            return {"title": previous[0], "body": previous[1]}
+        if method == "POST":
+            return {"number": 43, "html_url": "https://github.com/SpiGit/eggpipe/pull/43"}
         if method == "PATCH":
-            return {"number": 42, "html_url": "https://github.com/SpiGit/eggpipe/pull/42"}
+            url = f"https://github.com/SpiGit/eggpipe/pull/{existing}"
+            return {"number": existing, "html_url": url}
         raise AssertionError(f"unexpected API call: {method} {path}")
 
     monkeypatch.setattr(create_pr, "_run_git", fake_git)
     monkeypatch.setattr(create_pr, "_api", fake_api)
     monkeypatch.setattr(create_pr, "_token", lambda: "secret")
+    return git_calls, api_calls
+
+
+def test_main_updates_existing_pr_and_keeps_title(monkeypatch: pytest.MonkeyPatch) -> None:
+    git_calls, api_calls = _install_fakes(
+        monkeypatch,
+        existing=42,
+        previous=("Старый заголовок", PREVIOUS_BODY),
+    )
 
     assert main([]) == 0
 
@@ -294,6 +377,57 @@ def test_main_updates_existing_pr_and_keeps_title(monkeypatch: pytest.MonkeyPatc
     assert "14 строк, 1 файл" in body
     assert body.count(SIZE_BLOCK_START) == 1
     assert body.count(SIZE_BLOCK_END) == 1
+    assert "## Проверки" not in body
+
+
+def test_main_creates_pr_with_checks(monkeypatch: pytest.MonkeyPatch) -> None:
+    _, api_calls = _install_fakes(monkeypatch, existing=None)
+
+    assert main(["--tests", "295 passed", "--coverage", "84.60%"]) == 0
+
+    posts = [payload for method, _, payload in api_calls if method == "POST"]
+    assert len(posts) == 1
+    post = posts[0]
+    assert post is not None
+    assert post["title"] == "feat: new work"
+    body = post["body"]
+    assert isinstance(body, str)
+    assert "- Tests: 295 passed" in body
+    assert "- Coverage: 84.60%" in body
+    assert body.count(CHECKS_BLOCK_START) == 1
+    assert body.count(SIZE_BLOCK_START) == 1
+
+
+def test_main_updates_checks_block_and_keeps_manual_content(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    previous_body = (
+        "## Что изменено\n\n- feat: old work\n\n"
+        f"## Проверки\n\n{CHECKS_BLOCK_START}\n"
+        "- Tests: 1 passed\n- Coverage: 10.00%\n"
+        f"{CHECKS_BLOCK_END}\n\n"
+        "## Карта ревью\n\n- src/engine.py\n"
+    )
+    _, api_calls = _install_fakes(
+        monkeypatch,
+        existing=42,
+        previous=("Старый заголовок", previous_body),
+    )
+
+    assert main(["--tests", "295 passed", "--coverage", "84.60%"]) == 0
+
+    patch = next(payload for method, _, payload in api_calls if method == "PATCH")
+    assert patch is not None
+    assert patch["title"] == "Старый заголовок"
+    body = patch["body"]
+    assert isinstance(body, str)
+    assert "## Что изменено\n\n- feat: old work" in body
+    assert "## Карта ревью\n\n- src/engine.py" in body
+    assert "- Tests: 1 passed" not in body
+    assert "- Tests: 295 passed" in body
+    assert "- Coverage: 84.60%" in body
+    assert body.count(CHECKS_BLOCK_START) == 1
+    assert body.count(CHECKS_BLOCK_END) == 1
 
 
 def test_shared_paths() -> None:
