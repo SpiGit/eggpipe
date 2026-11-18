@@ -48,7 +48,7 @@ def test_generator_output() -> None:
     result = {{ generator_id | replace('-', '_') }}_generator().generate(sample_input())
     assert result.success is True
     assert len(result.artifacts) == 1
-    assert result.artifacts[0].path == "template.json"
+    assert result.artifacts[0].path == "{{ generator_id }}.json"
     assert '"name": "User"' in result.artifacts[0].content
     assert '"name": "email"' in result.artifacts[0].content
 

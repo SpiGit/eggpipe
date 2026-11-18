@@ -1003,7 +1003,7 @@ FieldDef(
 
 ```bash
 git clone --depth 1 https://github.com/SpiGit/eggpipe.git
-uvx copier copy eggpipe/examples/plugin-template-copier my-plugin
+uvx copier@9.19.1 copy eggpipe/examples/plugin-template-copier my-plugin
 ```
 
 Copier спросит имя проекта, package name, generator id и описание; можно передать их

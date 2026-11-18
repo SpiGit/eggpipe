@@ -56,7 +56,7 @@ def {{ generator_id | replace('-', '_') }}_generator(
         ],
     }
     content = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    return [Artifact(path="template.json", content=content)]
+    return [Artifact(path="{{ generator_id }}.json", content=content)]
 
 
 __all__ = ["TemplateFormat", "{{ generator_id | replace('-', '_') }}_generator"]
