@@ -33,8 +33,7 @@
 
 - `engineering/backlog.md` — единое место для отложенных minor и техдолга.
 - `examples/plugin-template-copier` — one-command шаблон плагина через copier и CI-проверка рендера.
-- `examples/reference-generators` — reference-примеры генераторов SQL, Pydantic, TypeScript и
-  OpenAPI вне TPC-H, с contract-тестами и cookbook-страницей.
+- Раздел «Первый плагин за 10 минут» в `docs/user/plugin-template.md`.
 - `--incremental` / `EGGPIPE_INCREMENTAL=true` — opt-in кэш на уровне location:
   пропуск parse/validate/generate при совпадении fingerprint входа и хэшей артефактов;
   отключается при `--check`, `--force`, `--clean`, `--strict`, `diagnostics.stale_dates`,
