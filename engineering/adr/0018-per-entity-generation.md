@@ -50,7 +50,8 @@ Per-entity режим разрешён, только если **все** выб�
 
 - Location остаётся `(generator, output_dir)`.
 - Запись в per-entity режиме **дополняет** location: артефакты других entities сохраняются.
-- Cleanup не выполняется, даже если `cleanup: enabled` или `--clean`.
+- Cleanup не выполняется, даже если `cleanup: enabled` или `--clean`; в v2.4 это сопровождается
+  Warning EG030.
 - Полный прогон или `eggpipe clean` реконсилируют manifest и удаляют сирот.
 - `on_conflict` и `--force` действуют как обычно.
 

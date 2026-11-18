@@ -79,7 +79,7 @@ description: Проверка согласованности документо�
 ## Как искать
 
 Используй `grep`/`glob` по `docs/` и `README.md`. Не считай находки в исторических версиях
-ТЗ (статус «Замещена») и в changelog `engineering/requirements/index.md`: там старые термины
+ТЗ (статус «Замещена») и в `engineering/requirements/changelog.md`: там старые термины
 упоминаются намеренно.
 
 Что искать:
