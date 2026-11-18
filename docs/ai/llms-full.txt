@@ -999,9 +999,28 @@ FieldDef(
 
 # Шаблон плагина
 
-Готовый шаблон генератора и формата: [examples/plugin-template](https://github.com/SpiGit/eggpipe/tree/main/examples/plugin-template).
+## Одна команда: copier
 
-## Быстрый старт
+```bash
+git clone --depth 1 https://github.com/SpiGit/eggpipe.git
+uvx copier copy eggpipe/examples/plugin-template-copier my-plugin
+```
+
+Copier спросит имя проекта, package name, generator id и описание; можно передать их
+сразу через `-d package_name=... -d generator_id=...`. После генерации:
+
+```bash
+cd my-plugin
+uv sync --extra dev
+uv run pytest
+```
+
+Шаблон создаёт `pyproject.toml`, пакет, contract-тесты, entry points и README.
+Исходник шаблона — [examples/plugin-template-copier](https://github.com/SpiGit/eggpipe/tree/main/examples/plugin-template-copier).
+
+## Ручной пример
+
+Готовый шаблон генератора и формата без генерации: [examples/plugin-template](https://github.com/SpiGit/eggpipe/tree/main/examples/plugin-template).
 
 ```bash
 pip install -e examples/plugin-template

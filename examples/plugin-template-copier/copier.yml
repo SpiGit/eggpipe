@@ -1,0 +1,22 @@
+_subdirectory: template
+_templates_suffix: .jinja
+
+project_name:
+  type: str
+  help: Human-readable plugin name
+  default: My Eggpipe Plugin
+
+package_name:
+  type: str
+  help: Python package name (snake_case)
+  default: eggpipe_my_plugin
+
+generator_id:
+  type: str
+  help: Generator entry point id (kebab-case)
+  default: my-plugin
+
+description:
+  type: str
+  help: Short package description
+  default: Eggpipe generator plugin

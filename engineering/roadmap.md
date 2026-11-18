@@ -57,11 +57,11 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 - [x] per-entity generation (ADR-0018, #26/#32/#33);
 - [x] PR-процесс и backlog (#19–#25, #27–#31, #37/#38);
 - [x] ручной шаблон плагина `examples/plugin-template` и contract-тесты;
+- [x] one-command шаблон через copier (`examples/plugin-template-copier`);
 - [x] всё из CHANGELOG `[Unreleased]` (ADR-0016, mike, SBOM, benchmarks).
 
 Осталось:
 
-- [ ] one-command шаблон плагина (`cookiecutter`/`uv`-template);
 - [ ] примеры SQL, Pydantic, TypeScript, OpenAPI вне TPC-H;
 - [ ] улучшение `eggpipe gen info` и `eggpipe format info`;
 - [ ] понятные ошибки контракта плагина;
@@ -115,7 +115,7 @@ release workflow проверен, тег `0.4.0` поставлен на `main`
 
 | Задача | Область | Релиз | Результат | Статус |
 |--------|---------|-------|-----------|--------|
-| Шаблон плагина | Плагины | 0.4.0 | Новый плагин создаётся одной командой | Частично |
+| Шаблон плагина | Плагины | 0.4.0 | Новый плагин создаётся одной командой | Готово (copier) |
 | Contract-test kit | Плагины | 0.4.0 | Автор плагина проверяет контракт локально | Готово (шаблон) |
 | Политика deprecation | API | 0.4.0 | Понятно, как менять API до 1.0 | Готово (ADR-0016) |
 | Версионирование документации | Docs | 0.4.0 | Старые версии docs не теряются | Готово |

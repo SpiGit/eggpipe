@@ -1,0 +1,62 @@
+"""Contract tests for {{ project_name }}."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from {{ package_name }} import (
+    TemplateFormat,
+    {{ generator_id | replace('-', '_') }}_generator,
+)
+
+from eggpipe import (
+    Entity,
+    FieldDef,
+    GenerationContext,
+    GeneratorConfig,
+    GeneratorInput,
+    ModelSlice,
+)
+from eggpipe.core.format_registry import FormatRegistry
+from eggpipe.interfaces.generator import validate_generator_contract
+
+
+def sample_input() -> GeneratorInput:
+    entity = Entity(
+        name="User",
+        fields=(
+            FieldDef(name="id", type="integer", required=True),
+            FieldDef(name="email", type="string"),
+        ),
+    )
+    return GeneratorInput(
+        model=ModelSlice(entities=(entity,)),
+        config=GeneratorConfig(id="{{ generator_id }}", output_dir=Path("out")),
+        context=GenerationContext(run_id="test-run", config_dir=Path(".")),
+    )
+
+
+def test_generator_contract() -> None:
+    plugin = {{ generator_id | replace('-', '_') }}_generator()
+    validate_generator_contract(plugin)
+    assert plugin.id == "{{ generator_id }}"
+    assert plugin.name == "{{ project_name }}"
+    assert plugin.input_formats == {"entity-model", "{{ generator_id }}-model"}
+
+
+def test_generator_output() -> None:
+    result = {{ generator_id | replace('-', '_') }}_generator().generate(sample_input())
+    assert result.success is True
+    assert len(result.artifacts) == 1
+    assert result.artifacts[0].path == "template.json"
+    assert '"name": "User"' in result.artifacts[0].content
+    assert '"name": "email"' in result.artifacts[0].content
+
+
+def test_format_contract() -> None:
+    registry = FormatRegistry()
+    registry.register(TemplateFormat())
+    plugin = registry.get("{{ generator_id }}-model")
+    assert plugin.format_names == ["{{ generator_id }}-model"]
+    assert plugin.supported_versions == ["1.0"]
+    assert registry.accepts("{{ generator_id }}-model", {"entity-model"}) is True

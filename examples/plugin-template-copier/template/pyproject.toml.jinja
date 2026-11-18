@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "{{ package_name | replace('_', '-') }}"
+version = "0.1.0"
+description = "{{ description }}"
+requires-python = ">=3.11"
+dependencies = ["eggpipe>=0.3.2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.entry-points."eggpipe.generators"]
+"{{ generator_id }}" = "{{ package_name }}:{{ generator_id | replace('-', '_') }}_generator"
+
+[project.entry-points."eggpipe.formats"]
+"{{ generator_id }}-model" = "{{ package_name }}:TemplateFormat"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ package_name }}"]
