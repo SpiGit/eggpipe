@@ -9,8 +9,8 @@
 
 ## 1. Контекст
 
-Релиз `0.3.2` опубликован на PyPI, документация доступна на
-https://spigit.github.io/eggpipe/, `main` защищён и изменения идут через pull request.
+Релиз `0.4.0` опубликован на PyPI, документация доступна на
+https://spigit.github.io/eggpipe/ (`latest`, `/0.4/`), `main` защищён и изменения идут через pull request.
 
 До `1.0` проект остаётся beta: публичный API, CLI, конфиг и генерируемые артефакты
 могут меняться. Главная задача следующего этапа — не добавлять всё подряд, а сделать
@@ -47,9 +47,9 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 
 ## 4. Вехи
 
-### Текущий релиз: 0.4.0 — Reliability early + Plugin DX
+### Выпущенный релиз: 0.4.0 — Reliability early + Plugin DX
 
-Фокус: довести до релиза уже смерженную Reliability-часть и закрыть Plugin DX.
+Фокус: Reliability early и Plugin DX — выпущены в 0.4.0.
 
 Уже входит:
 
@@ -70,7 +70,7 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 Это 0.5.0+. Relations/FK не зафиксированы: P2 и открытый вопрос 2.
 
 Критерий релиза: чеклист закрыт, CHANGELOG и docs обновлены, `ci-success` зелёный,
-release workflow проверен, тег `0.4.0` поставлен на `main`.
+release workflow проверен, тег `v0.4.0` поставлен на `main`.
 
 ### 0.5.0 — Watch и оставшаяся Reliability
 
@@ -193,4 +193,4 @@ Relations в ядре остаются открытым вопросом 2.
 2. [x] Аудит инженерной документации (#39).
 3. [x] 0.4.0 Plugin DX: copier-шаблон, examples, gen/format info, ошибки контракта, docs (#40–#43).
 4. [x] Выпустить 0.4.0 (#45, тег `v0.4.0`).
-5. [ ] 0.5.0: watch, L2/L3, auto-discovery, метрики.
+5. [ ] 0.5.0: watch, L2/L3, auto-discovery, метрики, benchmarks.
