@@ -717,4 +717,7 @@ def test_plugin_issue_warning_includes_code(monkeypatch: pytest.MonkeyPatch) -> 
     _patch_entry_points(monkeypatch, [EntryPoint("broken", BrokenGenerator)])
     result = CliRunner().invoke(app, ["gen", "list", "--all"])
     assert result.exit_code == 0
-    assert "warning: broken: EG301: invalid generator id: 'Broken'" in result.stderr
+    assert (
+        "warning: broken: EG301: test_cli:BrokenGenerator: generator id 'Broken'" in result.stderr
+    )
+    assert result.stderr.count("EG301") == 1
