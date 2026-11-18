@@ -215,6 +215,44 @@ def user_sql(...): ...
 - `engine.generate(entities=[...])` требует `entity` у всех выбранных генераторов; иначе EG303.
 - Manifest дополняется, cleanup не выполняется (+ Warning EG030); incremental с `entities=` не используется.
 
+## Ошибки контракта
+
+Каждое сообщение EG301/EG302 содержит три части: что не так, где (entry point, модуль и
+класс/функция плагина) и что сделать. Пример:
+
+```text
+generator 'x' (my_pkg.plugins:MyGen): parameter 'model' has no annotation;
+annotate it as ModelSlice, GenerationContext or GeneratorConfig
+```
+
+| Код | Причина | Что делать |
+|-----|---------|------------|
+| EG301 | не объявлен `input_formats`; `input_formats`/`output_scope`/`id` неверного типа или формата; `*args`/`**kwargs`; параметр без аннотации; неверный return type | объявить `input_formats = {...}` или `None`; использовать `id` из `[a-z][a-z0-9-]*`; перечислить параметры явно и аннотировать их; вернуть `GenerationResult`, `Artifact`, `list[Artifact]` или `tuple[Artifact, ...]` |
+| EG302 | параметр аннотирован типом вне контракта | оставить только `ModelSlice`, `GenerationContext`, `GeneratorConfig` |
+
+Неверный плагин:
+
+```python
+@generator(input_formats={"entity-model"})
+def broken(model, options: dict) -> str:  # EG301: нет аннотации; EG302: dict
+    return "ok"
+```
+
+Верный плагин:
+
+```python
+@generator(input_formats={"entity-model"})
+def fixed(
+    model: ModelSlice,
+    context: GenerationContext,
+) -> list[Artifact]:
+    return [Artifact(path="entities.txt", content=str(len(model.entities)) + "\n")]
+```
+
+Класс без `input_formats` тоже даёт EG301: базовый `GeneratorPlugin` объявляет поле, но не
+задаёт значение. Один сломанный entry point не скрывает остальные плагины: загрузчик
+пропускает его, добавляет `PluginIssue` с кодом, entry point и модулем, и продолжает загрузку.
+
 ## Версионирование
 
 `api_version` повышается только при breaking change контракта. Несовместимый плагин не ломает
