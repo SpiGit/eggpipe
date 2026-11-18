@@ -44,7 +44,7 @@ from eggpipe.interfaces.generator import (
     GeneratorInput,
     GeneratorPlugin,
     ImportedFile,
-    describe_generator_location,
+    _describe_generator_location,
 )
 from eggpipe.utils.exceptions import (
     ConfigValidationError,
@@ -992,7 +992,7 @@ def _check_input_formats(
         return []
     missing = object()
     accepted = getattr(type(plugin), "input_formats", missing)
-    location = f"generator {generator_id} ({describe_generator_location(plugin)})"
+    location = f"generator {generator_id} ({_describe_generator_location(plugin)})"
     if accepted is missing:
         return [
             error(

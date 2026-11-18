@@ -103,7 +103,7 @@ def _callable_location(owner: Any) -> str:
     return f"{module}:{qualname}"
 
 
-def describe_generator_location(plugin: GeneratorPlugin) -> str:
+def _describe_generator_location(plugin: GeneratorPlugin) -> str:
     """Return the module and qualified name of a generator class or decorated function."""
     plugin_type = type(plugin)
     function = getattr(plugin_type, "_function", None)
@@ -175,13 +175,12 @@ def validate_generator_contract(plugin: GeneratorPlugin) -> None:
     plugin_type = type(plugin)
     plugin_id = getattr(plugin_type, "id", None)
     function = getattr(plugin_type, "_function", None)
-    location = _callable_location(function if function is not None else plugin_type)
-    where = f"generator {plugin_id!r} ({location})"
+    where = _callable_location(function if function is not None else plugin_type)
     if not isinstance(plugin_id, str) or not re.fullmatch(r"^[a-z][a-z0-9-]*$", plugin_id):
         raise PluginContractError(
             "EG301",
-            f"{where}: id must match ^[a-z][a-z0-9-]*$; use lowercase letters, "
-            "digits and hyphens, starting with a letter",
+            f"{where}: generator id {plugin_id!r} must match ^[a-z][a-z0-9-]*$; "
+            "use lowercase letters, digits and hyphens, starting with a letter",
         )
     if not hasattr(plugin_type, "input_formats"):
         raise PluginContractError(

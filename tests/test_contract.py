@@ -137,8 +137,8 @@ def test_eg301_class_contract_names_plugin_and_hint() -> None:
 
     message = str(caught.value)
     assert caught.value.code == "EG301"
-    assert "'missing-formats'" in message
     assert "MissingFormats" in message
+    assert "test_contract" in message
     assert "input_formats is not declared" in message
     assert "declare input_formats = {'entity-model'} or None" in message
 

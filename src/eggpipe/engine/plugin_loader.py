@@ -11,7 +11,11 @@ from typing import Any
 
 from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.interfaces.formats import FormatPlugin
-from eggpipe.interfaces.generator import GeneratorPlugin, validate_generator_contract
+from eggpipe.interfaces.generator import (
+    GeneratorPlugin,
+    _describe_generator_location,
+    validate_generator_contract,
+)
 from eggpipe.utils.exceptions import PluginContractError
 
 GENERATOR_GROUP = "eggpipe.generators"
@@ -45,10 +49,15 @@ def _issue(
     message: str,
     *,
     code: str | None = None,
-    module: str | None = None,
+    location: str | None = None,
 ) -> PluginIssue:
-    location = f"{entry_name} ({module})" if module else entry_name
-    return PluginIssue(entry_name, f"{location}: {message}", code)
+    """Build an issue without duplicating the code or the entry point in ``message``.
+
+    The CLI prints ``warning: <entry point>: <code>: <message>``, so ``message``
+    carries only the plugin location and the human-readable text.
+    """
+    text = f"{location}: {message}" if location else message
+    return PluginIssue(entry_name, text, code)
 
 
 def _entry_issue(
@@ -56,13 +65,13 @@ def _entry_issue(
     message: str,
     *,
     code: str | None = None,
-    module: str | None = None,
+    location: str | None = None,
 ) -> PluginIssue:
     return _issue(
         entry_point.name,
         message,
         code=code,
-        module=module or _entry_module(entry_point),
+        location=location or _entry_module(entry_point),
     )
 
 
@@ -81,8 +90,7 @@ def load_generators_with_issues() -> tuple[dict[str, GeneratorPlugin], list[Plug
                 _entry_issue(
                     entry_point,
                     f"duplicate generator id {plugin.id!r}; keep a single entry point for this id",
-                    code="EG301",
-                    module=_module_name(type(plugin)),
+                    location=_describe_generator_location(plugin),
                 )
             )
             continue
@@ -148,8 +156,7 @@ def load_local_generators_with_issues(
                     _issue(
                         f"{entry_name}:{value.__name__}",
                         f"duplicate generator id {plugin.id!r}; keep a single class for this id",
-                        code="EG301",
-                        module=_module_name(value),
+                        location=_describe_generator_location(plugin),
                     )
                 )
                 continue
@@ -172,8 +179,7 @@ def _generator_from_entry(
             entry_point,
             "object is not a GeneratorPlugin; the entry point must point to a "
             "GeneratorPlugin subclass or a @generator-decorated function",
-            code="EG301",
-            module=_module_name(type(loaded)),
+            location=_module_name(loaded) or _entry_module(entry_point),
         )
     return _validated_generator(loaded, entry_point.name)
 
@@ -186,14 +192,14 @@ def _format_from_entry(entry_point: EntryPoint) -> tuple[FormatPlugin | None, Pl
         return None, _entry_issue(
             entry_point,
             "object is not a FormatPlugin; the entry point must point to a FormatPlugin subclass",
-            module=_module_name(type(loaded)),
+            location=_module_name(loaded) or _entry_module(entry_point),
         )
     if loaded.api_version != "1":
         return None, _entry_issue(
             entry_point,
             f"incompatible api_version {loaded.api_version!r}; contract version 1 "
             'is required (api_version = "1")',
-            module=_module_name(type(loaded)),
+            location=_module_name(loaded) or _entry_module(entry_point),
         )
     return loaded, None
 
@@ -217,26 +223,25 @@ def _validated_generator(
     *,
     check_entry_name: bool = True,
 ) -> tuple[GeneratorPlugin | None, PluginIssue | None]:
-    module = _module_name(type(plugin))
     try:
         validate_generator_contract(plugin)
     except PluginContractError as exc:
-        return None, _issue(entry_name, str(exc), code=exc.code, module=module)
+        # ``exc.message`` already starts with ``module:qualname``; EG301/EG302 are
+        # contract codes, so no other loader-level condition reuses them.
+        return None, _issue(entry_name, exc.message, code=exc.code)
     if plugin.api_version != "1":
         return None, _issue(
             entry_name,
             f"incompatible api_version {plugin.api_version!r}; contract version 1 "
             'is required (api_version = "1")',
-            code="EG301",
-            module=module,
+            location=_describe_generator_location(plugin),
         )
     if check_entry_name and entry_name != plugin.id:
         return None, _issue(
             entry_name,
             f"plugin id {plugin.id!r} does not match the entry point {entry_name!r}; "
             "the entry point name must equal the generator id",
-            code="EG301",
-            module=module,
+            location=_describe_generator_location(plugin),
         )
     return plugin, None
 
@@ -282,7 +287,7 @@ def _local_generator(
         return None, _issue(
             label,
             f"failed to create plugin ({exc}); the class must be instantiable without arguments",
-            module=_module_name(value),
+            location=_module_name(value),
         )
     return _validated_generator(plugin, label, check_entry_name=False)
 
