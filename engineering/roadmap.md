@@ -58,14 +58,15 @@ https://spigit.github.io/eggpipe/, `main` защищён и изменения �
 - [x] PR-процесс и backlog (#19–#25, #27–#31, #37/#38);
 - [x] ручной шаблон плагина `examples/plugin-template` и contract-тесты;
 - [x] one-command шаблон через copier (`examples/plugin-template-copier`);
+- [x] reference-примеры SQL, Pydantic, TypeScript, OpenAPI (`examples/reference-generators`, #42);
+- [x] `gen info`/`format info`: module/class/api_version/base_versions и did-you-mean (#41);
+- [x] понятные ошибки контракта EG301/EG302 (#43);
+- [x] раздел «Первый плагин за 10 минут» (#41);
 - [x] всё из CHANGELOG `[Unreleased]` (ADR-0016, mike, SBOM, benchmarks).
 
 Осталось:
 
-- [ ] примеры SQL, Pydantic, TypeScript, OpenAPI вне TPC-H;
-- [ ] улучшение `eggpipe gen info` и `eggpipe format info`;
-- [ ] понятные ошибки контракта плагина;
-- [ ] раздел «Первый плагин за 10 минут».
+- [ ] выпуск 0.4.0: версия, CHANGELOG, release checklist, тег.
 
 Не входит в 0.4.0: watch improvement, L2/L3 cache, auto-discovery, метрики.
 Это 0.5.0+. Relations/FK не зафиксированы: P2 и открытый вопрос 2.
@@ -194,6 +195,6 @@ Relations в ядре остаются открытым вопросом 2.
 
 1. [x] B-023/B-024: coverage в PR body и тесты merge manifest (#37/#38).
 2. [x] Аудит инженерной документации (#39).
-3. [ ] 0.4.0 Plugin DX: examples, gen/format info, ошибки контракта, docs.
+3. [x] 0.4.0 Plugin DX: examples, gen/format info, ошибки контракта, docs (#41–#43).
 4. [ ] Выпустить 0.4.0.
 5. [ ] После 0.4.0 — watch, L2/L3 и метрики в 0.5.0.
