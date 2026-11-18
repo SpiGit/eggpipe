@@ -94,9 +94,11 @@ cat out/my-plugin.json
 
 В `gen info` и `format info` проверь:
 
-- `module` и `class` указывают на пакет `eggpipe_my_plugin`;
 - `input_formats` содержит `entity-model` и `my-plugin-model`;
-- `extends: entity-model` и `base_versions: 1.0->1.0` — формат наследует базовый.
+- `extends: entity-model` и `base_versions: 1.0->1.0` — формат наследует базовый;
+- `module`/`class` показывают, откуда загружен плагин. У формата это пакет
+  `eggpipe_my_plugin`, у генератора на decorator API — адаптер ядра
+  (`eggpipe.interfaces.generator`): так работает `@generator`, это ожидаемо.
 
 Если id указан с опечаткой, команда покажет ближайшие варианты и доступные плагины.
 
