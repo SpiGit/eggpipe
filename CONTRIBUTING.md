@@ -58,10 +58,11 @@ uv run python tools/check_wheel.py dist
 
 ## Документация
 
-- `engineering/requirements/v1.0.md`–`v1.4.md` — история, не редактировать.
+- Все версии ТЗ со статусом «Замещена» (`v1.0`–`v2.3`) — история, не редактировать.
 - Новое поведение оформляется новой версией ТЗ `vX.Y`, а не правкой текущей.
 - Архитектурные решения — новый ADR в `engineering/adr/`, существующие ADR не переписываются.
-- При изменении версии обнови `engineering/requirements/index.md`, System Design, README,
+- При изменении версии обнови `engineering/requirements/index.md`, `requirements/changelog.md`,
+  System Design, README,
   `.session-context.md` и harness-файлы, где указана актуальная версия.
 
 ## Локальная настройка git

@@ -213,7 +213,7 @@ def user_sql(...): ...
 - `output_scope="entity"` — артефакты строятся только из выбранных entities, пути уникальны
   для каждой entity.
 - `engine.generate(entities=[...])` требует `entity` у всех выбранных генераторов; иначе EG303.
-- Manifest дополняется, cleanup не выполняется; incremental с `entities=` не используется.
+- Manifest дополняется, cleanup не выполняется (+ Warning EG030); incremental с `entities=` не используется.
 
 ## Версионирование
 

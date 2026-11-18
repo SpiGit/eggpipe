@@ -7,7 +7,7 @@
 
 - Актуальное ТЗ — только файл со статусом **Актуальная** в
   `engineering/requirements/index.md` (сейчас `v2.4.md`).
-- Исторические ТЗ (`v1.0`–`v2.0`) и старые ADR не редактировать.
+- Все версии ТЗ кроме файла со статусом «Актуальная» — read-only; старые ADR не переписывать.
 - Новое поведение — новая версия ТЗ; ADR не переписываются задним числом.
 - Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `Entity`, `FieldDef`, `EnumDef`,
   `UNSET`, `GeneratorPlugin`, `FormatPlugin`, `GenerationResult`.

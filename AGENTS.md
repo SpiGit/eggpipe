@@ -9,7 +9,7 @@
 
 Репозиторий содержит реализацию ядра и спецификацию ТЗ v2.4: composition, форматы и слои, decorator API,
 watch, JSON-отчёт v2, provenance, глобальный manifest/lock, cleanup, `Engine`, CLI,
-reference- и TPC-H-плагины, golden-тесты. Per-entity генерация реализована: `output_scope`, `Engine.entities`, CLI `--entity` (ADR-0018).
+reference- и TPC-H-плагины, golden-тесты. Per-entity генерация реализована: `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity` (ADR-0018).
 
 ## Источники истины
 
@@ -19,7 +19,7 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
    поведение, контракты, CLI, запись артефактов.
 2. `engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды, 0014 — beta-статус и совместимость до 1.0, 0015 — ветвление и релизная политика, 0016 — политика deprecation, 0017 — инкрементальная генерация, 0018 — per-entity генерация).
 3. `engineering/system-design/index.md` — проектирование реализации (классы, потоки, структура).
-4. `engineering/requirements/index.md` — реестр версий и changelog.
+4. `engineering/requirements/index.md` — реестр версий; полный changelog — `changelog.md`.
 5. `README.md` и `.session-context.md` — краткое состояние проекта.
 
 Если System Design или ADR противоречат ТЗ без ADR-обоснования — это дефект документации. Сообщи
@@ -50,7 +50,8 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 - Новое или изменённое поведение оформляется новой версией ТЗ `vX.Y`, а не правкой текущей.
 - Не начинай задачи следующей вехи, пока текущий релиз не выпущен. Если задача следующей
   вехи смержена раньше, перенеси её в текущий релиз и убери из будущей вехи.
-- При выпуске версии обнови: ТЗ, `engineering/requirements/index.md` (статус + changelog),
+- При выпуске версии обнови: ТЗ, `engineering/requirements/index.md` (статусы),
+  `engineering/requirements/changelog.md` (запись),
   System Design, README и `.session-context.md`.
 - ADR не переписываются задним числом. Новое архитектурное решение — новый ADR.
 - Диагностические коды `EGxxx` стабильны; не переиспользуй код для другого смысла.
@@ -167,7 +168,7 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 
 - [ ] Изменения согласованы с актуальным ТЗ и не противоречат ADR-0001.
 - [ ] Исторические версии ТЗ не изменены.
-- [ ] При изменении версии/статуса обновлены `index.md`, System Design, README и `.session-context.md`.
+- [ ] При изменении версии/статуса обновлены `index.md`, `requirements/changelog.md`, System Design, README и `.session-context.md`.
 - [ ] Хардкоды актуальной версии в harness (`AGENTS.md`, `.opencode/`, `opencode.json`) синхронизированы;
       прежняя актуальная версия добавлена в `deny`-список.
 - [ ] Термины, коды `EGxxx`, флаги CLI и exit codes совпадают во всех документах.

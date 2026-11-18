@@ -2,7 +2,7 @@
 
 > Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.4](../requirements/v2.4.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 2.4. Дата: 2026-11-17.*
+*Версия документа: 2.4. Дата: 2026-11-18.*
 
 ---
 
@@ -346,10 +346,13 @@ class Engine:
         variables: Mapping[str, str] | None = None,
     ): ...
 
-    def build(self, *, incremental: bool | None = None) -> EngineReport: ...
-        # парсинг/валидация/генерация без записи; incremental=None — из AppConfig
-    def generate(self) -> EngineReport: ...   # build + запись артефактов
-    def check(self) -> EngineReport: ...      # drift без записи; success=false, exit_code=1
+    def build(self, *, incremental: bool | None = None,
+              entities: Collection[str] | None = None) -> EngineReport: ...
+        # парсинг/валидация/генерация без записи; entities=None — полный прогон
+    def generate(self, *, entities: Collection[str] | None = None) -> EngineReport: ...
+        # build + запись артефактов
+    def check(self, *, entities: Collection[str] | None = None) -> EngineReport: ...
+        # drift без записи; success=false, exit_code=1
 ```
 
 - `Engine` не вызывает `sys.exit` и не настраивает root-logger.
@@ -768,7 +771,7 @@ def validate(
 | Code | Проверка | Уровень | Фаза |
 |------|----------|---------|------|
 | EG000 | YAML syntax / duplicate keys / multi-doc / non-dict | error | parse |
-| EG001 | Ссылка type на несуществующий enum/type | error | validate |
+| EG001 | Зарезервирован; не эмитируется | — | — |
 | EG002 | Дубликат имени entity/enum/type после композиции | error | composition |
 | EG003 | Дубликат поля в entity | error | validate |
 | EG004 | Неизвестный тип (не primitive формата, не enum/type) | error | validate |
@@ -785,7 +788,7 @@ def validate(
 | EG015 | Пустой description у required-поля | warning | validate |
 | EG016 | `default` не приводится к итоговому type | error | validate |
 | EG017 | `default` нарушает constraints/enum | error | validate |
-| EG018 | Неизвестное имя в `input` | error | slice |
+| EG018 | Неизвестное имя в `input`/`--entity` | error | slice |
 | EG019 | Пустой enum / дубликат имени/значения | error | validate |
 | EG020 | Цикл `CustomType.base` / depth > 10 | error | validate |
 | EG021 | Неприменимый/противоречивый constraint | error | validate |
@@ -1100,7 +1103,7 @@ def clean(
 |----------|-----------|
 | Успех | 0 |
 | Ошибки парсинга/валидации/генерации, drift `--check`, warnings при `--strict` | 1 |
-| Config/usage: нет `.eggpipe.yaml`, неизвестный generator id, `--var` без `=`, `api_version` mismatch, ошибка выбранного плагина, ошибка схемы `.eggpipe.yaml`, EG033/EG034/EG301/EG302 | 2 |
+| Config/usage: нет `.eggpipe.yaml`, неизвестный generator id, `--var` без `=`, `api_version` mismatch, ошибка выбранного плагина, ошибка схемы `.eggpipe.yaml`, EG033/EG034/EG301/EG302/EG303 | 2 |
 | Ctrl+C | 130 |
 
 Ошибка одного генератора: логируется, остальные продолжаются (aggregate отчёт в конце).
@@ -1287,7 +1290,9 @@ class ExecutionPlan:
 - `skipped: true` — ядро не писало файл; cleanup такие записи не удаляет.
 - `.eggpipe/` рекомендуется в `.gitignore`; manifest не предназначен для коммита.
 - `--check` и `--plan` не обновляют manifest.
-- Per-entity запись дополняет location: артефакты других entities сохраняются; cleanup не выполняется.
+- Per-entity запись дополняет location: артефакты других entities и `formats` сохраняются,
+  `generated_at` обновляется, `plugin_version` берётся из плагина, `input_fingerprint` не
+  обновляется; cleanup не выполняется (+ Warning EG030).
 - Manifest v1 не поддерживается.
 
 ### 8.4 Atomicity и блокировки
@@ -1489,7 +1494,7 @@ L1-кэш incremental — в `engine.py`; `watch/cache.py` и L2/L3 — future.
 2. Merge-семантика ADR-0001 и layer merge ADR-0008 — тесты на каждое правило.
 3. **Null-matrix** — все 12 комбинаций из ТЗ §3.6, включая `UNSET` vs explicit `null`.
 4. Parser: simple / imports / entity.extends / cycle / depth / unknown format / unknown version / duplicate keys / YAML 1.2-скаляры.
-5. **Форматы v2.2**: наследование, цикл/глубина, `input_formats`, совместимость генератора, смешанные форматы в запуске (EG033).
+5. **Форматы**: наследование, цикл/глубина, `input_formats`, совместимость генератора, смешанные форматы в запуске (EG033).
 6. **Model units**: `monolith`/`file-per-model`/`directory-per-model`, `model_dirs`/`files`/`resources`, пустой каталог, duplicate format, unrelated formats, layer entity count (EG027/EG029/EG031/EG032).
 7. Integration CLI: полный цикл, exit codes, `--strict`, `--var`, `--dry-run`/`--plan`/`--check`, `--include-disabled`.
 8. **Contract-тесты plugin API**: reference-generator и reference-format проходят публичный контракт; несовместимый `api_version` ведёт себя по §6.

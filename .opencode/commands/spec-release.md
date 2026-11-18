@@ -13,7 +13,8 @@ description: Подготовить новую версию ТЗ и синхро
 3. Не изменяй версии ТЗ со статусом «Замещена».
 4. Создай `engineering/requirements/v<версия>.md` на основе актуального ТЗ. Внеси только согласованные
    изменения, сохранив структуру разделов и стабильные коды `EGxxx`.
-5. Обнови `engineering/requirements/index.md`: статус версий и changelog. Предыдущую актуальную версию
+5. Обнови `engineering/requirements/index.md` (статусы версий) и
+   `engineering/requirements/changelog.md` (запись версии). Предыдущую актуальную версию
    переведи в статус «Замещена».
 6. Синхронизируй System Design, README и `.session-context.md` с новой версией.
 7. Обнови хардкоды версий в `AGENTS.md` и во всём `.opencode/` (skills, commands, agents).

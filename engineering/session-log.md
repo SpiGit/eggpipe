@@ -30,6 +30,7 @@
 Документация и код приведены к ТЗ v2.4 (E0–E9). Актуальные решения:
 
 - `ModelDocument` → `SourceModel` → `ModelSlice`; `imports` на уровне документа.
+- Per-entity generation реализована: `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity` (ADR-0018).
 - `UNSET` vs `default: null`; полная null-матрица.
 - `version` формата опционален (latest); смешанные форматы разрешены.
 - Model units: `monolith`, `file-per-model`, `directory-per-model`; слои и resources.
@@ -154,7 +155,7 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 - `tools/check_docs.py` — stdlib-чекер документации; CI — `.github/workflows/docs.yml`.
 - `pyproject.toml` — пакет, dev-зависимости и конфигурация ruff/Pyrefly/pytest/coverage.
 - Dev/CI — `uv` + `uv.lock`; pip остаётся для установки пакета пользователями.
-- Тестовый CI — `.github/workflows/ci.yml` (Linux/macOS/Windows × Python 3.11/3.12).
+- Тестовый CI — `.github/workflows/ci.yml` (Linux/macOS/Windows × Python 3.11–3.15).
 - Delivery: `LICENSE` (MIT), `CONTRIBUTING.md`, `CHANGELOG.md`, `tools/check_wheel.py`.
 - Release — `.github/workflows/release.yml` по тегу `v*`: проверки, сборка, smoke-install, GitHub Release.
 
@@ -393,7 +394,7 @@ v0.3: format-плагины, watch, JSON-отчёт, provenance и `--plugin` р
 | Patch-семантика | Future; `required+nullable` — EG011 |
 | `--plugin` (dev, без установки) | v0.3+ |
 | Provenance (git-дата/хеш) | v0.3 |
-| Per-entity `generate()` | Future, новый метод не ломает контракт |
+| Per-entity `generate()` | Реализовано в v2.4 (ADR-0018) |
 | Публикация PyPI `eggpipe` / `eggpipe` | Опубликован `0.3.2` |
 | Расширение формата | Решено в v2.0: наследование, `input_formats`, слои (ADR-0007/0008) |
 

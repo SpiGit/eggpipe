@@ -1,6 +1,6 @@
 ---
 name: plugin-contract
-description: Контракты generator и FormatPlugin Eggpipe — публичный API v2.0, decorator API, версии и чек-лист
+description: Контракты generator и FormatPlugin Eggpipe — ТЗ v2.4, decorator API, версии и чек-лист
 ---
 
 # Контракты плагинов Eggpipe
@@ -131,7 +131,7 @@ class MyFormat(EntityModelFormat):
 - `api_version = "1"` — первый стабильный контракт.
 - Несовместимый плагин не ломает запуск, если не выбран; показывается как incompatible.
 - Явно выбранный несовместимый плагин — exit 2.
-- EG033/EG034/EG301/EG302 — config/plugin errors, exit 2.
+- EG033/EG034/EG301/EG302/EG303 — config/plugin errors, exit 2.
 - Политика deprecation применяется после первого публичного релиза.
 - При `--incremental` меняйте `__version__` при изменении вывода: ядро сравнивает
   `plugin_version`; генераторные шаблоны объявляйте через `resources`, форматные файлы —
