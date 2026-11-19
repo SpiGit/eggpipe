@@ -11,7 +11,7 @@ from reference_generator import ReferenceGenerator
 from typer.testing import CliRunner
 
 from eggpipe import EntityModelFormat, GenerationResult, GeneratorInput
-from eggpipe.cli.main import ReportOptions, _print_report, app
+from eggpipe.cli.main import ReportOptions, _print_report, _print_unknown, app
 from eggpipe.engine import plugin_loader
 from eggpipe.engine.report import EngineReport
 from eggpipe.interfaces.generator import GeneratorPlugin
@@ -124,7 +124,27 @@ def test_init(tmp_path: Path) -> None:
 def test_format_list() -> None:
     result = CliRunner().invoke(app, ["format", "list"])
     assert result.exit_code == 0
-    assert "entity-model" in result.stdout
+    line = next(row for row in result.stdout.splitlines() if row.startswith("entity-model\t"))
+    assert "\tversions=1.0" in line
+    assert "\tapi_version=1" in line
+    assert "\textends=-" in line
+    assert "\tbase_versions=-" in line
+
+
+def test_format_info_unknown_without_close_matches(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [])
+    result = CliRunner().invoke(app, ["format", "info", "zzzzzz"])
+    assert result.exit_code == 2
+    assert "did you mean" not in result.stderr
+    assert "available formats: entity-model" in result.stderr
+
+
+def test_print_unknown_with_no_formats(capsys: pytest.CaptureFixture[str]) -> None:
+    _print_unknown("format", "alpha", [])
+    captured = capsys.readouterr()
+    assert "error: unknown format: alpha" in captured.err
+    assert "did you mean" not in captured.err
+    assert "available formats: none" in captured.err
 
 
 def test_missing_config(tmp_path: Path) -> None:

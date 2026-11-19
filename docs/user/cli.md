@@ -125,7 +125,16 @@ base_versions: 1.0->1.0
 `base_versions` показывает версию базового формата для каждой версии плагина;
 `-` — формат не наследует другой формат.
 
-Неизвестный id или имя завершается с exit code 2 и подсказывает ближайшие варианты:
+### Вывод `format list`
+
+```text
+$ eggpipe format list
+entity-model	versions=1.0	api_version=1	extends=-	base_versions=-
+template-model	versions=1.0	api_version=1	extends=entity-model	base_versions=1.0->1.0
+```
+
+Неизвестный id или имя в `gen info` и `format info` завершается с exit code 2 и подсказывает
+ближайшие варианты и полный список:
 
 ```text
 $ eggpipe format info entity-modell
