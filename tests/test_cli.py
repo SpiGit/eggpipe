@@ -657,7 +657,7 @@ def test_generate_empty_entity_exits_2(tmp_path: Path, value: str) -> None:
 def _patch_entry_points(
     monkeypatch: pytest.MonkeyPatch,
     entries: list[EntryPoint],
-    expected_group: str = plugin_loader.GENERATOR_GROUP,
+    expected_group: str,
 ) -> None:
     def fake_entry_points(*, group: str) -> list[EntryPoint]:
         return entries if group == expected_group else []
@@ -685,7 +685,9 @@ class BrokenGenerator(GeneratorPlugin):
 
 
 def test_gen_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("reference", ReferenceGenerator)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "info", "reference"])
     assert result.exit_code == 0
     lines = result.stdout.splitlines()
@@ -701,7 +703,9 @@ def test_gen_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_gen_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("reference", ReferenceGenerator)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "info", "referense"])
     assert result.exit_code == 2
     assert "error: unknown generator: referense" in result.stderr
@@ -710,7 +714,7 @@ def test_gen_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_format_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [])
+    _patch_entry_points(monkeypatch, [], plugin_loader.GENERATOR_GROUP)
     result = CliRunner().invoke(app, ["format", "info", "entity-model"])
     assert result.exit_code == 0
     lines = result.stdout.splitlines()
@@ -750,7 +754,9 @@ def test_format_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_plugin_issue_warning_includes_code(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("broken", BrokenGenerator)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "list", "--all"])
     assert result.exit_code == 0
     assert (
@@ -760,16 +766,28 @@ def test_plugin_issue_warning_includes_code(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_gen_list_hints_all_when_plugins_fail(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("broken", BrokenGenerator)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "list"])
     assert result.exit_code == 0
-    assert "no generators" in result.stdout
+    assert result.stdout == "no generators\n"
     assert "run `eggpipe gen list --all`" in result.stderr
     assert "warning:" not in result.stderr
 
 
+def test_gen_list_without_plugins_or_issues(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [], plugin_loader.GENERATOR_GROUP)
+    result = CliRunner().invoke(app, ["gen", "list"])
+    assert result.exit_code == 0
+    assert result.stdout == "no generators\n"
+    assert result.stderr == ""
+
+
 def test_gen_list_all_shows_issues_without_hint(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("broken", BrokenGenerator)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "list", "--all"])
     assert result.exit_code == 0
     assert "warning: broken:" in result.stderr

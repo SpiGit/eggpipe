@@ -661,7 +661,7 @@ def gen_list(
         typer.echo("no generators")
         if issues and not show_all:
             typer.echo(
-                "run `eggpipe gen list --all` to see why plugins failed to load",
+                "run `eggpipe gen list --all` to see why some plugins were skipped",
                 err=True,
             )
         return
