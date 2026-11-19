@@ -1,7 +1,7 @@
 # Roadmap Eggpipe
 
 - **Статус:** рабочая версия
-- **Дата:** 2026-11-18
+- **Дата:** 2026-11-19
 - **Последний релиз:** `0.4.0` (beta)
 - **Связанные документы:** [План v2.0](./plan-v2.md), [ADR-0014](./adr/0014-beta-status-and-compatibility.md), [Релиз](./release.md)
 
@@ -21,7 +21,7 @@ https://spigit.github.io/eggpipe/ (`latest`, `/0.4/`), `main` защищён и 
 - `main`: актуальная ветка на 2026-11-18 (после #45); ТЗ — v2.4.
 - Опубликован **0.4.0** (PyPI, docs `0.4`); следующая веха — **0.5.0**.
 - Фактический scope и статусы 0.4.0 — в §4; здесь не дублируются.
-- Открыты B-025–B-034; B-024 закрыт (#37), B-023 — (#38).
+- Открыты B-025, B-026, B-027, B-029, B-031, B-034; B-028 перенесён в 0.6.0.
 - Следующая веха после 0.4.0 — **0.5.0**: watch, L2/L3 cache, auto-discovery, метрики, benchmarks.
 - Живое состояние — [.session-context.md](../.session-context.md); мелкие задачи — [backlog.md](./backlog.md).
 
@@ -91,7 +91,8 @@ release workflow проверен, тег `v0.4.0` поставлен на `main
 - compatibility-тесты для плагинов и форматов;
 - migration guide для пользователей `0.x`;
 - финальный аудит документации и примеров;
-- проверка wheel/sdist, attestations и release workflow.
+- проверка wheel/sdist, attestations и release workflow;
+- `gen info --plugin PATH` для локальных dev-плагинов (B-028, требует ТЗ v2.5).
 
 ### 1.0.0
 
