@@ -125,7 +125,7 @@ eggpipe format list
 
 ```text
 template-json    Template JSON
-template-model   versions=1.0
+template-model	versions=1.0	api_version=1	extends=entity-model	base_versions=1.0->1.0
 ```
 
 ## Что показывает шаблон

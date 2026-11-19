@@ -712,7 +712,7 @@ def format_info(name: str) -> None:
     typer.echo(f"api_version: {plugin.api_version}")
     typer.echo(f"module: {type(plugin).__module__}")
     typer.echo(f"class: {type(plugin).__qualname__}")
-    typer.echo(f"base_versions: {_base_versions_label(getattr(plugin, 'base_versions', {}))}")
+    typer.echo(f"base_versions: {_base_versions_label(plugin.base_versions)}")
 
 
 def _base_versions_label(base_versions: dict[str, str]) -> str:
@@ -727,7 +727,12 @@ def format_list() -> None:
     registry, issues = build_format_registry_with_issues()
     _print_plugin_issues(issues)
     for item in registry.list():
-        typer.echo(f"{item.name}\tversions={','.join(item.versions)}")
+        extends = item.extends or "-"
+        base_versions = _base_versions_label(dict(item.base_versions))
+        typer.echo(
+            f"{item.name}\tversions={','.join(item.versions)}\t"
+            f"api_version={item.api_version}\textends={extends}\tbase_versions={base_versions}"
+        )
 
 
 @app.command()
