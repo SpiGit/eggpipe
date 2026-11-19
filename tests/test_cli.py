@@ -132,7 +132,9 @@ def test_format_list() -> None:
 
 
 def test_format_list_shows_inherited_format(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("demo-model", DemoModelFormat)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("demo-model", DemoModelFormat)], plugin_loader.FORMAT_GROUP
+    )
     result = CliRunner().invoke(app, ["format", "list"])
     assert result.exit_code == 0
     line = next(row for row in result.stdout.splitlines() if row.startswith("demo-model\t"))
@@ -141,7 +143,7 @@ def test_format_list_shows_inherited_format(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_format_info_unknown_without_close_matches(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [])
+    _patch_entry_points(monkeypatch, [], plugin_loader.FORMAT_GROUP)
     result = CliRunner().invoke(app, ["format", "info", "zzzzzz"])
     assert result.exit_code == 2
     assert "did you mean" not in result.stderr
@@ -652,10 +654,13 @@ def test_generate_empty_entity_exits_2(tmp_path: Path, value: str) -> None:
     assert result.exit_code == 2
 
 
-def _patch_entry_points(monkeypatch: pytest.MonkeyPatch, entries: list[EntryPoint]) -> None:
+def _patch_entry_points(
+    monkeypatch: pytest.MonkeyPatch,
+    entries: list[EntryPoint],
+    expected_group: str,
+) -> None:
     def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        del group
-        return entries
+        return entries if group == expected_group else []
 
     monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
 
@@ -680,7 +685,9 @@ class BrokenGenerator(GeneratorPlugin):
 
 
 def test_gen_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("reference", ReferenceGenerator)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "info", "reference"])
     assert result.exit_code == 0
     lines = result.stdout.splitlines()
@@ -696,7 +703,9 @@ def test_gen_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_gen_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("reference", ReferenceGenerator)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "info", "referense"])
     assert result.exit_code == 2
     assert "error: unknown generator: referense" in result.stderr
@@ -705,7 +714,7 @@ def test_gen_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_format_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [])
+    _patch_entry_points(monkeypatch, [], plugin_loader.GENERATOR_GROUP)
     result = CliRunner().invoke(app, ["format", "info", "entity-model"])
     assert result.exit_code == 0
     lines = result.stdout.splitlines()
@@ -725,7 +734,9 @@ def test_format_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_format_info_shows_base_versions(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("demo-model", DemoModelFormat)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("demo-model", DemoModelFormat)], plugin_loader.FORMAT_GROUP
+    )
     result = CliRunner().invoke(app, ["format", "info", "demo-model"])
     assert result.exit_code == 0
     assert "extends: entity-model" in result.stdout
@@ -734,7 +745,7 @@ def test_format_info_shows_base_versions(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_format_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [])
+    _patch_entry_points(monkeypatch, [], plugin_loader.FORMAT_GROUP)
     result = CliRunner().invoke(app, ["format", "info", "entity-modell"])
     assert result.exit_code == 2
     assert "error: unknown format: entity-modell" in result.stderr
@@ -743,10 +754,41 @@ def test_format_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_plugin_issue_warning_includes_code(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [EntryPoint("broken", BrokenGenerator)])
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "list", "--all"])
     assert result.exit_code == 0
     assert (
         "warning: broken: EG301: test_cli:BrokenGenerator: generator id 'Broken'" in result.stderr
     )
     assert result.stderr.count("EG301") == 1
+
+
+def test_gen_list_hints_all_when_plugins_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
+    )
+    result = CliRunner().invoke(app, ["gen", "list"])
+    assert result.exit_code == 0
+    assert result.stdout == "no generators\n"
+    assert "run `eggpipe gen list --all`" in result.stderr
+    assert "warning:" not in result.stderr
+
+
+def test_gen_list_without_plugins_or_issues(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [], plugin_loader.GENERATOR_GROUP)
+    result = CliRunner().invoke(app, ["gen", "list"])
+    assert result.exit_code == 0
+    assert result.stdout == "no generators\n"
+    assert result.stderr == ""
+
+
+def test_gen_list_all_shows_issues_without_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(
+        monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
+    )
+    result = CliRunner().invoke(app, ["gen", "list", "--all"])
+    assert result.exit_code == 0
+    assert "warning: broken:" in result.stderr
+    assert "run `eggpipe gen list --all`" not in result.stderr
