@@ -79,6 +79,41 @@ class TestChecker(unittest.TestCase):
             codes = [finding.code for finding in checker.findings]
             self.assertIn("DOC160", codes)
 
+    def test_hardcoded_package_version_in_prose(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "eggpipe"\nversion = "1.2.3"\n', encoding="utf-8"
+            )
+            (root / "README.md").write_text("Стадия: Eggpipe 1.2.3.\n", encoding="utf-8")
+            checker = Checker(root)
+            checker.check_package_version_literals()
+            self.assertEqual([finding.code for finding in checker.findings], ["DOC130"])
+
+    def test_package_version_in_code_fence_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "eggpipe"\nversion = "1.2.3"\n', encoding="utf-8"
+            )
+            (root / "README.md").write_text(
+                "```text\n$ eggpipe format list\n1.2.3\n```\n", encoding="utf-8"
+            )
+            checker = Checker(root)
+            checker.check_package_version_literals()
+            self.assertEqual(checker.findings, [])
+
+    def test_package_version_in_allowlisted_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "eggpipe"\nversion = "1.2.3"\n', encoding="utf-8"
+            )
+            (root / "CHANGELOG.md").write_text("## [1.2.3] - 2026-11-20\n", encoding="utf-8")
+            checker = Checker(root)
+            checker.check_package_version_literals()
+            self.assertEqual(checker.findings, [])
+
     def test_superseded_version_requires_deny(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
