@@ -659,6 +659,11 @@ def gen_list(
         _print_plugin_issues(issues)
     if not plugins:
         typer.echo("no generators")
+        if issues and not show_all:
+            typer.echo(
+                "run `eggpipe gen list --all` to see why plugins failed to load",
+                err=True,
+            )
         return
     for generator_id, plugin in sorted(plugins.items()):
         formats = _input_formats_label(plugin.input_formats)
