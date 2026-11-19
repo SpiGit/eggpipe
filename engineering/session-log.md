@@ -45,7 +45,7 @@
 - Диагностические коды — `EGxxx`; номера сохранены (ADR-0013).
 - `GeneratorRules`/`GeneratorRulesLoader` → `ProjectConfig`/`ProjectConfigLoader`.
 - `InputSlice` удалён; используется `InputSelection`; у `CompositionResult` нет `format`/`version`.
-- Translation memory: `engineering/i18n/`; версия пакета — `0.4.0`.
+- Translation memory: `engineering/i18n/`; версия пакета — `0.3.2`.
 
 ### v1.4: форматы и model units
 
