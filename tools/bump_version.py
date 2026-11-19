@@ -5,7 +5,7 @@ The script is the single entry point for release preparation. It keeps the
 hand-written version in one place (``pyproject.toml``), mirrors it into
 ``src/eggpipe/version.py``, cuts ``[Unreleased]`` in ``CHANGELOG.md`` and
 regenerates ``docs/ai``. Documentation must not hardcode the current version:
-``tools/check_docs.py`` rejects it outside an allowlist (DOC130).
+``tools/check_docs.py`` rejects it outside an allowlist (DOC161).
 
 Usage:
     python tools/bump_version.py 0.5.0
@@ -37,6 +37,13 @@ def parse_semver(value: str) -> tuple[int, int, int]:
     if match is None:
         raise ValueError(f"invalid SemVer: {value!r}")
     return int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+
+def validate_date(value: str) -> str:
+    try:
+        return datetime.date.fromisoformat(value).isoformat()
+    except ValueError as exc:
+        raise ValueError(f"invalid date: {value!r}") from exc
 
 
 def read_version(text: str, pattern: re.Pattern[str], source: str) -> str:
@@ -101,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         current = read_version(pyproject_text, PROJECT_VERSION, "pyproject.toml")
+        args.date = validate_date(args.date)
         parse_semver(args.version)
         if parse_semver(args.version) <= parse_semver(current):
             raise ValueError(f"new version {args.version} must be greater than {current}")
@@ -123,7 +131,11 @@ def main(argv: list[str] | None = None) -> int:
         for command in (["uv", "lock"], ["uv", "run", "python", "tools/build_ai_docs.py"]):
             result = subprocess.run(command, cwd=ROOT, check=False)
             if result.returncode != 0:
-                print(f"error: failed to run {' '.join(command)}", file=sys.stderr)
+                print(
+                    f"error: failed to run {' '.join(command)}; "
+                    "files are already updated, fix the command and rerun it manually",
+                    file=sys.stderr,
+                )
                 return result.returncode
 
     print(render_summary(changes, args.version))

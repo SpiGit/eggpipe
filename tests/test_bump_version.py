@@ -9,6 +9,7 @@ from tools.bump_version import (
     bump_version_file,
     cut_changelog,
     parse_semver,
+    validate_date,
 )
 
 PYPROJECT = """[build-system]
@@ -49,6 +50,15 @@ class TestParseSemver(unittest.TestCase):
     def test_rejects_prerelease(self) -> None:
         with self.assertRaises(ValueError):
             parse_semver("1.2.3-rc1")
+
+
+class TestValidateDate(unittest.TestCase):
+    def test_accepts_iso_date(self) -> None:
+        self.assertEqual(validate_date("2026-11-20"), "2026-11-20")
+
+    def test_rejects_garbage(self) -> None:
+        with self.assertRaises(ValueError):
+            validate_date("20.11.2026")
 
 
 class TestBumpPyproject(unittest.TestCase):

@@ -7,6 +7,7 @@ Checked:
 - required files exist and JSON configuration is valid;
 - relative links and Markdown structure;
 - requirements version registry and version sync in README/System Design/session context;
+- live documents do not hardcode the current package version (DOC161);
 - historical versions are protected from edits in opencode.json;
 - harness contracts: frontmatter of agents, commands and skills;
 - core terms, diagnostic codes and forbidden flags.
@@ -43,6 +44,8 @@ DOCUMENT_VERSION_LABEL = (
 SPEC_STATUS_LABEL = "\u0421\u0442\u0430\u0442\u0443\u0441 \u0422\u0417"  # Spec status
 SKIP_PARTS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
 # Files where the current package version is data, not a claim about the live state.
+# The check is a heuristic: a foreign package pinned to the same version string in prose
+# outside a code fence would also be flagged. Keep such pins in code fences.
 PACKAGE_VERSION_ALLOWLIST = (
     "CHANGELOG.md",
     "engineering/session-log.md",
@@ -454,7 +457,7 @@ class Checker:
         try:
             return str(tomllib.loads(text)["project"]["version"])
         except (KeyError, tomllib.TOMLDecodeError) as exc:
-            self.error("DOC131", self.root / "pyproject.toml", None, f"invalid version: {exc}")
+            self.error("DOC162", self.root / "pyproject.toml", None, f"invalid version: {exc}")
             return None
 
     def check_package_version_literals(self) -> None:
@@ -478,7 +481,7 @@ class Checker:
                 if not pattern.search(line):
                     continue
                 self.error(
-                    "DOC130",
+                    "DOC161",
                     path,
                     number,
                     f"current package version {version} is hardcoded; "
