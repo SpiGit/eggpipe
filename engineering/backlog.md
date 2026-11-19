@@ -48,10 +48,10 @@
 | B-025 | open | Закрыть P2 из audit 2026-11-18 (v2.1 refs, ADR legacy, терминология, format API); `docs/user/plugins.md` в `LLMS_FULL_SOURCES` и freshness-проверка `docs/ai`; уточнить в отчёте аудита, что P2 закрываются после 0.4.0 | audit report, PR #43/#46 review | Документация без stale-оговорок | — | — |
 | B-026 | open | CLI info: `format list` показывает `api_version`/`extends`/`base_versions`; убрать dead `getattr(plugin, "base_versions", {})`; в `cli.md` указать, что did-you-mean работает для `gen info` и `format info`; покрыть тестами пустой список доступных и отсутствие близких совпадений | PR #41 review | Полная картина плагинов, точные docs и тесты | — | — |
 | B-027 | open | Plugin discovery DX: подсказка `gen list --all`, если плагины не загрузились; фильтровать fake `entry_points` по группе в тестах CLI | PR #41 review | Путаница при сломанных плагинах | — | — |
-| B-028 | dropped | dropped: `gen info --plugin PATH` перенесён в roadmap 0.6.0 — требует новой версии ТЗ | PR #41 review | Отладка плагина до установки | — | — |
+| B-028 | dropped | dropped: `gen info --plugin PATH` перенесён в roadmap 0.6.0 — требует новой версии ТЗ | PR #41 review | Отладка плагина до установки | #48 | 2026-11-19 |
 | B-029 | open | Reference-примеры: `test_contract.py` читает `plugin.output_scope` напрямую и падает на eggpipe 0.3.2 из PyPI — перейти на `getattr` или поднять зависимость; путь в `pyrightconfig.json`; ссылка в корневом `README.md`; формулировка snake_case/PascalCase в cookbook; пустая сущность в SQL; тесты discovery, generic id и `config.options` | PR #42 review | Совместимость, docs и покрытие примеров | — | — |
-| B-030 | dropped | dropped: включено в B-029 | PR #42 review | — | — | — |
+| B-030 | dropped | dropped: включено в B-029 | PR #42 review | — | #48 | 2026-11-19 |
 | B-031 | open | Contract errors: код для ошибок времени декорирования; вынести `_describe_generator_location` в общий внутренний модуль; hint-литералы — в константы | PR #43 review | Непоследовательный вывод, дублирование | — | — |
-| B-032 | dropped | dropped: включено в B-025 | PR #43 review | — | — | — |
-| B-033 | dropped | dropped: включено в B-026 | PR #41 review | — | — | — |
+| B-032 | dropped | dropped: включено в B-025 | PR #43 review | — | #48 | 2026-11-19 |
+| B-033 | dropped | dropped: включено в B-026 | PR #41 review | — | #48 | 2026-11-19 |
 | B-034 | open | Пост-релизные правки docs: дубль `create_pr.py` в CHANGELOG и порядок секций; версия в примерах `system-design` §8/§12; stale «0.3.2» в шапке `session-log.md`; раздел аудита в roadmap §5; состав 0.5.0 без benchmarks; пример `major.minor` в `release.md` | PR #45–#47 review | Читаемость заметок, доверие к примерам | — | — |
