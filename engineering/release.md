@@ -84,7 +84,7 @@ Workflow `.github/workflows/release.yml`:
 
 ## Документация
 
-Версия документации — `major.minor` (например, `X.Y`), alias `latest` указывает на
+Версия документации — `major.minor` (например, `1.2` для пакета `1.2.0`), alias `latest` указывает на
 последнюю версию. Workflow `pages` собирает версии через `mike` и публикует artifact
 на GitHub Pages; старые версии сохраняются по путям `/0.3/`, `/0.4/` и т.д.
 
