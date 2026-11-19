@@ -16,7 +16,7 @@ TypeScript и OpenAPI 3.1. Один и тот же `ModelSlice` превраща
 | `openapi` | `openapi.json` | OpenAPI 3.1, `components.schemas` |
 
 Все генераторы объявлены как `@generator(...)`; `output_scope` по умолчанию —
-`model`, поэтому пример работает и на eggpipe 0.3.2. Генераторы возвращают
+`model`. Пример требует eggpipe 0.4 и выше: contract-тесты проверяют `output_scope`. Генераторы возвращают
 `list[Artifact]` и не пишут файлы сами — записью занимается ядро.
 
 ## Установка
@@ -180,4 +180,6 @@ uv run pytest examples/reference-generators/tests -q
 ```
 
 Contract-тесты проверяют `validate_generator_contract`, имена артефактов, базовое
-содержимое и детерминизм двух прогонов.
+содержимое, детерминизм двух прогонов, изоляцию `config.options` и регистрацию entry
+points. Тест entry points требует установленного примера:
+`uv pip install -e examples/reference-generators`.

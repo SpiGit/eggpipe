@@ -115,9 +115,9 @@ def test_generators_ignore_options(
 def test_entry_points_are_registered() -> None:
     from eggpipe.engine.plugin_loader import load_generators_with_issues
 
-    plugins, _issues = load_generators_with_issues()
+    plugins, issues = load_generators_with_issues()
+    assert issues == []
     assert {"sql", "pydantic", "typescript", "openapi"} <= set(plugins)
-    assert len({plugin.id for plugin in plugins.values()}) == len(plugins)
 
 
 def test_entity_order_is_stable() -> None:

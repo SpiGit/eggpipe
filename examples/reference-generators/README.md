@@ -108,7 +108,9 @@ uv run pytest examples/reference-generators/tests -q
 ```
 
 Тесты проверяют контракт каждого генератора (`validate_generator_contract`), имена
-артефактов, базовое содержимое и детерминизм двух прогонов.
+артефактов, базовое содержимое, детерминизм двух прогонов, изоляцию `config.options`
+и регистрацию entry points. Для последнего примера должен быть установлен:
+`uv pip install -e examples/reference-generators`.
 
 ## Ограничения
 
