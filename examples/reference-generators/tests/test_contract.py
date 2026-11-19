@@ -98,6 +98,28 @@ def test_determinism(factory: GeneratorFactory, generator_id: str, _artifact_pat
     assert first == second
 
 
+@pytest.mark.parametrize(("factory", "generator_id", "_artifact_path"), CASES)
+def test_generators_ignore_options(
+    factory: GeneratorFactory, generator_id: str, _artifact_path: str
+) -> None:
+    plugin = factory()
+    baseline = plugin.generate(sample_input(generator_id)).artifacts[0].content
+    configured = GeneratorInput(
+        model=sample_input(generator_id).model,
+        config=GeneratorConfig(id=generator_id, output_dir=Path("out"), options={"x": 1}),
+        context=GenerationContext(run_id="test-run", config_dir=Path(".")),
+    )
+    assert plugin.generate(configured).artifacts[0].content == baseline
+
+
+def test_entry_points_are_registered() -> None:
+    from eggpipe.engine.plugin_loader import load_generators_with_issues
+
+    plugins, _issues = load_generators_with_issues()
+    assert {"sql", "pydantic", "typescript", "openapi"} <= set(plugins)
+    assert len({plugin.id for plugin in plugins.values()}) == len(plugins)
+
+
 def test_entity_order_is_stable() -> None:
     content = sql_generator().generate(sample_input("sql")).artifacts[0].content
     assert content.index("CREATE TABLE account") < content.index("CREATE TABLE user")

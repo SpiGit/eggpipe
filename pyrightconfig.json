@@ -4,6 +4,7 @@
     "tests",
     "tools",
     "examples/reference-generator/src",
+    "examples/reference-generators/src",
     "examples/tpc-h-generator/src"
   ],
   "exclude": [".venv", "dist", "build", "**/__pycache__"],
@@ -11,6 +12,7 @@
     "src",
     ".",
     "examples/reference-generator/src",
+    "examples/reference-generators/src",
     "examples/tpc-h-generator/src"
   ],
   "venvPath": ".",
