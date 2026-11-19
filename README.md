@@ -210,6 +210,7 @@ uv run python tools/check_docs.py --strict
 - [Релиз](./engineering/release.md)
 - [TPC-H example](./examples/tpc-h/README.md)
 - [Reference generator](./examples/reference-generator/README.md)
+- [Reference generators: SQL, Pydantic, TypeScript, OpenAPI](./examples/reference-generators/README.md)
 
 ## Лицензия
 

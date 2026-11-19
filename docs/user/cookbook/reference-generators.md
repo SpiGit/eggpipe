@@ -16,7 +16,7 @@ TypeScript и OpenAPI 3.1. Один и тот же `ModelSlice` превраща
 | `openapi` | `openapi.json` | OpenAPI 3.1, `components.schemas` |
 
 Все генераторы объявлены как `@generator(...)`; `output_scope` по умолчанию —
-`model`, поэтому пример работает и на eggpipe 0.3.2. Генераторы возвращают
+`model`. Пример требует eggpipe 0.4 и выше: contract-тесты проверяют `output_scope`. Генераторы возвращают
 `list[Artifact]` и не пишут файлы сами — записью занимается ядро.
 
 ## Установка
@@ -150,9 +150,9 @@ export interface User {
 | `json` | `JSONB` | `dict[str, Any]` | `Record<string, unknown>` | `object` |
 | enum, неизвестный тип | `VARCHAR(255)` | `str` | `string` | `string` |
 
-Custom types разворачиваются до базового примитива. Имена: SQL и Pydantic —
-`snake_case`, TypeScript и OpenAPI — `camelCase` для полей и `PascalCase` для
-сущностей.
+Custom types разворачиваются до базового примитива. Имена: SQL — `snake_case` для
+таблиц и полей; Pydantic — `PascalCase` для классов и `snake_case` для полей;
+TypeScript и OpenAPI — `PascalCase` для сущностей и `camelCase` для полей.
 
 `required` и `nullable` независимы: `NOT NULL` ставится только для `required`,
 необязательное поле в Pydantic получает `None` по умолчанию, в TypeScript — `?`,
@@ -168,6 +168,8 @@ nullable-тип в OpenAPI 3.1 становится `["string", "null"]`.
 
 - Нет первичных и внешних ключей, индексов и метаданных конкретной СУБД.
 - Значения `default` не выводятся, enum-поля маппятся в строку.
+- SQL пропускает сущности без полей (невалидный `CREATE TABLE`); остальные генераторы
+  выводят их с пустым телом.
 - Идентификаторы `sql`, `pydantic`, `typescript`, `openapi` общие: в приложении с
   собственными генераторами возможен конфликт имён.
 
@@ -178,4 +180,6 @@ uv run pytest examples/reference-generators/tests -q
 ```
 
 Contract-тесты проверяют `validate_generator_contract`, имена артефактов, базовое
-содержимое и детерминизм двух прогонов.
+содержимое, детерминизм двух прогонов, изоляцию `config.options` и регистрацию entry
+points. Тест entry points требует установленного примера:
+`uv pip install -e examples/reference-generators`.

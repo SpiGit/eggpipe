@@ -13,7 +13,7 @@ examples/reference-generators/
 ```
 
 Все генераторы объявлены через `@generator(...)`; `output_scope` по умолчанию —
-`model`, поэтому пример работает и на eggpipe 0.3.2. Генераторы возвращают
+`model`. Пример требует `eggpipe>=0.4.0`: contract-тесты проверяют `output_scope`. Генераторы возвращают
 `list[Artifact]` и не пишут файлы сами: записью занимается ядро.
 
 | Генератор `id` | Артефакт |
@@ -108,7 +108,9 @@ uv run pytest examples/reference-generators/tests -q
 ```
 
 Тесты проверяют контракт каждого генератора (`validate_generator_contract`), имена
-артефактов, базовое содержимое и детерминизм двух прогонов.
+артефактов, базовое содержимое, детерминизм двух прогонов, изоляцию `config.options`
+и регистрацию entry points. Для последнего примера должен быть установлен:
+`uv pip install -e examples/reference-generators`.
 
 ## Ограничения
 
