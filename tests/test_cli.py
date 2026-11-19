@@ -131,6 +131,15 @@ def test_format_list() -> None:
     assert "\tbase_versions=-" in line
 
 
+def test_format_list_shows_inherited_format(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_entry_points(monkeypatch, [EntryPoint("demo-model", DemoModelFormat)])
+    result = CliRunner().invoke(app, ["format", "list"])
+    assert result.exit_code == 0
+    line = next(row for row in result.stdout.splitlines() if row.startswith("demo-model\t"))
+    assert "\textends=entity-model" in line
+    assert "\tbase_versions=1.0->1.0" in line
+
+
 def test_format_info_unknown_without_close_matches(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_entry_points(monkeypatch, [])
     result = CliRunner().invoke(app, ["format", "info", "zzzzzz"])

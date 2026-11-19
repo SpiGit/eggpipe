@@ -5,6 +5,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `eggpipe format list` показывает `api_version`, `extends` и `base_versions`, как `format info`.
+
 ## [0.4.0] - 2026-11-18
 
 ### Changed
