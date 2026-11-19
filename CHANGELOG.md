@@ -11,30 +11,6 @@
 
 ## [0.4.0] - 2026-11-18
 
-### Changed
-
-- `eggpipe gen info` и `eggpipe format info` показывают `module`, `class`, `api_version`,
-  `base_versions`, а при неизвестном id подсказывают ближайшие имена и доступные плагины.
-- Сообщения `EG301`/`EG302` называют плагин и место ошибки и подсказывают, что исправить;
-  `PluginIssue` заполняет код диагностики для contract-ошибок.
-- `engineering/requirements/index.md` разделён на реестр версий и `changelog.md`.
-- `.session-context.md` сокращён до текущего состояния; история вынесена в
-  `engineering/session-log.md`.
-- Manifest state: `ManifestLocation.input_fingerprint` — необязательный hex SHA-256 входа
-  (ADR-0017). Старые manifest v2 читаются; более старая Eggpipe новый manifest не прочитает.
-- `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
-- `tools/create_pr.py` обновляет блок размера в PR body по маркерам и сохраняет
-  ручную карту ревью при повторном запуске; предупреждает об изменении shared-файлов.
-- Backlog ведётся одной таблицей со статусом, без переноса строк между секциями.
-- Backlog closeout: отложенные minor копятся в `Backlog candidates` PR body и переносятся
-  в backlog одним PR в конце дня.
-- PR-процесс: rebase только при `behind`/`dirty`, squash WIP перед rebase, `rerere`/`zdiff3`.
-- PR-шаблон и процесс ревью требуют фиксировать отложенные minor в `Backlog candidates`.
-- `tools/create_pr.py`: size-check использует `git diff --numstat -z`, сохраняет
-  `## Size exception` при обновлении PR и отклоняет пустой `--allow-large`.
-- `tools/create_pr.py`: `--tests` и `--coverage` добавляют в PR body блок «Проверки»
-  по маркерам и сохраняют остальные секции при обновлении.
-
 ### Added
 
 - `engineering/backlog.md` — единое место для отложенных minor и техдолга.
@@ -66,9 +42,33 @@
 - Версионированная документация: `mike`, версии `major.minor` и alias `latest`.
 - PR-ревью через subagent `pr-reviewer` (Qwen3.8 Flash) и `tools/review_pr.py`.
 
+### Changed
+
+- `eggpipe gen info` и `eggpipe format info` показывают `module`, `class`, `api_version`,
+  `base_versions`, а при неизвестном id подсказывают ближайшие имена и доступные плагины.
+- Сообщения `EG301`/`EG302` называют плагин и место ошибки и подсказывают, что исправить;
+  `PluginIssue` заполняет код диагностики для contract-ошибок.
+- `engineering/requirements/index.md` разделён на реестр версий и `changelog.md`.
+- `.session-context.md` сокращён до текущего состояния; история вынесена в
+  `engineering/session-log.md`.
+- Manifest state: `ManifestLocation.input_fingerprint` — необязательный hex SHA-256 входа
+  (ADR-0017). Старые manifest v2 читаются; более старая Eggpipe новый manifest не прочитает.
+- `--verbose` включает DEBUG-логи, в том числе причину отключения incremental-кэша.
+- `tools/create_pr.py` обновляет блок размера в PR body по маркерам и сохраняет
+  ручную карту ревью при повторном запуске; предупреждает об изменении shared-файлов.
+- Backlog ведётся одной таблицей со статусом, без переноса строк между секциями.
+- Backlog closeout: отложенные minor копятся в `Backlog candidates` PR body и переносятся
+  в backlog одним PR в конце дня.
+- PR-процесс: rebase только при `behind`/`dirty`, squash WIP перед rebase, `rerere`/`zdiff3`.
+- PR-шаблон и процесс ревью требуют фиксировать отложенные minor в `Backlog candidates`.
+- `tools/create_pr.py`: сохраняет `## Size exception` при обновлении PR и отклоняет
+  пустой `--allow-large`.
+- `tools/create_pr.py`: `--tests` и `--coverage` добавляют в PR body блок «Проверки»
+  по маркерам и сохраняют остальные секции при обновлении.
+
 ### Fixed
 
-- `tools/create_pr.py`: size-check разбирает `git diff --numstat -z`, а при повреждённом
+- `tools/create_pr.py`: size-check разбирает `git diff --numstat -z`; при повреждённом
   `pr-size:start` не теряет ручные секции body.
 - `tools/preflight.py` и provenance-тесты не наследуют `GIT_*` из pre-push hook;
   временный git-репозиторий больше не может изменить основной репозиторий.
