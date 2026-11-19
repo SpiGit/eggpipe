@@ -38,11 +38,16 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
+      - name: Resolve docs version
+        run: |
+          version=$(uv run python -c "import pathlib, tomllib; print('.'.join(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'].split('.')[:2]))")
+          echo "DOCS_VERSION=$version" >> "$GITHUB_ENV"
+
       - name: Deploy versioned docs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          uv run mike deploy --branch gh-pages --ignore-remote-status --alias-type redirect --update-aliases 0.4 latest
+          uv run mike deploy --branch gh-pages --ignore-remote-status --alias-type redirect --update-aliases "$DOCS_VERSION" latest
           uv run mike set-default --branch gh-pages --ignore-remote-status latest
           mkdir -p /tmp/pages
           git archive gh-pages | tar -x -C /tmp/pages

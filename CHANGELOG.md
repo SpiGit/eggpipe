@@ -7,6 +7,9 @@
 
 ### Changed
 
+- Релизная подготовка автоматизирована: `tools/bump_version.py` обновляет версию,
+  `uv.lock`, CHANGELOG и `docs/ai`; `pages` вычисляет версию docs из `pyproject.toml`.
+- `check_docs.py` отклоняет литерал текущей версии в живых документах (DOC161).
 - `eggpipe format list` показывает `api_version`, `extends` и `base_versions`, как `format info`.
 
 ## [0.4.0] - 2026-11-18

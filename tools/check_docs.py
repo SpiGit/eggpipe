@@ -7,6 +7,7 @@ Checked:
 - required files exist and JSON configuration is valid;
 - relative links and Markdown structure;
 - requirements version registry and version sync in README/System Design/session context;
+- live documents do not hardcode the current package version (DOC161);
 - historical versions are protected from edits in opencode.json;
 - harness contracts: frontmatter of agents, commands and skills;
 - core terms, diagnostic codes and forbidden flags.
@@ -24,6 +25,7 @@ import fnmatch
 import json
 import re
 import sys
+import tomllib
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,6 +43,20 @@ DOCUMENT_VERSION_LABEL = (
 )  # fmt: skip
 SPEC_STATUS_LABEL = "\u0421\u0442\u0430\u0442\u0443\u0441 \u0422\u0417"  # Spec status
 SKIP_PARTS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
+# Files where the current package version is data, not a claim about the live state.
+# The check is a heuristic: a foreign package pinned to the same version string in prose
+# outside a code fence would also be flagged. Keep such pins in code fences.
+PACKAGE_VERSION_ALLOWLIST = (
+    "CHANGELOG.md",
+    "engineering/session-log.md",
+    "engineering/reviews/",
+    "engineering/adr/",
+    "engineering/requirements/",
+    "engineering/roadmap.md",
+    "engineering/backlog.md",
+    ".github/pull_request_template.md",
+    "examples/",
+)
 REQUIRED_FILES = (
     ".editorconfig",
     ".gitattributes",
@@ -296,6 +312,7 @@ class Checker:
             self.check_links(path, text)
         self.check_versions()
         self.check_version_references()
+        self.check_package_version_literals()
         self.check_opencode_json()
         self.check_frontmatter()
         self.check_terms()
@@ -432,6 +449,58 @@ class Checker:
                 self.error(
                     "DOC120", path, None, f"missing reference to the current version v{version}"
                 )
+
+    def package_version(self) -> str | None:
+        text = self.read(self.root / "pyproject.toml")
+        if text is None:
+            return None
+        try:
+            return str(tomllib.loads(text)["project"]["version"])
+        except (KeyError, tomllib.TOMLDecodeError) as exc:
+            self.error("DOC162", self.root / "pyproject.toml", None, f"invalid version: {exc}")
+            return None
+
+    def check_package_version_literals(self) -> None:
+        version = self.package_version()
+        if version is None:
+            return
+        pattern = re.compile(rf"(?<![\d.]){re.escape(version)}(?!\d)(?!\.\d)")
+        for path in self.live_documents():
+            relative = path.relative_to(self.root).as_posix()
+            if any(relative.startswith(prefix) for prefix in PACKAGE_VERSION_ALLOWLIST):
+                continue
+            text = self.read(path)
+            if text is None:
+                continue
+            lines = (
+                list(iter_outside_fences(text))
+                if path.suffix == ".md"
+                else list(enumerate(text.splitlines(), 1))
+            )
+            for number, line in lines:
+                if not pattern.search(line):
+                    continue
+                self.error(
+                    "DOC161",
+                    path,
+                    number,
+                    f"current package version {version} is hardcoded; "
+                    "use a placeholder or link to pyproject.toml/CHANGELOG.md",
+                )
+                break
+
+    def live_documents(self) -> Iterator[Path]:
+        yield from self.markdown_files()
+        for name in (
+            ".github/workflows/pages.yml",
+            ".github/workflows/ci.yml",
+            ".github/workflows/release.yml",
+            ".github/workflows/docs.yml",
+            "opencode.json",
+        ):
+            path = self.root / name
+            if path.is_file():
+                yield path
 
     def check_opencode_json(self) -> None:
         path = self.root / "opencode.json"

@@ -16,12 +16,12 @@
 До 1.0 проект находится в beta-статусе: тег `v0.x` не гарантирует обратную совместимость
 (см. [ADR-0014](adr/0014-beta-status-and-compatibility.md)).
 
-1. Обновить версию в `pyproject.toml` (SemVer).
-2. Перенести `[Unreleased]` в `[<version>] - <date>` в `CHANGELOG.md`.
-3. Обновить версию в `.github/workflows/pages.yml` (`mike deploy ... <major.minor> latest`).
-4. Обновить стадию/версию в `README.md`, `docs/user/status.md`, `docs/ai/context.md`.
-5. Проверить `uv lock --check`.
-6. Прогнать локально:
+1. Запустить `uv run python tools/bump_version.py <version>`:
+   обновляет `pyproject.toml` и `src/eggpipe/version.py`, выполняет `uv lock`,
+   переносит `[Unreleased]` в `[<version>] - <date>` и пересобирает `docs/ai`.
+2. Проверить diff. Версия `mike` вычисляется из `pyproject.toml` в workflow `pages`.
+3. Проверить `uv lock --check`.
+4. Прогнать локально:
 
    ```bash
    uv run python tools/check_docs.py --strict
@@ -34,10 +34,24 @@
    uv run mkdocs build --strict
    ```
 
-7. Проверить, что все deprecated-элементы либо остаются в окне поддержки, либо удалены
+5. Проверить, что все deprecated-элементы либо остаются в окне поддержки, либо удалены
    по [ADR-0016](adr/0016-deprecation-policy.md).
-8. Убедиться, что `LICENSE`, `README.md` и `CHANGELOG.md` попадают в sdist.
-9. Проверить доступность имени `eggpipe` и команды `eggpipe` на PyPI.
+6. Убедиться, что `LICENSE`, `README.md` и `CHANGELOG.md` попадают в sdist.
+7. Проверить доступность имени `eggpipe` и команды `eggpipe` на PyPI.
+
+## Версия в документации
+
+Текущая версия пакета хранится в одном месте — `pyproject.toml` (зеркало в
+`src/eggpipe/version.py`). Живые документы её не дублируют: используют плейсхолдер `X.Y.Z`,
+ссылку на `pyproject.toml`/`CHANGELOG.md` или генерируемые значения
+(`docs/ai/manifest.json`).
+
+Конкретные версии допустимы в записях и данных: CHANGELOG, session-log, ADR, ревью,
+требования (включая актуальное ТЗ), roadmap (метки вех), backlog, PR-шаблон, примеры.
+
+`tools/check_docs.py` проверяет это правилом `DOC161`: литерал текущей версии вне allowlist —
+ошибка CI. Проверка эвристическая: внешний пакет, запиненный на ту же версию в прозе вне
+код-фенса, тоже будет отмечен. Свежесть `docs/ai` проверяется отдельно (B-025).
 
 ## Публикация
 
