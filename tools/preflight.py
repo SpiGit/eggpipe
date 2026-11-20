@@ -10,10 +10,10 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-STAMP = ROOT / ".git" / "eggpipe-preflight.stamp"
 HASHED_PATHS = (
     "src",
     "tests",
@@ -22,11 +22,22 @@ HASHED_PATHS = (
     "docs",
     "engineering",
     ".github",
+    ".opencode",
     "pyproject.toml",
     "uv.lock",
     "mkdocs.yml",
     "AGENTS.md",
     "CONTRIBUTING.md",
+    "README.md",
+    "README-pypi.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    ".session-context.md",
+    "opencode.json",
+    "pyrightconfig.json",
+    ".editorconfig",
+    ".gitattributes",
+    ".gitignore",
 )
 SKIP_PARTS = {".git", ".venv", "__pycache__", "dist", "build", "site", ".pytest_cache", ".local"}
 
@@ -40,8 +51,21 @@ def clean_env() -> dict[str, str]:
     return {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
 
 
+def stamp_path(root: Path) -> Path:
+    """Return a per-checkout stamp location that also works in linked worktrees."""
+    git_dir = root / ".git"
+    if git_dir.is_dir():
+        return git_dir / "eggpipe-preflight.stamp"
+    digest = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:16]
+    return Path(tempfile.gettempdir()) / f"eggpipe-preflight-{digest}.stamp"
+
+
 def tree_hash(root: Path) -> str:
-    """Return a content hash of the inputs that affect preflight results."""
+    """Return a content hash of the inputs that affect preflight results.
+
+    An unreadable file makes the hash empty: the caller must run every check and
+    must not write a stamp, because the tree state is unknown.
+    """
     digest = hashlib.sha256()
     for name in HASHED_PATHS:
         path = root / name
@@ -59,7 +83,7 @@ def tree_hash(root: Path) -> str:
             try:
                 digest.update(candidate.read_bytes())
             except OSError:
-                continue
+                return ""
             digest.update(b"\0")
     return digest.hexdigest()
 
@@ -70,6 +94,13 @@ def is_unchanged(stamp: Path, current: str) -> bool:
         return stamp.read_text(encoding="utf-8").strip() == current
     except OSError:
         return False
+
+
+def remove_stamp(stamp: Path) -> None:
+    try:
+        stamp.unlink(missing_ok=True)
+    except OSError:
+        print("preflight: failed to remove the stamp", file=sys.stderr)
 
 
 def commands(*, fast: bool) -> list[list[str]]:
@@ -104,8 +135,9 @@ def main(argv: list[str] | None = None) -> int:
         print("preflight: uv is not installed or not in PATH", file=sys.stderr)
         return 127
 
+    stamp = stamp_path(ROOT)
     current = tree_hash(ROOT) if args.stamp else ""
-    heavy_skipped = args.stamp and not args.fast and is_unchanged(STAMP, current)
+    heavy_skipped = bool(current) and args.stamp and not args.fast and is_unchanged(stamp, current)
     if heavy_skipped:
         print("preflight: tree unchanged, running fast checks only")
 
@@ -115,10 +147,13 @@ def main(argv: list[str] | None = None) -> int:
         if result.returncode != 0:
             print(f"preflight failed: {shlex.join(command)}", file=sys.stderr)
             if args.stamp:
-                STAMP.unlink(missing_ok=True)
+                remove_stamp(stamp)
             return result.returncode
-    if args.stamp and not args.fast and not heavy_skipped:
-        STAMP.write_text(current + "\n", encoding="utf-8")
+    if args.stamp and not args.fast and not heavy_skipped and current:
+        try:
+            stamp.write_text(current + "\n", encoding="utf-8")
+        except OSError:
+            print("preflight: stamp is unavailable, continuing", file=sys.stderr)
     print("preflight: OK")
     return 0
 
