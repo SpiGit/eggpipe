@@ -15,6 +15,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from eggpipe.config.project_config import GeneratorConfig
 from eggpipe.core.model import FormatInfo, ModelSlice
 from eggpipe.core.naming import NamingStyle
+from eggpipe.core.plugin_contract import (
+    INJECTABLE_PARAMETER_HINT,
+    RETURN_TYPE_HINT,
+    callable_location,
+)
 from eggpipe.interfaces.diagnostics import Diagnostic
 from eggpipe.utils.exceptions import PluginContractError
 
@@ -90,24 +95,6 @@ class GeneratorPlugin(ABC):
 
 
 _INJECTABLE = (ModelSlice, GenerationContext, GeneratorConfig)
-_INJECTABLE_HINT = "ModelSlice, GenerationContext or GeneratorConfig"
-_RETURN_HINT = "return GenerationResult, Artifact, list[Artifact] or tuple[Artifact, ...]"
-
-
-def _callable_location(owner: Any) -> str:
-    """Return ``module:qualname`` for a class or function."""
-    module = getattr(owner, "__module__", None) or "unknown module"
-    qualname = getattr(owner, "__qualname__", None) or getattr(owner, "__name__", None)
-    if not isinstance(qualname, str) or not qualname:
-        qualname = type(owner).__name__
-    return f"{module}:{qualname}"
-
-
-def _describe_generator_location(plugin: GeneratorPlugin) -> str:
-    """Return the module and qualified name of a generator class or decorated function."""
-    plugin_type = type(plugin)
-    function = getattr(plugin_type, "_function", None)
-    return _callable_location(function if function is not None else plugin_type)
 
 
 def generator(
@@ -137,7 +124,7 @@ def generator(
         )
 
     def decorate(function: Callable[..., Any]) -> type[GeneratorPlugin]:
-        location = _callable_location(function)
+        location = callable_location(function)
         generator_id = id or function.__name__.lower().replace("_", "-")
         if not re.fullmatch(r"^[a-z][a-z0-9-]*$", generator_id):
             raise PluginContractError(
@@ -175,7 +162,7 @@ def validate_generator_contract(plugin: GeneratorPlugin) -> None:
     plugin_type = type(plugin)
     plugin_id = getattr(plugin_type, "id", None)
     function = getattr(plugin_type, "_function", None)
-    where = _callable_location(function if function is not None else plugin_type)
+    where = callable_location(function if function is not None else plugin_type)
     if not isinstance(plugin_id, str) or not re.fullmatch(r"^[a-z][a-z0-9-]*$", plugin_id):
         raise PluginContractError(
             "EG301",
@@ -210,7 +197,7 @@ def validate_generator_contract(plugin: GeneratorPlugin) -> None:
 
 
 def validate_generator_function(function: Callable[..., Any]) -> None:
-    where = _callable_location(function)
+    where = callable_location(function)
     try:
         hints = get_type_hints(function)
         signature = inspect.signature(function)
@@ -218,7 +205,7 @@ def validate_generator_function(function: Callable[..., Any]) -> None:
         raise PluginContractError(
             "EG301",
             f"{where}: cannot read the signature ({exc}); annotate parameters as "
-            f"{_INJECTABLE_HINT}",
+            f"{INJECTABLE_PARAMETER_HINT}",
         ) from exc
 
     injected: set[type[Any]] = set()
@@ -228,20 +215,20 @@ def validate_generator_function(function: Callable[..., Any]) -> None:
             raise PluginContractError(
                 "EG301",
                 f"{where}: parameter {parameter.name!r} is {kind}; declare explicit "
-                f"parameters annotated as {_INJECTABLE_HINT}",
+                f"parameters annotated as {INJECTABLE_PARAMETER_HINT}",
             )
         hint = hints.get(parameter.name)
         if hint is None:
             raise PluginContractError(
                 "EG301",
                 f"{where}: parameter {parameter.name!r} has no annotation; "
-                f"annotate it as {_INJECTABLE_HINT}",
+                f"annotate it as {INJECTABLE_PARAMETER_HINT}",
             )
         if hint not in _INJECTABLE:
             raise PluginContractError(
                 "EG302",
                 f"{where}: parameter {parameter.name!r} has unsupported annotation "
-                f"{hint!r}; annotate it as {_INJECTABLE_HINT}",
+                f"{hint!r}; annotate it as {INJECTABLE_PARAMETER_HINT}",
             )
         if hint in injected:
             raise PluginContractError(
@@ -255,7 +242,7 @@ def validate_generator_function(function: Callable[..., Any]) -> None:
     if not _is_valid_return_hint(result_hint):
         raise PluginContractError(
             "EG301",
-            f"{where}: unsupported return annotation {result_hint!r}; {_RETURN_HINT}",
+            f"{where}: unsupported return annotation {result_hint!r}; {RETURN_TYPE_HINT}",
         )
 
 
@@ -290,8 +277,8 @@ def _normalize_generation_result(
         return GenerationResult(artifacts=list(value))
     raise PluginContractError(
         "EG301",
-        f"{_callable_location(function)}: generate() returned {type(value).__name__}; "
-        f"{_RETURN_HINT}",
+        f"{callable_location(function)}: generate() returned {type(value).__name__}; "
+        f"{RETURN_TYPE_HINT}",
     )
 
 

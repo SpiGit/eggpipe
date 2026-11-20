@@ -1438,6 +1438,7 @@ src/eggpipe/
 │   ├── slicing.py               # select_slice()
 │   ├── validator.py             # semantic validation
 │   ├── naming.py                # NamingStyle, transform()
+│   ├── plugin_contract.py       # shared plugin locations and hints (internal)
 │   ├── provenance.py            # git_provenance()
 │   └── format_registry.py       # FormatRegistry
 ├── engine/

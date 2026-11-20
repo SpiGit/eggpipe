@@ -21,6 +21,7 @@ from eggpipe import (
 )
 from eggpipe.engine import plugin_loader
 from eggpipe.interfaces.formats import FormatPlugin
+from eggpipe.utils.exceptions import PluginContractError
 
 
 @generator(input_formats={"entity-model"})
@@ -56,6 +57,14 @@ class BrokenGenerator(GeneratorPlugin):
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult()
+
+
+class RaisingEntryPoint:
+    name = "bad-plugin"
+    value = "bad_plugin:thing"
+
+    def load(self) -> None:
+        raise PluginContractError("EG301", "input_formats must be set[str] or None")
 
 
 class EntryPoint:
@@ -141,6 +150,7 @@ def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> N
     assert "test_plugin_loader" in issue.message
     assert "Missing" in issue.message
     assert "EG30" not in issue.message
+    assert not issue.message.startswith("bad_plugin:")
     assert not issue.message.startswith("missing:")
 
 
@@ -184,6 +194,7 @@ def test_eg302_issue_keeps_other_plugins_and_names_location(
     assert "ModelSlice, GenerationContext or GeneratorConfig" in issue.message
     assert "eggpipe.interfaces" not in issue.message
     assert "EG30" not in issue.message
+    assert not issue.message.startswith("bad_plugin:")
 
 
 def test_loader_level_issues_have_no_contract_code(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -270,3 +281,20 @@ def test_load_local_generators_reports_import_error(tmp_path: Path) -> None:
     assert plugins == {}
     assert issues[0].entry_point == str(module)
     assert "failed to import" in issues[0].message
+
+
+def test_decoration_error_keeps_code(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_entry_points(*, group: str) -> list[RaisingEntryPoint]:
+        return [RaisingEntryPoint()] if group == plugin_loader.GENERATOR_GROUP else []
+
+    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    plugins, issues = plugin_loader.load_generators_with_issues()
+    assert plugins == {}
+    assert len(issues) == 1
+    issue = issues[0]
+    assert issue.entry_point == "bad-plugin"
+    assert issue.code == "EG301"
+    assert "EG30" not in issue.message
+    assert not issue.message.startswith("bad_plugin:")
+    assert "input_formats must be set[str] or None" in issue.message
+    assert "@generator" in issue.message

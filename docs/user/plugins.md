@@ -229,10 +229,11 @@ warning: my-generator: EG301: my_pkg.plugins:my_generator: parameter 'model' has
 | EG301 | не объявлен `input_formats`; неверный тип `input_formats`/`output_scope`; недопустимый `id`; `*args`/`**kwargs`; параметр без аннотации; неверный return type | объявить `input_formats = {...}` или `None`; задать `output_scope = 'model'` или `'entity'`; использовать `id` из `[a-z][a-z0-9-]*`; перечислить параметры явно и аннотировать их; вернуть `GenerationResult`, `Artifact`, `list[Artifact]` или `tuple[Artifact, ...]` |
 | EG302 | параметр аннотирован типом вне контракта | оставить только `ModelSlice`, `GenerationContext`, `GeneratorConfig` |
 
-Ошибки загрузки не получают EG-код: entry point указывает не на `GeneratorPlugin` или
-`FormatPlugin`, дублируется generator `id`, `id` не совпадает с именем entry point,
-`api_version` не `"1"`. CLI печатает `warning: <entry>: <локация>: <причина>` и продолжает
-загрузку остальных плагинов.
+Ошибки при выполнении декоратора (невалидные аргументы `@generator(...)`) получают `EG301`
+и подсказку исправить аргументы. Остальные ошибки загрузки кода не получают: entry point
+указывает не на `GeneratorPlugin` или `FormatPlugin`, дублируется generator `id`, `id` не
+совпадает с именем entry point, `api_version` не `"1"`. CLI печатает `warning: <entry>: [<код>: ]<локация>: <причина>`
+(сегмент с кодом — только у ошибок декоратора) и продолжает загрузку остальных плагинов.
 
 Неверный плагин:
 
