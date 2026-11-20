@@ -201,6 +201,7 @@ uv run python tools/check_docs.py --strict
 - [ADR-0016: deprecation](./engineering/adr/0016-deprecation-policy.md)
 - [ADR-0017: incremental generation](./engineering/adr/0017-incremental-generation.md)
 - [ADR-0018: per-entity generation](./engineering/adr/0018-per-entity-generation.md)
+- [ADR-0019: watch — сериализация, max_delay и границы отмены](./engineering/adr/0019-watch-scheduling-and-cancellation.md)
 - [Ревью проекта (2026-11-10)](./engineering/reviews/2026-11-10-project-review.md)
 - [Ревью проекта (2026-11-13)](./engineering/reviews/2026-11-13-project-review.md)
 - [Аудит документации (2026-11-18)](./engineering/reviews/2026-11-18-engineering-audit.md)

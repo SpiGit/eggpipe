@@ -592,6 +592,48 @@ def test_watch_rejects_entity_option(tmp_path: Path) -> None:
     assert result.exit_code == 2
 
 
+def _capture_run_watch(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    captured: dict[str, Any] = {}
+
+    def fake_run_watch(**kwargs: Any) -> int:
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr("eggpipe.cli.main.run_watch", fake_run_watch)
+    return captured
+
+
+def test_watch_debounce_default_from_app_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, rules = project(tmp_path)
+    captured = _capture_run_watch(monkeypatch)
+    monkeypatch.delenv("EGGPIPE_WATCH_DEBOUNCE_MS", raising=False)
+    result = CliRunner().invoke(app, ["watch", "-c", str(rules)])
+    assert result.exit_code == 0
+    assert captured["debounce_ms"] == 300
+
+
+def test_watch_debounce_env_applies_without_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, rules = project(tmp_path)
+    captured = _capture_run_watch(monkeypatch)
+    monkeypatch.setenv("EGGPIPE_WATCH_DEBOUNCE_MS", "1234")
+    result = CliRunner().invoke(app, ["watch", "-c", str(rules)])
+    assert result.exit_code == 0
+    assert captured["debounce_ms"] == 1234
+
+
+def test_watch_debounce_flag_overrides_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _, rules = project(tmp_path)
+    captured = _capture_run_watch(monkeypatch)
+    monkeypatch.setenv("EGGPIPE_WATCH_DEBOUNCE_MS", "1234")
+    result = CliRunner().invoke(app, ["watch", "-c", str(rules), "--debounce-ms", "77"])
+    assert result.exit_code == 0
+    assert captured["debounce_ms"] == 77
+
+
 def test_gen_info_shows_output_scope(monkeypatch: pytest.MonkeyPatch) -> None:
     entries = [EntryPoint("reference", ReferenceGenerator)]
 

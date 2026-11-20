@@ -17,6 +17,9 @@ from eggpipe.utils.exceptions import ConfigValidationError
 
 LOGGER = logging.getLogger(__name__)
 
+# ADR-0019 G3: max_delay is a derived internal cap, not user-configurable.
+MAX_DELAY_MULTIPLIER = 10
+
 
 def should_ignore(path: Path, ignored_dirs: set[Path], *, allow: set[Path]) -> bool:
     resolved = path.resolve()
@@ -30,27 +33,85 @@ def should_ignore(path: Path, ignored_dirs: set[Path], *, allow: set[Path]) -> b
 
 
 class _Debouncer:
-    def __init__(self, callback: Callable[[], None], delay_ms: int) -> None:
+    """Trailing debounce with a bounded burst window (ADR-0019).
+
+    Invariants: at most one scheduled run (G2), at most one running callback
+    (G1), a run starts no later than ``max_delay_ms`` after the first event of
+    a burst (G3), and events during a run yield exactly one follow-up (G4).
+    After :meth:`stop`, scheduled runs are cancelled and new triggers are
+    suppressed; :meth:`wait_idle` then blocks only for the running callback.
+    """
+
+    def __init__(
+        self,
+        callback: Callable[[], None],
+        delay_ms: int,
+        max_delay_ms: int | None = None,
+    ) -> None:
         self._callback = callback
         self._delay = delay_ms / 1000
+        if max_delay_ms is None:
+            max_delay_ms = MAX_DELAY_MULTIPLIER * delay_ms
+        self._max_delay = max_delay_ms / 1000
         self._timer: threading.Timer | None = None
         self._lock = threading.Lock()
+        self._idle = threading.Condition(self._lock)
         self._running = False
         self._pending = False
+        self._stopped = False
+        self._burst_start: float | None = None
 
     def trigger(self) -> None:
+        with self._lock:
+            self._trigger_locked()
+
+    def stop(self) -> None:
+        """Cancel the scheduled run and suppress further triggers."""
+        with self._lock:
+            self._stopped = True
+            if self._timer is not None:
+                self._timer.cancel()
+                self._timer = None
+            self._idle.notify_all()
+
+    def wait_idle(self, timeout: float | None = None) -> bool:
+        """Block until no callback is running and no timer is armed."""
+        with self._idle:
+            return self._idle.wait_for(
+                lambda: not self._running and self._timer is None, timeout=timeout
+            )
+
+    def _trigger_locked(self) -> None:
+        if self._stopped:
+            return
+        now = time.monotonic()
+        if self._burst_start is None:
+            self._burst_start = now
+        # G3: cap the trailing delay so a continuous event stream cannot
+        # starve the run beyond max_delay from the first burst event.
+        delay = min(self._delay, max(self._max_delay - (now - self._burst_start), 0.0))
         if self._timer is not None:
             self._timer.cancel()
-        self._timer = threading.Timer(self._delay, self._fire)
-        self._timer.daemon = True
-        self._timer.start()
+        timer = threading.Timer(delay, self._fire)
+        timer.daemon = True
+        self._timer = timer
+        timer.start()
 
     def _fire(self) -> None:
         with self._lock:
+            if self._timer is threading.current_thread():
+                self._timer = None
+            if self._stopped:
+                self._idle.notify_all()
+                return
             if self._running:
                 self._pending = True
                 return
             self._running = True
+            # The burst window closes: this run reflects its events. Events
+            # arriving during the run keep the old burst start, so the
+            # follow-up fires promptly once the run completes (G3/G4).
+            self._burst_start = None
         try:
             self._callback()
         except Exception:  # watch mode must survive a single error
@@ -58,10 +119,12 @@ class _Debouncer:
         finally:
             with self._lock:
                 self._running = False
-                pending = self._pending
-                self._pending = False
-            if pending:
-                self.trigger()
+                if self._pending and not self._stopped:
+                    self._pending = False
+                    self._trigger_locked()
+                else:
+                    self._pending = False
+                    self._idle.notify_all()
 
 
 @dataclass
@@ -72,10 +135,11 @@ class WatchRunner:
     debounce_ms: int
     run_once: Callable[[], int]
     stop_event: threading.Event | None = None
+    max_delay_ms: int | None = None
     _debouncer: _Debouncer = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        self._debouncer = _Debouncer(self._fire, self.debounce_ms)
+        self._debouncer = _Debouncer(self._fire, self.debounce_ms, self.max_delay_ms)
 
     def run(self) -> int:
         try:
@@ -106,6 +170,11 @@ class WatchRunner:
             pass
         observer.stop()
         observer.join()
+        # ADR-0019: cancel scheduled runs, then let the current run finish so
+        # artifact writes and the JSON Lines report are not cut off mid-commit.
+        # A second KeyboardInterrupt here propagates and exits with 130.
+        self._debouncer.stop()
+        self._debouncer.wait_idle()
         return 0
 
     def _fire(self) -> None:
@@ -141,6 +210,7 @@ def run_watch(
     debounce_ms: int,
     run_once: Callable[[], int],
     stop_event: threading.Event | None = None,
+    max_delay_ms: int | None = None,
 ) -> int:
     return WatchRunner(
         config_path=config_path,
@@ -149,6 +219,7 @@ def run_watch(
         debounce_ms=debounce_ms,
         run_once=run_once,
         stop_event=stop_event,
+        max_delay_ms=max_delay_ms,
     ).run()
 
 

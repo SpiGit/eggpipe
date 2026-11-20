@@ -20,6 +20,10 @@
 - `eggpipe gen list` подсказывает `gen list --all`, если плагины не загрузились;
   тестовый хелпер `entry_points` фильтрует плагины по группе.
 - `eggpipe format list` показывает `api_version`, `extends` и `base_versions`, как `format info`.
+- `eggpipe watch` — планирование прогонов по ADR-0019: серия правок даёт один прогон
+  с потолком `max_delay = 10 × debounce_ms`, параллельные прогоны исключены, первый Ctrl+C
+  дожидается завершения текущего прогона (exit 0), повторный — немедленный exit 130;
+  default `--debounce-ms` берётся из `EGGPIPE_WATCH_DEBOUNCE_MS`/`.env`.
 
 ## [0.4.0] - 2026-11-18
 
