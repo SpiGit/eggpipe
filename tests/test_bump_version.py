@@ -116,10 +116,6 @@ class TestCutChangelog(unittest.TestCase):
             cut_changelog("# Changelog\n\n## [0.4.0] - 2026-11-18\n", "0.5.0", "2026-11-20")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestMain(unittest.TestCase):
     def workspace(self, root: Path) -> tuple[Path, Path, Path]:
         pyproject = root / "pyproject.toml"
@@ -164,6 +160,8 @@ class TestMain(unittest.TestCase):
             self.assertIn("dry run: no files changed", stdout)
             run.assert_not_called()
             self.assertIn('version = "0.4.0"', paths[0].read_text(encoding="utf-8"))
+            self.assertIn('__version__ = "0.4.0"', paths[1].read_text(encoding="utf-8"))
+            self.assertNotIn("## [0.5.0]", paths[2].read_text(encoding="utf-8"))
 
     def test_rejects_version_not_greater(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -182,6 +180,7 @@ class TestMain(unittest.TestCase):
             code, _stdout, stderr = self.run_main(["0.5.0"], root, paths, run)
             self.assertEqual(code, 1)
             self.assertIn("files are already updated", stderr)
+            self.assertEqual(run.call_count, 1)
             self.assertIn('version = "0.5.0"', paths[0].read_text(encoding="utf-8"))
             self.assertIn("## [0.5.0]", paths[2].read_text(encoding="utf-8"))
 
@@ -192,5 +191,19 @@ class TestMain(unittest.TestCase):
             run = mock.Mock(return_value=SimpleNamespace(returncode=0))
             code, stdout, _stderr = self.run_main(["0.5.0"], root, paths, run)
             self.assertEqual(code, 0)
-            self.assertEqual(run.call_count, 2)
+            self.assertEqual(
+                run.call_args_list,
+                [
+                    mock.call(["uv", "lock"], cwd=root, check=False),
+                    mock.call(
+                        ["uv", "run", "python", "tools/build_ai_docs.py"],
+                        cwd=root,
+                        check=False,
+                    ),
+                ],
+            )
             self.assertIn("tag `v0.5.0`", stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()
