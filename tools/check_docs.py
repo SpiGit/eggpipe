@@ -107,6 +107,7 @@ REQUIRED_FILES = (
     "engineering/adr/0016-deprecation-policy.md",
     "engineering/adr/0017-incremental-generation.md",
     "engineering/adr/0018-per-entity-generation.md",
+    "engineering/adr/0019-watch-scheduling-and-cancellation.md",
     "engineering/adr/index.md",
     "docs/index.md",
     "engineering/decisions/eggpipe.md",
