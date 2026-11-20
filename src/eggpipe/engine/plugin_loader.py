@@ -207,9 +207,9 @@ def _instantiate_entry(entry_point: EntryPoint) -> tuple[Any | None, PluginIssue
         instance = loaded() if isinstance(loaded, type) else loaded
         return instance, None
     except PluginContractError as exc:
-        return None, _entry_issue(
-            entry_point,
-            f"{exc.message}; fix the @generator(...) arguments",
+        return None, _issue(
+            entry_point.name,
+            f"{exc.message}; check the plugin contract and @generator(...) arguments",
             code=exc.code,
         )
     except Exception as exc:

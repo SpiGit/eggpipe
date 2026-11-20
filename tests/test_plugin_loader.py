@@ -150,6 +150,7 @@ def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> N
     assert "test_plugin_loader" in issue.message
     assert "Missing" in issue.message
     assert "EG30" not in issue.message
+    assert not issue.message.startswith("bad_plugin:")
     assert not issue.message.startswith("missing:")
 
 
@@ -193,6 +194,7 @@ def test_eg302_issue_keeps_other_plugins_and_names_location(
     assert "ModelSlice, GenerationContext or GeneratorConfig" in issue.message
     assert "eggpipe.interfaces" not in issue.message
     assert "EG30" not in issue.message
+    assert not issue.message.startswith("bad_plugin:")
 
 
 def test_loader_level_issues_have_no_contract_code(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -293,5 +295,6 @@ def test_decoration_error_keeps_code(monkeypatch: pytest.MonkeyPatch) -> None:
     assert issue.entry_point == "bad-plugin"
     assert issue.code == "EG301"
     assert "EG30" not in issue.message
+    assert not issue.message.startswith("bad_plugin:")
     assert "input_formats must be set[str] or None" in issue.message
     assert "@generator" in issue.message

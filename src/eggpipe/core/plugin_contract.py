@@ -24,7 +24,7 @@ def callable_location(owner: Any) -> str:
     module = getattr(owner, "__module__", None) or "unknown module"
     qualname = getattr(owner, "__qualname__", None) or getattr(owner, "__name__", None)
     if not isinstance(qualname, str) or not qualname:
-        return str(module)
+        return f"{module}:{type(owner).__name__}"
     return f"{module}:{qualname}"
 
 
