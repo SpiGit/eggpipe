@@ -440,10 +440,19 @@ def watch(
     quiet: Annotated[bool, typer.Option("--quiet", "-q")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
     no_color: Annotated[bool, typer.Option("--no-color")] = False,
-    debounce: Annotated[int, typer.Option("--debounce-ms", "--debounce")] = 300,
+    debounce: Annotated[
+        int | None,
+        typer.Option(
+            "--debounce-ms",
+            "--debounce",
+            help="Debounce window in ms (default: EGGPIPE_WATCH_DEBOUNCE_MS or 300)",
+        ),
+    ] = None,
 ) -> None:
     """Watch mode: regenerate when sources change."""
     del no_color
+    if debounce is None:
+        debounce = AppConfig().watch_debounce_ms
     path = config or ProjectConfigLoader.discover()
     if path is None:
         raise ConfigValidationError(".eggpipe.yaml not found; pass --config")

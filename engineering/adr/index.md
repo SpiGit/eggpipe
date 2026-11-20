@@ -20,7 +20,7 @@
 | [0016](./0016-deprecation-policy.md) | Политика deprecation | Принято |
 | [0017](./0017-incremental-generation.md) | Инкрементальная генерация | Принято |
 | [0018](./0018-per-entity-generation.md) | Per-entity генерация | Принято |
-| [0019](./0019-watch-scheduling-and-cancellation.md) | Watch: сериализация, max_delay, границы отмены | Принято |
+| [0019](./0019-watch-scheduling-and-cancellation.md) | Watch: сериализация, max_delay и границы отмены | Принято |
 
 Решения ADR-0007–0010 сформулированы для ТЗ v1.4 и вошли в v2.0 без изменения смысла.
 ADR-0011 фиксирует публичный API и идентичность Eggpipe для v2.1.

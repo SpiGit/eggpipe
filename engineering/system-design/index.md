@@ -1374,8 +1374,10 @@ Cache-hit отчёт: `status=skipped`, `action=skip`, `parse/validate/generate/
 
 ```python
 class Watcher:
-    """watchdog Observer + DebounceHandler(debounce_ms).
-    import watchdog — лениво, чтобы CLI не платил стартовой ценой пакета."""
+    """watchdog Observer + DebounceHandler(debounce_ms, max_delay_ms).
+    import watchdog — лениво, чтобы CLI не платил стартовой ценой пакета.
+    Планирование прогонов — ADR-0019: сериализация, коалесцинг серий,
+    max_delay = 10 × debounce_ms, корректное завершение."""
 
     def __init__(
         self,
@@ -1383,6 +1385,7 @@ class Watcher:
         *,
         ignore: list[Path],
         debounce_ms: int = 300,
+        max_delay_ms: int | None = None,  # default: 10 × debounce_ms
     ): ...
 
     def run(self, callback: Callable[[set[Path]], None]) -> None: ...
@@ -1393,11 +1396,11 @@ class Watcher:
 - **Первичная генерация** выполняется сразу при старте `eggpipe watch` (как `eggpipe generate` с теми же флагами).
 - **Наблюдаемые пути:** все `sources.path` (файлы и каталоги), импортируемые YAML-модели, `.eggpipe.yaml`, файлы шаблонов, указанные в `options` генераторов (если плагин сообщает их через `watch_paths` — future; v1 наблюдает только модели и конфиг).
 - **Игнорируются:** все `output_dir` текущего конфига, `.git`, `.eggpipe`, `__pycache__`, `.venv`, `venv`, `node_modules`, `*.tmp`, `*.swp`, `*~`.
-- **Debounce:** изменения батчатся за `watch_debounce_ms` (default 300); на батч выполняется одна генерация.
+- **Debounce и планирование (ADR-0019):** изменения батчатся за `watch_debounce_ms` (default 300; приоритет CLI `--debounce-ms` → env `EGGPIPE_WATCH_DEBOUNCE_MS` → `.env` → defaults). Каждое событие перезапускает таймер, запланированный прогон не более один; серия событий даёт один прогон не позже `max_delay_ms = 10 × debounce_ms` от первого события серии; одновременно выполняется не более одного прогона; события во время прогона дают ровно один follow-up после его завершения.
 - **Перезагрузка конфига:** изменение `.eggpipe.yaml` (или `-c`-файла) перезагружает `ProjectConfig`; **плагины не перезагружаются** — для обновления кода плагина нужен перезапуск (сообщается в лог).
 - **Ошибки не останавливают watch:** ошибка парсинга/валидации/генерации логируется; следующие изменения снова запускают цикл.
 - **Флаги:** те же, что у `generate` (`-g`, `--var`, `--strict`, `--output-format`, `--include-disabled`, `--allow-outside-imports`).
-- **Завершение:** Ctrl+C — корректная остановка Observer, удаление lock/staging, exit 0; прерывание по сигналу — 130.
+- **Завершение:** первый Ctrl+C (или stop-сигнал) — остановка Observer, отмена запланированных прогонов, ожидание завершения текущего прогона (запись артефактов и JSON Lines отчёт не обрываются), exit 0; повторный Ctrl+C во время ожидания — немедленный выход, exit 130, остаточные staging/lock вычищает следующий запуск.
 - **`--output-format json` в watch:** каждая итерация печатает отдельный JSON-объект (JSON Lines), без цветов и человекочитаемого текста.
 
 ### 9.3 Интерфейс для L2/L3 кэширования (future, не реализован)
