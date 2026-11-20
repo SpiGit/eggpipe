@@ -200,6 +200,8 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 - `uv sync --extra dev` — установка dev-окружения.
 - `uv run python tools/check_docs.py --strict` — проверка ссылок, версий, harness и терминов.
 - `uv run python tools/bump_version.py <version>` — подготовка релиза (версия, CHANGELOG, docs/ai).
+- `uv run python tools/preflight.py --stamp` — пропуск тяжёлых проверок, если дерево
+  не менялось с последнего успешного прогона.
 - `uv run python tools/build_ai_docs.py` — пересборка `docs/ai` (llms, manifest, schemas, diagnostics).
 - `uv run ruff check .` / `uv run ruff format --check src tests tools examples` — линтер и форматирование.
 - `uv run pyrefly check` — строгая проверка типов (Pydantic v2 поддерживается нативно).
