@@ -21,6 +21,7 @@ from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
 from eggpipe.core.model import PRIMITIVE_TYPES, FormatInfo, ModelSlice
 from eggpipe.core.parser import Parser
+from eggpipe.core.plugin_contract import INPUT_FORMATS_HINT, describe_generator_location
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
 from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan, LocationKey
@@ -44,7 +45,6 @@ from eggpipe.interfaces.generator import (
     GeneratorInput,
     GeneratorPlugin,
     ImportedFile,
-    _describe_generator_location,
 )
 from eggpipe.utils.exceptions import (
     ConfigValidationError,
@@ -992,23 +992,19 @@ def _check_input_formats(
         return []
     missing = object()
     accepted = getattr(type(plugin), "input_formats", missing)
-    location = f"generator {generator_id} ({_describe_generator_location(plugin)})"
+    location = f"generator {generator_id} ({describe_generator_location(plugin)})"
     if accepted is missing:
         return [
             error(
                 "EG301",
-                f"{location}: input_formats is not declared; declare "
-                "input_formats = {'entity-model'} or None (None accepts every format), "
-                "or use @generator(input_formats=...)",
+                f"{location}: input_formats is not declared; {INPUT_FORMATS_HINT}",
             )
         ]
     if accepted is not None and not isinstance(accepted, set):
         return [
             error(
                 "EG301",
-                f"{location}: input_formats must be set[str] or None; declare "
-                "input_formats = {'entity-model'} or None, "
-                "or use @generator(input_formats=...)",
+                f"{location}: input_formats must be set[str] or None; {INPUT_FORMATS_HINT}",
             )
         ]
     errors: list[Diagnostic] = []

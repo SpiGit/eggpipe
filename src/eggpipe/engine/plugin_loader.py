@@ -10,12 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from eggpipe.core.format_registry import FormatRegistry
+from eggpipe.core.plugin_contract import describe_generator_location
 from eggpipe.interfaces.formats import FormatPlugin
-from eggpipe.interfaces.generator import (
-    GeneratorPlugin,
-    _describe_generator_location,
-    validate_generator_contract,
-)
+from eggpipe.interfaces.generator import GeneratorPlugin, validate_generator_contract
 from eggpipe.utils.exceptions import PluginContractError
 
 GENERATOR_GROUP = "eggpipe.generators"
@@ -90,7 +87,7 @@ def load_generators_with_issues() -> tuple[dict[str, GeneratorPlugin], list[Plug
                 _entry_issue(
                     entry_point,
                     f"duplicate generator id {plugin.id!r}; keep a single entry point for this id",
-                    location=_describe_generator_location(plugin),
+                    location=describe_generator_location(plugin),
                 )
             )
             continue
@@ -156,7 +153,7 @@ def load_local_generators_with_issues(
                     _issue(
                         f"{entry_name}:{value.__name__}",
                         f"duplicate generator id {plugin.id!r}; keep a single class for this id",
-                        location=_describe_generator_location(plugin),
+                        location=describe_generator_location(plugin),
                     )
                 )
                 continue
@@ -209,6 +206,12 @@ def _instantiate_entry(entry_point: EntryPoint) -> tuple[Any | None, PluginIssue
         loaded = entry_point.load()
         instance = loaded() if isinstance(loaded, type) else loaded
         return instance, None
+    except PluginContractError as exc:
+        return None, _entry_issue(
+            entry_point,
+            f"{exc.message}; fix the @generator(...) arguments",
+            code=exc.code,
+        )
     except Exception as exc:
         return None, _entry_issue(
             entry_point,
@@ -234,14 +237,14 @@ def _validated_generator(
             entry_name,
             f"incompatible api_version {plugin.api_version!r}; contract version 1 "
             'is required (api_version = "1")',
-            location=_describe_generator_location(plugin),
+            location=describe_generator_location(plugin),
         )
     if check_entry_name and entry_name != plugin.id:
         return None, _issue(
             entry_name,
             f"plugin id {plugin.id!r} does not match the entry point {entry_name!r}; "
             "the entry point name must equal the generator id",
-            location=_describe_generator_location(plugin),
+            location=describe_generator_location(plugin),
         )
     return plugin, None
 
