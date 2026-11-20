@@ -147,6 +147,8 @@ REQUIRED_FILES = (
     "docs/ai/schemas/report.schema.json",
     "docs/ai/schemas/manifest.schema.json",
     "tools/build_ai_docs.py",
+    "tools/bump_version.py",
+    "tests/test_bump_version.py",
     "docs/ai/index.md",
     "docs/ai/context.md",
     "docs/ai/tasks.md",
