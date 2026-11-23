@@ -1384,6 +1384,12 @@ Cache-hit отчёт: `status=skipped`, `action=skip`, `parse/validate/generate/
 `--plan` читает кэш, но не пишет; `--entity`, `--check`, `--force`, `--clean`,
 `--strict`, `stale_dates`, `allow_outside_imports` отключают L2 вместе с L1.
 
+Payload — `ModelDocument` без `path`/`source`/`format`/`format_version`; при загрузке
+эти поля достраиваются так же, как в `Parser.parse_document`. Скалярные типы (`date`,
+`datetime`, `time`, `Decimal`) кодируются с типом-тегом, чтобы JSON round-trip не менял
+типы в `metadata` и `constraints`. Значения, не представимые в JSON (например, `Path`
+в metadata), не кэшируются — разбор выполняется заново.
+
 ---
 
 ## 9. Watch Mode

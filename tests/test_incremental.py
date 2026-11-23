@@ -563,22 +563,54 @@ def test_l2_cache_recovers_from_corruption(tmp_path: Path, monkeypatch: pytest.M
     assert fresh == []
 
 
-def test_l2_cache_is_not_written_by_plan(tmp_path: Path) -> None:
-    write_dir_model(tmp_path)
+def test_l2_cache_is_read_by_plan_but_not_written(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    CountingGenerator.calls = 0
+    first, _ = write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    meta_path = tmp_path / ".eggpipe" / "cache" / "meta.json"
+    before = meta_path.read_text(encoding="utf-8")
+    first.write_text(DIR_MODEL_ALPHA + "# changed\n", encoding="utf-8")
 
+    calls = count_parses(monkeypatch)
     report = make_dir_engine(tmp_path).build()
 
     assert report.success is True
-    assert not (tmp_path / ".eggpipe" / "cache").exists()
+    assert calls == [first.resolve()]
+    assert meta_path.read_text(encoding="utf-8") == before
+
+    make_dir_engine(tmp_path).generate()
+    fresh = count_parses(monkeypatch)
+    make_dir_engine(tmp_path).generate()
+    assert fresh == []
 
 
-def test_l2_cache_is_not_used_for_entities(tmp_path: Path) -> None:
+def test_l2_cache_is_not_used_for_entities(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     CountingGenerator.calls = 0
     write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
 
+    calls = count_parses(monkeypatch)
     make_dir_engine(tmp_path).generate(entities=["Alpha"])
 
-    assert not (tmp_path / ".eggpipe" / "cache").exists()
+    assert calls != []
+
+
+def test_l2_cache_is_used_when_artifacts_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    CountingGenerator.calls = 0
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    (tmp_path / "out" / "out.txt").unlink()
+
+    calls = count_parses(monkeypatch)
+    report = make_dir_engine(tmp_path).generate()
+
+    assert report.success is True
+    assert calls == []
+    assert CountingGenerator.calls == 2
 
 
 def test_l2_cache_is_not_written_with_force(

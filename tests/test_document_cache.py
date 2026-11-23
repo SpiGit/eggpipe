@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar
 
+import pytest
 from typing_extensions import override
 
-from eggpipe import EntityModelFormat, FormatRegistry
+from eggpipe import DocumentError, EntityModelFormat, FormatRegistry
 from eggpipe.core.cache import CACHE_VERSION, dump_payload, restore_document
 from eggpipe.core.parser import Parser
 from eggpipe.engine.document_cache import CacheEntry, DocumentCache
+from eggpipe.engine.parser_cache import CachedParser
 from eggpipe.engine.plugin_loader import build_format_registry
 
 DOC = """\
@@ -260,11 +263,80 @@ def test_meta_input_outside_root_is_rejected(tmp_path: Path) -> None:
     assert make_cache(tmp_path).load(path) is None
 
 
-def test_persisted_state_contains_no_absolute_paths(tmp_path: Path) -> None:
+def test_persisted_state_contains_no_paths(tmp_path: Path) -> None:
     prepared(tmp_path)
-    payload = next((tmp_path / DOCS).glob("*.json")).read_text(encoding="utf-8")
+    meta_text = (tmp_path / META).read_text(encoding="utf-8")
+    payload = json.loads(next((tmp_path / DOCS).glob("*.json")).read_text(encoding="utf-8"))
 
-    for text in ((tmp_path / META).read_text(encoding="utf-8"), payload):
-        assert str(tmp_path) not in text
-        assert '"source"' not in text
-        assert '"path"' not in text
+    assert str(tmp_path) not in meta_text
+    assert str(tmp_path) not in json.dumps(payload)
+    for entity in payload["model"]["entities"]:
+        assert "source" not in entity and "path" not in entity
+        assert all("source" not in field for field in entity["fields"])
+
+
+def test_payload_roundtrip_preserves_scalar_types(tmp_path: Path) -> None:
+    path = write(
+        tmp_path / "model/event.yaml",
+        """\
+format: entity-model
+version: "1.0"
+model:
+  entities:
+    - name: Event
+      metadata:
+        created: 2024-01-01
+        updated: 2024-01-02 03:04:05
+      fields:
+        - name: start
+          type: date
+          constraints:
+            min: 2024-01-01
+            max: 2024-12-31
+""",
+    )
+    document = parse(path)
+
+    payload = json.loads(json.dumps(dump_payload(document)))
+    restored = restore_document(payload, path)
+
+    entity = restored.model.entity("Event")
+    assert isinstance(entity.metadata["created"], date)
+    assert isinstance(entity.metadata["updated"], datetime)
+    constraints = entity.fields[0].constraints
+    assert constraints is not None
+    assert isinstance(constraints.min, date)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "format: [",
+        DOC.replace('version: "1.0"', 'version: "9.9"'),
+        DOC.replace("          type: integer\n", ""),
+    ],
+)
+def test_parse_error_is_not_cached(tmp_path: Path, text: str) -> None:
+    path = write(tmp_path / "model/broken.yaml", text)
+    cache = make_cache(tmp_path)
+    parser = CachedParser(build_format_registry(), cache)
+
+    with pytest.raises(DocumentError):
+        parser.parse_document(path)
+    cache.persist()
+
+    assert not (tmp_path / META).exists()
+
+
+def test_invalid_entry_is_pruned(tmp_path: Path) -> None:
+    path = prepared(tmp_path)
+    data = read_meta(tmp_path)
+    next(iter(data["entries"].values()))["format_plugin_version"] = "changed"
+    (tmp_path / META).write_text(json.dumps(data), encoding="utf-8")
+
+    cache = make_cache(tmp_path)
+    assert cache.entry(path) is None
+    cache.persist()
+
+    assert read_meta(tmp_path)["entries"] == {}
+    assert not list((tmp_path / DOCS).glob("*.json"))
