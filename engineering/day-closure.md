@@ -18,7 +18,9 @@
 5. Обновить `.session-context.md`: текущее состояние, план на следующий день, ссылка на backlog.
 6. Отделить запись от предыдущей разделителем `---`.
 7. Backlog closeout: собрать `Backlog candidates` из PR body/ревью, назначить `B-NNN`,
-   добавить в [backlog.md](./backlog.md), перевести записи в `done`/`dropped`.
+   добавить в [backlog.md](./backlog.md); записи `done`/`dropped` перенести в
+   [архив](./backlog-archive.md), при слиянии записей поглощённый ID оставить `dropped`
+   со ссылкой на поглотившую запись.
 
 ## Шаблон
 
