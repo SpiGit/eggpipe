@@ -27,6 +27,7 @@ from eggpipe.utils.exceptions import (
     LockError,
     ManifestError,
 )
+from eggpipe.utils.files import write_json_atomic
 
 MANIFEST_VERSION = 2
 WINDOWS_RESERVED_NAMES = {
@@ -441,7 +442,7 @@ class ArtifactWriter:
         return manifest
 
     def save_manifest(self, manifest: Manifest) -> None:
-        _write_json_atomic(self.manifest_path, manifest)
+        write_json_atomic(self.manifest_path, manifest)
 
     def location_key(self, generator_id: str, output_dir: Path) -> LocationKey:
         return LocationKey(generator_id, self._output_rel(output_dir))
@@ -714,35 +715,6 @@ def validate_artifact_path(output_dir: Path, artifact: Artifact) -> Path:
 
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _write_json_atomic(path: Path, value: BaseModel) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f"{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
-    try:
-        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
-            handle.write(
-                json.dumps(value.model_dump(mode="json"), ensure_ascii=False, indent=2) + "\n"
-            )
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-        _fsync_directory(path.parent)
-    finally:
-        temporary.unlink(missing_ok=True)
-
-
-def _fsync_directory(path: Path) -> None:
-    try:
-        descriptor = os.open(path, os.O_RDONLY)
-    except OSError:
-        return
-    try:
-        os.fsync(descriptor)
-    except OSError:
-        pass
-    finally:
-        os.close(descriptor)
 
 
 __all__ = [
