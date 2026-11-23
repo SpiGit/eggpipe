@@ -14,6 +14,7 @@
 - [ADR](adr/index.md) — принятые архитектурные решения.
 - [Ревью](reviews/2026-11-13-project-review.md) — документация и код.
 - [Аудит документации](reviews/2026-11-18-engineering-audit.md) — P0/P1 и P2.
+- [Spike L2/L3](spikes/2026-11-23-l2-l3-cache.md) — замеры кэша разбора и рекомендация.
 - [План v2.0](plan-v2.md) — исторический план 0.3.x.
 - [Roadmap](roadmap.md) — направления развития после текущего релиза и подготовка к 1.0.
 - [Benchmarks](benchmarks.md) — базовые замеры TPC-H.
