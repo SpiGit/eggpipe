@@ -29,7 +29,15 @@ CHECKS_HEADING = "## Проверки"
 CHECKS_BLOCK_START = "<!-- checks:start -->"
 CHECKS_BLOCK_END = "<!-- checks:end -->"
 NUMSTAT_SEPARATOR = "\0"
-SHARED_FILES = frozenset({"AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "engineering/backlog.md"})
+SHARED_FILES = frozenset(
+    {
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "engineering/backlog.md",
+        "engineering/backlog-archive.md",
+    }
+)
 SHARED_PREFIXES = ("docs/ai/",)
 SHARED_PATTERNS = ("engineering/requirements/v*.md",)
 HEADING_START = re.compile(r"^#{1,6} ")

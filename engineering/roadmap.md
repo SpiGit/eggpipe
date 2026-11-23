@@ -21,7 +21,8 @@ https://spigit.github.io/eggpipe/ (`latest`, `/0.4/`), `main` защищён и 
 - `main`: актуальная ветка на 2026-11-21 (после #67); ТЗ — v2.4.
 - Опубликован **0.4.0** (PyPI, docs `0.4`); следующая веха — **0.5.0**.
 - Фактический scope и статусы 0.4.0 — в §4; здесь не дублируются.
-- Открытые задачи и их статусы — в [backlog.md](./backlog.md); B-028 перенесён в 0.6.0.
+- Открытые задачи и их статусы — в [backlog.md](./backlog.md), закрытые — в
+  [backlog-archive.md](./backlog-archive.md); B-028 перенесён в 0.6.0.
 - Следующая веха после 0.4.0 — **0.5.0**; состав и порядок — в §4.
 - Живое состояние — [.session-context.md](../.session-context.md); мелкие задачи — [backlog.md](./backlog.md).
 
@@ -126,8 +127,8 @@ release workflow проверен, тег `v0.4.0` поставлен на `main
 
 ## 5. Backlog
 
-Мелкие follow-up и технический долг — в [backlog.md](./backlog.md); здесь — вехи и
-крупные направления.
+Мелкие follow-up и технический долг — в [backlog.md](./backlog.md) и
+[backlog-archive.md](./backlog-archive.md); здесь — вехи и крупные направления.
 
 ### P0 — до следующего minor
 

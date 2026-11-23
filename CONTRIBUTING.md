@@ -8,7 +8,8 @@
 1. Прочитай [README](./README.md), [ТЗ](./engineering/requirements/index.md) и
    [System Design](./engineering/system-design/index.md).
 2. Проверь принятые решения в [ADR](./engineering/adr/).
-3. Для агентов действуют дополнительные правила в [AGENTS.md](./AGENTS.md).
+3. Для агентов действуют дополнительные правила в [AGENTS.md](./AGENTS.md), процесс
+   сессий и backlog — в [engineering/process/sessions.md](./engineering/process/sessions.md).
 
 ## Окружение
 
@@ -151,19 +152,22 @@ generated, какие вопросы задать ревьюеру и что в�
 - Одна задача — одна ветка и один worktree.
 - Для каждой задачи зафиксируй owned paths.
 - Общие файлы (`AGENTS.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `engineering/backlog.md`,
-  `docs/ai/**`, `engineering/requirements/v*.md`) обновляет один владелец или они
-  меняются последовательно.
+  `engineering/backlog-archive.md`, `docs/ai/**`, `engineering/requirements/v*.md`) обновляет
+  один владелец или они меняются последовательно.
 - Generated-файлы пересобирает только владелец задачи.
 - Перед merge проверяй `mergeable_state`; rebase — только при `behind`/`dirty`.
 - При пересечении файлов задачи становятся последовательными.
 - `engineering/backlog.md` не редактируется во время параллельных PR; кандидаты
   переносятся на Backlog closeout одним PR.
+- Сессии помечаются `parallel-safe` (нет общих файлов) или `serial` (есть общие файлы);
+  подробности — в [sessions.md](./engineering/process/sessions.md).
 
 ## Сессии и контекст
 
-Работай короткими сессиями: одна задача или один день на сессию. Состояние передаётся
-через `.session-context.md` и `engineering/session-log.md`, а не через историю чата и
-не через повторное чтение документов.
+Работай короткими сессиями: одна задача или один день на сессию. Полный протокол открытия,
+закрытия и closeout — в
+[engineering/process/sessions.md](./engineering/process/sessions.md). Состояние передаётся
+через `.session-context.md` и `engineering/session-log.md`, а не через историю чата.
 
 Имя сессии: в первом ответе сессии основной агент пишет готовую строку
 `Имя сессии: «…»` — её пользователь копирует в имя треда клиента (Zed показывает своё
@@ -178,7 +182,8 @@ generated, какие вопросы задать ревьюеру и что в�
 не выполнено, план на следующий день. В `.session-context.md` оставь текущее состояние,
 план на следующий день и ссылку на `engineering/backlog.md`. На следующий день — не больше
 3–4 задач с импактом. Backlog closeout: `Backlog candidates` из PR body переносятся в
-`engineering/backlog.md` одним PR.
+`engineering/backlog.md` одним PR, записи `done`/`dropped` — в
+[`engineering/backlog-archive.md`](./engineering/backlog-archive.md).
 
 ## Ревью PR
 

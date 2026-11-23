@@ -8,6 +8,7 @@
 - [Требования](requirements/index.md) — реестр версий и актуальное ТЗ v2.4.
 - [Changelog требований](requirements/changelog.md) — история изменений ТЗ.
 - [История сессий](session-log.md) — архив рабочих сессий.
+- [Сессии и backlog](process/sessions.md) — процесс сессий, closeout и handoff.
 - [Закрытие дня](day-closure.md) — шаблон и правила завершения дня.
 - [Backlog](backlog.md) — отложенные minor и технический долг.
 - [Архив backlog](backlog-archive.md) — закрытые записи `done`/`dropped`.

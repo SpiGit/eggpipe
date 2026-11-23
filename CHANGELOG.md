@@ -7,6 +7,9 @@
 
 ### Changed
 
+- Процесс: сессии и backlog описаны в `engineering/process/sessions.md`, ритуалы — команды
+  `/session-start` и `/session-close`; backlog закрывается в `engineering/backlog-archive.md`
+  с лимитом 10 `open`.
 - `tools/preflight.py --stamp` пропускает тяжёлые проверки при неизменном дереве
   (хеш по `src`, `tests`, `tools`, `examples`, `docs`, `engineering`, `.github`, `.opencode`,
   конфигам и корневым документам).
