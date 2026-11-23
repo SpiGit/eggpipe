@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import uuid
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +12,10 @@ from eggpipe.config.logging import get_logger
 from eggpipe.core.cache import CACHE_VERSION, digest, dump_payload, restore_document
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
-from eggpipe.utils.exceptions import ConfigValidationError
+from eggpipe.interfaces.formats import FormatPlugin
+from eggpipe.utils.exceptions import ConfigValidationError, DocumentError
+from eggpipe.utils.files import write_json_atomic
+from eggpipe.utils.yaml import YamlLoadError, parse_yaml
 
 _LOG = get_logger(__name__)
 META_FILE = "meta.json"
@@ -65,7 +66,10 @@ class DocumentCache:
         self._touched: set[str] = set()
 
     def read(self, path: Path) -> bytes | None:
-        """Read a file once per run; ``None`` marks an unreadable path."""
+        """Read a file once per run; ``None`` marks an unreadable path.
+
+        The memo lives as long as this instance, i.e. one Engine run.
+        """
         resolved = path.resolve()
         if resolved not in self._contents:
             try:
@@ -107,16 +111,16 @@ class DocumentCache:
 
     def remember(self, path: Path, document: ModelDocument) -> None:
         """Stage a successfully parsed document for persistence."""
-        key = self.digest(path)
-        if key is None:
-            return
-        entry = self._entry_for(path, document)
-        if entry is None:
-            return
-        payload = dump_payload(document)
         try:
+            key = self.digest(path)
+            if key is None:
+                return
+            entry = self._entry_for(path, document)
+            if entry is None:
+                return
+            payload = dump_payload(document)
             restore_document(payload, path)
-        except ValidationError as exc:
+        except (TypeError, ValueError) as exc:
             _LOG.debug("document cache payload is not serializable for %s: %s", path, exc)
             return
         meta = self._meta_state()
@@ -133,15 +137,16 @@ class DocumentCache:
         try:
             self.docs_dir.mkdir(parents=True, exist_ok=True)
             for key, payload in self._staged.items():
-                _write_json_atomic(self.docs_dir / f"{key}.json", payload)
+                write_json_atomic(self.docs_dir / f"{key}.json", payload, compact=True)
             self._staged.clear()
-            _write_json_atomic(
+            write_json_atomic(
                 self.meta_path,
                 CacheMeta(
                     cache_version=CACHE_VERSION,
                     eggpipe_version=self.eggpipe_version,
                     entries=entries,
-                ).model_dump(mode="json"),
+                ),
+                compact=True,
             )
             self._prune_docs(entries)
         except OSError as exc:
@@ -178,8 +183,8 @@ class DocumentCache:
 
     def _closure_matches(self, entry: CacheEntry) -> bool:
         for relative, expected in entry.inputs.items():
-            candidate = self.config_dir / relative
-            if not candidate.is_relative_to(self.config_dir):
+            candidate = (self.config_dir / relative).resolve()
+            if not candidate.is_relative_to(self.config_dir.resolve()):
                 return False
             content = self.read(candidate)
             if content is None or digest(content) != expected:
@@ -191,15 +196,9 @@ class DocumentCache:
             plugin = self.registry.get(document.format)
         except ConfigValidationError:
             return None
-        inputs: dict[str, str] = {}
-        for spec in document.imports:
-            candidate = (path.parent / spec.path).resolve()
-            if not candidate.is_relative_to(self.config_dir):
-                return None
-            content = self.read(candidate)
-            if content is None:
-                return None
-            inputs[candidate.relative_to(self.config_dir).as_posix()] = digest(content)
+        inputs = self._declared_inputs(path, plugin)
+        if inputs is None:
+            return None
         return CacheEntry(
             format=document.format,
             format_version=document.version,
@@ -207,6 +206,34 @@ class DocumentCache:
             format_api_version=str(plugin.api_version),
             inputs=inputs,
         )
+
+    def _declared_inputs(self, path: Path, plugin: FormatPlugin) -> dict[str, str] | None:
+        content = self.read(path)
+        if content is None:
+            return None
+        try:
+            raw = parse_yaml(content.decode("utf-8"))
+        except (UnicodeDecodeError, YamlLoadError):
+            return None
+        try:
+            declared = plugin.input_paths(raw, path.parent)
+        except DocumentError:
+            return None
+        if declared is None:
+            return None
+        inputs: dict[str, str] = {}
+        for raw_path in declared:
+            candidate = Path(raw_path)
+            if not candidate.is_absolute():
+                candidate = path.parent / candidate
+            candidate = candidate.resolve()
+            if not candidate.is_relative_to(self.config_dir.resolve()):
+                return None
+            data = self.read(candidate)
+            if data is None:
+                return None
+            inputs[candidate.relative_to(self.config_dir.resolve()).as_posix()] = digest(data)
+        return inputs
 
     def _read_payload(self, key: str) -> dict[str, Any] | None:
         try:
@@ -219,19 +246,6 @@ class DocumentCache:
         for item in self.docs_dir.glob("*.json"):
             if item.stem not in entries:
                 item.unlink(missing_ok=True)
-
-
-def _write_json_atomic(path: Path, data: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f"{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
-    try:
-        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
-            handle.write(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
 
 
 __all__ = ["CacheEntry", "CacheMeta", "DocumentCache"]

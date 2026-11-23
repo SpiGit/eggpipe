@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
+from typing_extensions import override
+
+from eggpipe import EntityModelFormat, FormatRegistry
 from eggpipe.core.cache import CACHE_VERSION, dump_payload, restore_document
 from eggpipe.core.parser import Parser
 from eggpipe.engine.document_cache import CacheEntry, DocumentCache
@@ -48,12 +52,27 @@ def parse(path: Path):
     return Parser(build_format_registry()).parse_document(path)
 
 
-def make_cache(root: Path, *, version: str = "0.0.0") -> DocumentCache:
+def make_cache(
+    root: Path,
+    *,
+    version: str = "0.0.0",
+    registry: FormatRegistry | None = None,
+) -> DocumentCache:
     return DocumentCache(
         config_dir=root,
-        registry=build_format_registry(),
+        registry=registry or build_format_registry(),
         eggpipe_version=version,
     )
+
+
+class ExtraInputFormat(EntityModelFormat):
+    """Format whose declared inputs are not part of ``model.imports``."""
+
+    format_names: ClassVar[list[str]] = ["entity-extra"]
+
+    @override
+    def input_paths(self, raw: dict[str, Any], base_path: Path) -> tuple[Path, ...]:
+        return (base_path / "extra.txt",)
 
 
 def prepared(tmp_path: Path, *, text: str = DOC, name: str = "user") -> Path:
@@ -207,3 +226,45 @@ def test_entry_inputs_are_config_relative(tmp_path: Path) -> None:
     entry = CacheEntry.model_validate(next(iter(read_meta(tmp_path)["entries"].values())))
     assert path.is_file()
     assert list(entry.inputs) == ["shared/base.yaml"]
+
+
+def test_declared_input_paths_not_in_imports_are_tracked(tmp_path: Path) -> None:
+    extra = write(tmp_path / "model/extra.txt", "v1")
+    path = write(
+        tmp_path / "model/user.yaml",
+        DOC.replace("format: entity-model", "format: entity-extra"),
+    )
+    registry = build_format_registry()
+    registry.register(ExtraInputFormat())
+    cache = make_cache(tmp_path, registry=registry)
+    cache.remember(path, Parser(registry).parse_document(path))
+    cache.persist()
+
+    entry = CacheEntry.model_validate(next(iter(read_meta(tmp_path)["entries"].values())))
+    assert entry.inputs == {"model/extra.txt": sha256(b"v1").hexdigest()}
+    assert make_cache(tmp_path, registry=registry).load(path) is not None
+
+    extra.write_text("v2", encoding="utf-8")
+    assert make_cache(tmp_path, registry=registry).load(path) is None
+
+
+def test_meta_input_outside_root_is_rejected(tmp_path: Path) -> None:
+    path = prepared(tmp_path)
+    outside = write(tmp_path.parent / "outside-cache.yaml", "secret")
+    data = read_meta(tmp_path)
+    next(iter(data["entries"].values()))["inputs"] = {
+        "../outside-cache.yaml": sha256(outside.read_bytes()).hexdigest()
+    }
+    (tmp_path / META).write_text(json.dumps(data), encoding="utf-8")
+
+    assert make_cache(tmp_path).load(path) is None
+
+
+def test_persisted_state_contains_no_absolute_paths(tmp_path: Path) -> None:
+    prepared(tmp_path)
+    payload = next((tmp_path / DOCS).glob("*.json")).read_text(encoding="utf-8")
+
+    for text in ((tmp_path / META).read_text(encoding="utf-8"), payload):
+        assert str(tmp_path) not in text
+        assert '"source"' not in text
+        assert '"path"' not in text
