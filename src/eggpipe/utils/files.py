@@ -16,8 +16,12 @@ def write_json_atomic(
     value: BaseModel | dict[str, Any],
     *,
     compact: bool = False,
+    durable: bool = True,
 ) -> None:
-    """Write JSON through a temporary file and ``os.replace``."""
+    """Write JSON through a temporary file and ``os.replace``.
+
+    ``durable`` also fsyncs file and directory; internal caches pass ``False``.
+    """
     data = value.model_dump(mode="json") if isinstance(value, BaseModel) else value
     if compact:
         text = json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n"
@@ -28,10 +32,12 @@ def write_json_atomic(
     try:
         with temporary.open("w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
-            handle.flush()
-            os.fsync(handle.fileno())
+            if durable:
+                handle.flush()
+                os.fsync(handle.fileno())
         os.replace(temporary, path)
-        fsync_directory(path.parent)
+        if durable:
+            fsync_directory(path.parent)
     finally:
         temporary.unlink(missing_ok=True)
 

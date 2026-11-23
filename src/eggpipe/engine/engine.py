@@ -25,6 +25,8 @@ from eggpipe.core.plugin_contract import INPUT_FORMATS_HINT, describe_generator_
 from eggpipe.core.slicing import select_slice
 from eggpipe.core.validator import validate_entity_model
 from eggpipe.engine.artifact_writer import ArtifactWriter, ExecutionPlan, LocationKey
+from eggpipe.engine.document_cache import DocumentCache
+from eggpipe.engine.parser_cache import CachedParser
 from eggpipe.engine.plugin_loader import build_format_registry, load_generators
 from eggpipe.engine.policy import DiagnosticPolicy
 from eggpipe.engine.report import (
@@ -108,6 +110,7 @@ class Engine:
         self._fingerprint: str | None = None
         self._incremental_reason: str | None = None
         self._entities: tuple[str, ...] | None = None
+        self._cache: DocumentCache | None = None
 
     def build(
         self,
@@ -128,6 +131,10 @@ class Engine:
             entities = (entities,)
         self._entities = tuple(dict.fromkeys(entities)) if entities is not None else None
         diagnostics: list[Diagnostic] = []
+        use_incremental = self.config.incremental if incremental is None else incremental
+        if self._entities is not None:
+            use_incremental = False
+        self._prepare_cache(use_incremental)
         phase = time.perf_counter()
         sources, source_groups, resources = self._source_paths(diagnostics)
         self._timings["discovery_ms"] = _elapsed(phase)
@@ -137,9 +144,6 @@ class Engine:
             diagnostics.append(error("EG018", "no entities selected", path="--entity"))
             return self._report(False, 1, self._filter_ignored(diagnostics), [], started)
 
-        use_incremental = self.config.incremental if incremental is None else incremental
-        if self._entities is not None:
-            use_incremental = False
         if use_incremental:
             phase = time.perf_counter()
             self._fingerprint = self._input_fingerprint(sources, resources)
@@ -153,6 +157,9 @@ class Engine:
                 "incremental cache disabled: %s",
                 self._incremental_reason or "input fingerprint changed or artifacts drifted",
             )
+            if self._fingerprint is None:
+                self._cache = None
+        self.parser = self._parser_for_run()
 
         phase = time.perf_counter()
         composition = self._load_composition(sources, source_groups, resources, diagnostics)
@@ -197,6 +204,34 @@ class Engine:
             started,
             list(run.artifacts),
         )
+
+    def _prepare_cache(self, use_incremental: bool) -> None:
+        disabled = (
+            not use_incremental
+            or self.config.force
+            or self.config.clean
+            or self.rules.diagnostics.stale_dates
+            or self.config.allow_outside_imports
+        )
+        self._cache = (
+            None
+            if disabled
+            else DocumentCache(
+                config_dir=self.config_dir,
+                registry=self.registry,
+                eggpipe_version=__version__,
+            )
+        )
+
+    def _parser_for_run(self) -> Parser:
+        if self._cache is None:
+            return Parser(self.registry)
+        return CachedParser(self.registry, self._cache)
+
+    def _read_bytes(self, path: Path) -> bytes | None:
+        if self._cache is not None:
+            return self._cache.read(path)
+        return _read_file(path)
 
     def _load_composition(
         self,
@@ -314,7 +349,10 @@ class Engine:
                 report = self.build(entities=entities)
                 if not report.success:
                     return report
-                return self._write_pending(report)
+                report = self._write_pending(report)
+                if self._cache is not None:
+                    self._cache.persist()
+                return report
         except LockError as exc:
             return self._report(
                 False,
@@ -489,7 +527,7 @@ class Engine:
         """Collect source documents and their input closure, or disable the cache."""
         files: dict[Path, bytes] = {}
         for source in sources:
-            content = _read_file(source)
+            content = self._read_bytes(source)
             if content is None:
                 self._disable_incremental(f"cannot read source: {source}")
                 return None
@@ -500,46 +538,52 @@ class Engine:
             path = pending.pop()
             if path.suffix.lower() not in {".yaml", ".yml"}:
                 continue
-            data = self._parse_fingerprint_document(path, files[path])
-            if data is None:
-                return None
-            format_name = data.get("format")
-            if not isinstance(format_name, str) or not format_name:
-                continue
-            try:
-                plugin = self.registry.get(format_name)
-            except ConfigValidationError:
-                self._disable_incremental(f"unknown or invalid format: {format_name}")
-                return None
-            try:
-                inputs = plugin.input_paths(data, path.parent)
-            except DocumentError as exc:
-                self._disable_incremental(
-                    f"format {format_name} cannot resolve inputs: {exc.message}"
-                )
-                return None
+            inputs = self._fingerprint_inputs(path, files[path])
             if inputs is None:
-                self._disable_incremental(
-                    f"format {format_name} does not declare input dependencies"
-                )
                 return None
-            for raw_path in inputs:
-                candidate = Path(raw_path)
-                if not candidate.is_absolute():
-                    candidate = path.parent / candidate
+            for candidate in inputs:
                 candidate = candidate.resolve()
                 if not candidate.is_relative_to(self.config_dir) or not candidate.is_file():
-                    self._disable_incremental(f"unsafe input path: {raw_path}")
+                    self._disable_incremental(f"unsafe input path: {candidate}")
                     return None
                 if candidate in files:
                     continue
-                content = _read_file(candidate)
+                content = self._read_bytes(candidate)
                 if content is None:
                     self._disable_incremental(f"cannot read input: {candidate}")
                     return None
                 files[candidate] = content
                 pending.append(candidate)
         return files
+
+    def _fingerprint_inputs(self, path: Path, content: bytes) -> list[Path] | None:
+        if self._cache is not None:
+            entry = self._cache.entry(path)
+            if entry is not None:
+                return [self.config_dir / relative for relative in entry.inputs]
+        data = self._parse_fingerprint_document(path, content)
+        if data is None:
+            return None
+        format_name = data.get("format")
+        if not isinstance(format_name, str) or not format_name:
+            return []
+        try:
+            plugin = self.registry.get(format_name)
+        except ConfigValidationError:
+            self._disable_incremental(f"unknown or invalid format: {format_name}")
+            return None
+        try:
+            declared = plugin.input_paths(data, path.parent)
+        except DocumentError as exc:
+            self._disable_incremental(f"format {format_name} cannot resolve inputs: {exc.message}")
+            return None
+        if declared is None:
+            self._disable_incremental(f"format {format_name} does not declare input dependencies")
+            return None
+        return [
+            Path(raw_path) if Path(raw_path).is_absolute() else path.parent / raw_path
+            for raw_path in declared
+        ]
 
     def _parse_fingerprint_document(self, path: Path, content: bytes) -> dict[str, Any] | None:
         try:
@@ -682,6 +726,7 @@ class Engine:
             self.rules,
             self.config_dir,
             allow_outside=self.config.allow_outside_imports,
+            cache=self._cache,
         )
         diagnostics.extend(discovered.diagnostics)
         for group in discovered.groups:

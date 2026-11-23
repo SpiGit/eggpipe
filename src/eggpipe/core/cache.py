@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.model import SourceModel
 
 CACHE_VERSION = 1
+
+
+class CachedFormatProbe(Protocol):
+    """What discovery needs from the internal document cache."""
+
+    def entry(self, path: Path) -> object | None: ...
 
 
 def digest(content: bytes) -> str:
@@ -51,4 +57,4 @@ def restore_document(payload: dict[str, Any], path: Path) -> ModelDocument:
     return document.model_copy(update={"path": path, "model": model})
 
 
-__all__ = ["CACHE_VERSION", "digest", "dump_payload", "restore_document"]
+__all__ = ["CACHE_VERSION", "CachedFormatProbe", "digest", "dump_payload", "restore_document"]

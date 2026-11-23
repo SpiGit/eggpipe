@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
+from eggpipe.core.cache import CachedFormatProbe
 from eggpipe.core.model import InputSelection
 from eggpipe.core.paths import is_ignored_part
 from eggpipe.interfaces.diagnostics import Diagnostic, error, warning
@@ -108,6 +109,7 @@ def discover_sources(
     config_dir: Path,
     *,
     allow_outside: bool = False,
+    cache: CachedFormatProbe | None = None,
 ) -> DiscoveredSources:
     result = DiscoveredSources()
     config_root = config_dir.resolve()
@@ -137,7 +139,7 @@ def discover_sources(
         if source.layout == "monolith":
             _discover_monolith(root, source, seen, result)
         elif source.layout == "file-per-model":
-            _discover_file_per_model(root, source, output_dirs, seen, config_root, result)
+            _discover_file_per_model(root, source, output_dirs, seen, config_root, result, cache)
         else:
             _discover_directory_per_model(
                 root,
@@ -147,6 +149,7 @@ def discover_sources(
                 allow_outside,
                 config_root,
                 result,
+                cache,
             )
     return result
 
@@ -182,6 +185,7 @@ def _discover_file_per_model(
     seen: set[Path],
     boundary: Path,
     result: DiscoveredSources,
+    cache: CachedFormatProbe | None = None,
 ) -> None:
     if not root.is_dir():
         result.diagnostics.append(
@@ -192,7 +196,7 @@ def _discover_file_per_model(
             )
         )
         return
-    files = _match_files(root, source.files or (), output_dirs, result, boundary)
+    files = _match_files(root, source.files or (), output_dirs, result, boundary, cache)
     canonical_files: list[Path] = []
     for path in files:
         canonical = path.resolve()
@@ -223,6 +227,7 @@ def _discover_directory_per_model(
     allow_outside: bool,
     config_root: Path,
     result: DiscoveredSources,
+    cache: CachedFormatProbe | None = None,
 ) -> None:
     if not root.is_dir():
         result.diagnostics.append(
@@ -252,6 +257,7 @@ def _discover_directory_per_model(
             output_dirs,
             result,
             config_root,
+            cache,
         )
         if not files:
             result.diagnostics.append(
@@ -301,6 +307,7 @@ def _match_files(
     output_dirs: set[Path],
     result: DiscoveredSources,
     boundary: Path,
+    cache: CachedFormatProbe | None = None,
 ) -> list[Path]:
     found: dict[Path, None] = {}
     for pattern in patterns:
@@ -314,7 +321,9 @@ def _match_files(
                     error("EG022", "model file is outside the project root", path=str(resolved))
                 )
                 continue
-            if resolved.suffix.lower() in {".yaml", ".yml"} and not _is_model_document(resolved):
+            if resolved.suffix.lower() in {".yaml", ".yml"} and not _is_model_document(
+                resolved, cache
+            ):
                 result.diagnostics.append(
                     error("EG023", "YAML is not a model document", path=str(resolved))
                 )
@@ -531,7 +540,9 @@ def _check_resource_overlap(
         )
 
 
-def _is_model_document(path: Path) -> bool:
+def _is_model_document(path: Path, cache: CachedFormatProbe | None = None) -> bool:
+    if cache is not None and cache.entry(path) is not None:
+        return True
     try:
         data = load_yaml(path)
     except YamlLoadError:

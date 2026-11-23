@@ -137,7 +137,9 @@ class DocumentCache:
         try:
             self.docs_dir.mkdir(parents=True, exist_ok=True)
             for key, payload in self._staged.items():
-                write_json_atomic(self.docs_dir / f"{key}.json", payload, compact=True)
+                write_json_atomic(
+                    self.docs_dir / f"{key}.json", payload, compact=True, durable=False
+                )
             self._staged.clear()
             write_json_atomic(
                 self.meta_path,
@@ -147,6 +149,7 @@ class DocumentCache:
                     entries=entries,
                 ),
                 compact=True,
+                durable=False,
             )
             self._prune_docs(entries)
         except OSError as exc:
