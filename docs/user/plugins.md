@@ -136,6 +136,9 @@ sql-model = "my_package.formats:SqlModelFormat"
 - Дельта-модели наследуют `EntityIdentity`/`FieldIdentity`; полные — `Entity`/`FieldDef`.
 - Обязательность новых полей определяет формат: partial в слое, complete в итоге.
 - Документ остаётся общим конвертом; first-class document-level поля — future, сейчас через `metadata`.
+- `parse` не должен зависеть от пути документа: `path`, `source`, `format`/`format_version`
+  заполняет ядро. Это требование L2-кэша разбора (ADR-0020); формат, который не может его
+  гарантировать, объявляет `input_paths = None` и работает без L1/L2.
 - Для списков формат объявляет `MergePolicy` через `json_schema_extra`:
   - `KEYED` — патч существующих + новые (`fields`);
   - `APPEND` — только новые (`types`, `enums`, `enum.values`);
@@ -272,7 +275,7 @@ def fixed(
   не инвалидирует кэш;
 - генераторы: внешние шаблоны объявляйте через `resources` или импорты модели;
 - форматы: файлы, читаемые в `parse`, объявляйте через `FormatPlugin.input_paths`;
-  `None` отключает incremental;
+  closure участвует в инвалидации L1 и L2-кэша разбора, `None` отключает оба уровня;
 - формат: меняйте `__version__` при изменении парсера; `api_version` — только контракт.
 - недетерминированные генераторы (время, случайность, внешние сервисы) не должны
   полагаться на incremental.

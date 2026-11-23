@@ -20,6 +20,7 @@ from eggpipe import (
     GeneratorConfig,
     GeneratorInput,
     GeneratorPlugin,
+    Parser,
     ProjectConfig,
     SourceConfig,
 )
@@ -456,3 +457,170 @@ def test_incremental_invalidates_on_format_plugin_version(tmp_path: Path) -> Non
     finally:
         DependencyFormat.__version__ = original
     assert CountingGenerator.calls == 2
+
+
+DIR_MODEL_ALPHA = MODEL.replace("User", "Alpha")
+DIR_MODEL_BETA = MODEL.replace("User", "Beta")
+
+
+def make_dir_engine(tmp_path: Path, *, incremental: bool = True, force: bool = False) -> Engine:
+    rules = ProjectConfig(
+        version="1.0",
+        sources=(SourceConfig(path=Path("model"), layout="file-per-model", files=("*.yaml",)),),
+        generators=(GeneratorConfig(id="counting", output_dir=Path("out")),),
+    )
+    return Engine(
+        AppConfig(incremental=incremental, force=force),
+        rules,
+        config_dir=tmp_path,
+        generators={"counting": CountingGenerator()},
+    )
+
+
+def write_dir_model(tmp_path: Path) -> tuple[Path, Path]:
+    (tmp_path / "model").mkdir()
+    first = tmp_path / "model/a.yaml"
+    second = tmp_path / "model/b.yaml"
+    first.write_text(DIR_MODEL_ALPHA, encoding="utf-8")
+    second.write_text(DIR_MODEL_BETA, encoding="utf-8")
+    return first, second
+
+
+def count_parses(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
+    calls: list[Path] = []
+    original = Parser.parse_document
+
+    def wrapper(self: Parser, path: Path) -> Any:
+        calls.append(path)
+        return original(self, path)
+
+    monkeypatch.setattr(Parser, "parse_document", wrapper)
+    return calls
+
+
+def test_l2_cache_skips_parsing_unchanged_documents(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    CountingGenerator.calls = 0
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+
+    calls = count_parses(monkeypatch)
+    second = make_dir_engine(tmp_path).generate()
+
+    assert second.success is True
+    assert second.generators[0].status == "skipped"
+    assert second.timings["parse_ms"] == 0
+    assert calls == []
+    assert (tmp_path / ".eggpipe" / "cache" / "meta.json").is_file()
+
+
+def test_l2_cache_parses_only_changed_document(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    CountingGenerator.calls = 0
+    first, _ = write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    first.write_text(DIR_MODEL_ALPHA + "# changed\n", encoding="utf-8")
+
+    calls = count_parses(monkeypatch)
+    second = make_dir_engine(tmp_path).generate()
+
+    assert second.success is True
+    assert CountingGenerator.calls == 2
+    assert calls == [first.resolve()]
+
+
+def test_l2_cache_hits_when_file_is_renamed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    CountingGenerator.calls = 0
+    _, second = write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    second.rename(tmp_path / "model/c.yaml")
+
+    calls = count_parses(monkeypatch)
+    report = make_dir_engine(tmp_path).generate()
+
+    assert report.success is True
+    assert calls == []
+
+
+def test_l2_cache_recovers_from_corruption(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    CountingGenerator.calls = 0
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    (tmp_path / ".eggpipe" / "cache" / "meta.json").write_text("{broken", encoding="utf-8")
+    (tmp_path / "model" / "a.yaml").write_text(DIR_MODEL_ALPHA + "# changed\n", encoding="utf-8")
+
+    calls = count_parses(monkeypatch)
+    report = make_dir_engine(tmp_path).generate()
+
+    assert report.success is True
+    assert len(calls) == 2
+    fresh = count_parses(monkeypatch)
+    make_dir_engine(tmp_path).generate()
+    assert fresh == []
+
+
+def test_l2_cache_is_read_by_plan_but_not_written(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    CountingGenerator.calls = 0
+    first, _ = write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    meta_path = tmp_path / ".eggpipe" / "cache" / "meta.json"
+    before = meta_path.read_text(encoding="utf-8")
+    first.write_text(DIR_MODEL_ALPHA + "# changed\n", encoding="utf-8")
+
+    calls = count_parses(monkeypatch)
+    report = make_dir_engine(tmp_path).build()
+
+    assert report.success is True
+    assert calls == [first.resolve()]
+    assert meta_path.read_text(encoding="utf-8") == before
+
+    make_dir_engine(tmp_path).generate()
+    fresh = count_parses(monkeypatch)
+    make_dir_engine(tmp_path).generate()
+    assert fresh == []
+
+
+def test_l2_cache_is_not_used_for_entities(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    CountingGenerator.calls = 0
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+
+    calls = count_parses(monkeypatch)
+    make_dir_engine(tmp_path).generate(entities=["Alpha"])
+
+    assert calls != []
+
+
+def test_l2_cache_is_used_when_artifacts_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    CountingGenerator.calls = 0
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    (tmp_path / "out" / "out.txt").unlink()
+
+    calls = count_parses(monkeypatch)
+    report = make_dir_engine(tmp_path).generate()
+
+    assert report.success is True
+    assert calls == []
+    assert CountingGenerator.calls == 2
+
+
+def test_l2_cache_is_not_written_with_force(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    CountingGenerator.calls = 0
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    calls = count_parses(monkeypatch)
+
+    make_dir_engine(tmp_path, force=True).generate()
+
+    assert len(calls) == 2

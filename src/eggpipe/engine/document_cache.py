@@ -62,8 +62,10 @@ class DocumentCache:
         self.docs_dir = self.root / DOCS_DIR
         self._meta: CacheMeta | None = None
         self._contents: dict[Path, bytes | None] = {}
+        self._digests: dict[Path, str | None] = {}
         self._staged: dict[str, dict[str, Any]] = {}
         self._touched: set[str] = set()
+        self._invalid: set[str] = set()
 
     def read(self, path: Path) -> bytes | None:
         """Read a file once per run; ``None`` marks an unreadable path.
@@ -79,20 +81,24 @@ class DocumentCache:
         return self._contents[resolved]
 
     def digest(self, path: Path) -> str | None:
-        content = self.read(path)
-        return None if content is None else digest(content)
+        resolved = path.resolve()
+        if resolved not in self._digests:
+            content = self.read(resolved)
+            self._digests[resolved] = None if content is None else digest(content)
+        return self._digests[resolved]
 
     def entry(self, path: Path) -> CacheEntry | None:
         """Return a valid entry for the current file content, or ``None``."""
         key = self.digest(path)
         if key is None:
             return None
-        self._touched.add(key)
         entry = self._meta_state().entries.get(key)
-        if entry is None or not self._versions_match(entry):
+        if entry is None:
             return None
-        if not self._closure_matches(entry):
+        if not self._versions_match(entry) or not self._closure_matches(entry):
+            self._invalid.add(key)
             return None
+        self._touched.add(key)
         return entry
 
     def load(self, path: Path) -> ModelDocument | None:
@@ -127,17 +133,24 @@ class DocumentCache:
         self._meta = meta.model_copy(update={"entries": {**meta.entries, key: entry}})
         self._staged[key] = payload
         self._touched.add(key)
+        self._invalid.discard(key)
 
     def persist(self) -> None:
         """Write staged payloads and prune entries not touched by this run."""
         meta = self._meta_state()
-        entries = {key: value for key, value in meta.entries.items() if key in self._touched}
+        entries = {
+            key: value
+            for key, value in meta.entries.items()
+            if key in self._touched and key not in self._invalid
+        }
         if not self._staged and set(entries) == set(meta.entries):
             return
         try:
             self.docs_dir.mkdir(parents=True, exist_ok=True)
             for key, payload in self._staged.items():
-                write_json_atomic(self.docs_dir / f"{key}.json", payload, compact=True)
+                write_json_atomic(
+                    self.docs_dir / f"{key}.json", payload, compact=True, durable=False
+                )
             self._staged.clear()
             write_json_atomic(
                 self.meta_path,
@@ -147,6 +160,7 @@ class DocumentCache:
                     entries=entries,
                 ),
                 compact=True,
+                durable=False,
             )
             self._prune_docs(entries)
         except OSError as exc:

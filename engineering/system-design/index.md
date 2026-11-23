@@ -1366,6 +1366,30 @@ Cache-hit отчёт: `status=skipped`, `action=skip`, `parse/validate/generate/
 пропустил бы работу. Полный прогон без incremental пишет `input_fingerprint: null`;
 следующий incremental-прогон будет промахом.
 
+### 8.7 Кэш разбора документов (L2)
+
+[ADR-0020](../adr/0020-document-parse-cache.md). При включённом `--incremental` Engine
+дополнительно использует персистентный content-addressed кэш разобранных документов
+`.eggpipe/cache/`:
+
+- `meta.json` — `cache_version`, `eggpipe_version` и записи по SHA-256 содержимого:
+  формат и его версия, версии плагина формата, `inputs` относительно каталога конфига;
+- `docs/<sha256>.json` — path-free payload `ModelDocument`.
+
+Поток: discovery берёт формат из валидной записи без полного `load_yaml`; fingerprint
+получает imports из меты и проверяет closure по хэшам; `CachedParser` загружает
+неизменённые документы и разбирает только промахи; запись выполняется в конце
+`generate` под `.eggpipe/lock`, prune — до набора текущего прогона. Валидность
+определяют версии, closure и схема payload; любая проблема — промах и полный путь.
+`--plan` читает кэш, но не пишет; `--entity`, `--check`, `--force`, `--clean`,
+`--strict`, `stale_dates`, `allow_outside_imports` отключают L2 вместе с L1.
+
+Payload — `ModelDocument` без `path`/`source`/`format`/`format_version`; при загрузке
+эти поля достраиваются так же, как в `Parser.parse_document`. Скалярные типы (`date`,
+`datetime`, `time`, `Decimal`) кодируются с типом-тегом, чтобы JSON round-trip не менял
+типы в `metadata` и `constraints`. Значения, не представимые в JSON (например, `Path`
+в metadata), не кэшируются — разбор выполняется заново.
+
 ---
 
 ## 9. Watch Mode
@@ -1403,19 +1427,13 @@ class Watcher:
 - **Завершение:** первый Ctrl+C (или stop-сигнал) — остановка Observer, отмена запланированных прогонов, ожидание завершения текущего прогона (запись артефактов и JSON Lines отчёт не обрываются), exit 0; повторный Ctrl+C во время ожидания — немедленный выход, exit 130, остаточные staging/lock вычищает следующий запуск.
 - **`--output-format json` в watch:** каждая итерация печатает отдельный JSON-объект (JSON Lines), без цветов и человекочитаемого текста.
 
-### 9.3 Интерфейс для L2/L3 кэширования (future, не реализован)
+### 9.3 Кэш документов (L2)
 
-Интерфейс ниже зарезервирован для L2/L3 и в текущем коде не используется.
-
-```python
-class CacheStrategy(ABC):
-    @abstractmethod
-    def get_hash(self, path: Path) -> str: ...
-    @abstractmethod
-    def is_changed(self, path: Path) -> bool: ...
-    @abstractmethod
-    def get_dependencies(self, path: Path) -> list[Path]: ...
-```
+L2 реализован по ADR-0020: payload и `CachedFormatProbe` — в `core/cache.py`, хранилище
+`.eggpipe/cache/` — в `engine/document_cache.py`, загрузка в разбор — в
+`engine/parser_cache.py`. Зарезервированный ранее интерфейс `CacheStrategy` не
+используется. Watch переиспользует тот же персистентный кэш: CLI создаёт новый `Engine`
+на каждый прогон.
 
 ---
 
@@ -1434,6 +1452,7 @@ src/eggpipe/
 │   ├── document.py              # ModelDocument, ImportSpec
 │   ├── model.py                 # SourceModel, ModelSlice, Entity, FieldDef, ...
 │   ├── parser.py                # Parser, header, imports
+│   ├── cache.py                 # L2: path-free payload, CachedFormatProbe
 │   ├── discovery.py             # layouts, model units, resources
 │   ├── paths.py                 # shared ignore rules for discovery/watch
 │   ├── layers.py                # layer validation/merge
@@ -1447,6 +1466,8 @@ src/eggpipe/
 ├── engine/
 │   ├── engine.py                # Engine facade and orchestration
 │   ├── artifact_writer.py       # plan, atomic write, manifest, cleanup, lock
+│   ├── document_cache.py        # L2: .eggpipe/cache/ storage and validation
+│   ├── parser_cache.py          # L2: cache-aware Parser
 │   ├── plugin_loader.py         # entry points (generators + formats)
 │   ├── policy.py                # DiagnosticPolicy
 │   └── report.py                # EngineReport and JSON DTOs
@@ -1457,6 +1478,7 @@ src/eggpipe/
 ├── watch/watcher.py             # WatchRunner, debounce
 ├── utils/
 │   ├── yaml.py                  # load_yaml() поверх ruamel.yaml
+│   ├── files.py                 # write_json_atomic(), fsync_directory()
 │   └── exceptions.py
 └── templating.py                # optional Jinja2 helper
 
@@ -1486,7 +1508,8 @@ LICENSE
 
 Отдельных `cli/*_cmds.py`, `engine/planning.py`, `engine/locking.py`, `watch/cache.py`
 нет: команды находятся в `cli/main.py`, planning/lock — в `artifact_writer.py`,
-L1-кэш incremental — в `engine.py`; `watch/cache.py` и L2/L3 — future.
+L1-кэш incremental — в `engine.py`, L2 — в `document_cache.py`/`parser_cache.py`;
+`watch/cache.py` и L3 — future.
 
 ---
 
