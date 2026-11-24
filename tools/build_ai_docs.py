@@ -111,7 +111,7 @@ def _diagnostics() -> list[dict[str, str]]:
 def _llms_index() -> str:
     return """# Eggpipe documentation index
 
-> Eggpipe generates artifacts from YAML model definitions. Current spec: v2.4.
+> Eggpipe generates artifacts from YAML model definitions. Current spec: v2.5.
 > Project status: beta (0.x); breaking changes are possible before 1.0 (ADR-0014).
 
 ## User

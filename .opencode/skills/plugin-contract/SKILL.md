@@ -1,11 +1,11 @@
 ---
 name: plugin-contract
-description: Контракты generator и FormatPlugin Eggpipe — ТЗ v2.4, decorator API, версии и чек-лист
+description: Контракты generator и FormatPlugin Eggpipe — ТЗ v2.5, decorator API, версии и чек-лист
 ---
 
 # Контракты плагинов Eggpipe
 
-Источник истины: актуальное ТЗ v2.4 §6 и System Design §2.
+Источник истины: актуальное ТЗ v2.5 §6 и System Design §2.
 
 ## Публичный API
 

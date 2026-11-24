@@ -7,8 +7,8 @@
 - Проект: **Eggpipe**.
 - Package/import/CLI: `eggpipe`.
 - Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
-- Актуальное ТЗ: `engineering/requirements/v2.4.md`.
-- Версия пакета: из `pyproject.toml`; версия ТЗ: `2.4`.
+- Актуальное ТЗ: `engineering/requirements/v2.5.md`.
+- Версия пакета: из `pyproject.toml`; версия ТЗ: `2.5`.
 - Статус: beta (0.x); до 1.0 breaking changes возможны (ADR-0014).
 - Brand assets: `docs/assets/brand/`.
 

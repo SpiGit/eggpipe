@@ -28,17 +28,17 @@
 `eggpipe` — инструмент, который генерирует артефакты (SQL, Python, TypeScript и т.д.)
 из YAML-описания модели данных. Архитектура: нейтральное ядро + плагины генераторов и форматов.
 
-Репозиторий содержит реализацию ядра и спецификацию ТЗ v2.4: composition, форматы и слои, decorator API,
-watch, JSON-отчёт v2, provenance, глобальный manifest/lock, cleanup, `Engine`, CLI,
+Репозиторий содержит реализацию ядра и спецификацию ТЗ v2.5: composition, форматы и слои, decorator API,
+watch, JSON-отчёт v3, метрики L2 и structured logging, provenance, глобальный manifest/lock, cleanup, `Engine`, CLI,
 reference- и TPC-H-плагины, golden-тесты. Per-entity генерация реализована: `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity` (ADR-0018).
 
 ## Источники истины
 
 Приоритет при расхождении — сверху вниз:
 
-1. Актуальное ТЗ — файл со статусом **Актуальная** в `engineering/requirements/index.md` (сейчас `v2.4.md`):
+1. Актуальное ТЗ — файл со статусом **Актуальная** в `engineering/requirements/index.md` (сейчас `v2.5.md`):
    поведение, контракты, CLI, запись артефактов.
-2. `engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды, 0014 — beta-статус и совместимость до 1.0, 0015 — ветвление и релизная политика, 0016 — политика deprecation, 0017 — инкрементальная генерация, 0018 — per-entity генерация, 0019 — планирование и отмена в watch, 0020 — кэш разбора документов).
+2. `engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды, 0014 — beta-статус и совместимость до 1.0, 0015 — ветвление и релизная политика, 0016 — политика deprecation, 0017 — инкрементальная генерация, 0018 — per-entity генерация, 0019 — планирование и отмена в watch, 0020 — кэш разбора документов, 0021 — метрики L2 и structured logging).
 3. `engineering/system-design/index.md` — проектирование реализации (классы, потоки, структура).
 4. `engineering/requirements/index.md` — реестр версий; полный changelog — `changelog.md`.
 5. `README.md` и `.session-context.md` — краткое состояние проекта.
