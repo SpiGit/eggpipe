@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -14,14 +15,30 @@ from typing_extensions import override
 from eggpipe.config.app_config import AppConfig
 
 LOGGER_NAME = "eggpipe"
-_FALLBACK_RECORD = '{"level":"error","logger":"eggpipe","message":"log serialization failed"}'
-_OPTIONAL_FIELDS = ("run_id", "event", "duration_ms")
+_FALLBACK_MESSAGE = "log serialization failed"
+_OPTIONAL_FIELDS = ("run_id", "event", "duration_ms", "exception")
 _STANDARD_FIELDS = frozenset(vars(logging.LogRecord("", 0, "", 0, "", None, None)))
 
 
 def _timestamp(created: float) -> str:
     moment = datetime.fromtimestamp(created, tz=UTC)
     return moment.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def _escape(value: object) -> str:
+    return str(value).replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _fallback_record(record: logging.LogRecord) -> str:
+    try:
+        name = record.name
+    except Exception:
+        name = LOGGER_NAME
+    timestamp = _timestamp(time.time())
+    return (
+        f'{{"ts":"{timestamp}","level":"error",'
+        f'"logger":"{_escape(name)}","message":"{_FALLBACK_MESSAGE}"}}'
+    )
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -51,7 +68,7 @@ class JsonLogFormatter(logging.Formatter):
                 payload["extra"] = extra
             return json.dumps(payload, ensure_ascii=False, default=str, separators=(",", ":"))
         except Exception:
-            return _FALLBACK_RECORD
+            return _fallback_record(record)
 
 
 def get_logger(name: str = LOGGER_NAME) -> logging.Logger:

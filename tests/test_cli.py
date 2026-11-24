@@ -319,6 +319,24 @@ def test_generate_json(tmp_path: Path) -> None:
     assert report["artifacts"] == []
 
 
+def test_generate_strict_json_has_null_cache(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    result = CliRunner().invoke(
+        app,
+        [
+            "generate",
+            "-c",
+            str(rules),
+            "--incremental",
+            "--strict",
+            "--output-format",
+            "json",
+        ],
+    )
+    report = json.loads(result.stdout)
+    assert report["cache"] is None
+
+
 def test_generate_with_local_plugin(tmp_path: Path) -> None:
     model, rules = project(tmp_path)
     plugin = tmp_path / "local_plugin.py"

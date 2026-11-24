@@ -162,7 +162,7 @@ def test_incremental_invalidates_on_variables(tmp_path: Path) -> None:
         sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
         generators=(GeneratorConfig(id="counting", output_dir=Path("out")),),
     )
-    Engine(
+    report = Engine(
         AppConfig(incremental=True),
         rules,
         config_dir=tmp_path,
@@ -170,6 +170,9 @@ def test_incremental_invalidates_on_variables(tmp_path: Path) -> None:
         variables={"env": "prod"},
     ).generate()
     assert CountingGenerator.calls == 2
+    assert report.cache is not None
+    assert report.cache.hits == 1
+    assert report.cache.misses == 0
 
 
 def test_incremental_can_be_disabled(tmp_path: Path) -> None:
@@ -184,8 +187,9 @@ def test_check_bypasses_incremental_cache(tmp_path: Path) -> None:
     CountingGenerator.calls = 0
     (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
     make_engine(tmp_path).generate()
-    make_engine(tmp_path).check()
+    report = make_engine(tmp_path).check()
     assert CountingGenerator.calls == 2
+    assert report.cache is None
 
 
 def test_incremental_invalidates_on_artifact_change(tmp_path: Path) -> None:
@@ -571,6 +575,8 @@ def test_l2_cache_is_read_by_plan_but_not_written(
     make_dir_engine(tmp_path).generate()
     meta_path = tmp_path / ".eggpipe" / "cache" / "meta.json"
     before = meta_path.read_text(encoding="utf-8")
+    docs_dir = tmp_path / ".eggpipe" / "cache" / "docs"
+    docs_before = {path.name: path.stat().st_size for path in docs_dir.glob("*.json")}
     first.write_text(DIR_MODEL_ALPHA + "# changed\n", encoding="utf-8")
 
     calls = count_parses(monkeypatch)
@@ -579,6 +585,11 @@ def test_l2_cache_is_read_by_plan_but_not_written(
     assert report.success is True
     assert calls == [first.resolve()]
     assert meta_path.read_text(encoding="utf-8") == before
+    assert report.cache is not None
+    assert report.cache.misses == 1
+    assert report.cache.miss_reasons.changed == 1
+    docs_after = {path.name: path.stat().st_size for path in docs_dir.glob("*.json")}
+    assert docs_after == docs_before
 
     make_dir_engine(tmp_path).generate()
     fresh = count_parses(monkeypatch)
@@ -659,6 +670,19 @@ def test_l2_cache_metrics_are_null_without_incremental(tmp_path: Path) -> None:
     assert report.cache is None
 
 
+@pytest.mark.parametrize("option", ["force", "clean", "allow_outside_imports", "stale_dates"])
+def test_l2_cache_metrics_are_null_when_incremental_disabled(tmp_path: Path, option: str) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(
+        tmp_path,
+        force=option == "force",
+        clean=option == "clean",
+        allow_outside_imports=option == "allow_outside_imports",
+        stale_dates=option == "stale_dates",
+    ).generate()
+    assert report.cache is None
+
+
 def test_l2_cache_metrics_are_null_for_entities(tmp_path: Path) -> None:
     write_dir_model(tmp_path)
     make_dir_engine(tmp_path).generate()
@@ -691,6 +715,8 @@ def test_l2_cache_metrics_invalid_for_corrupt_meta(tmp_path: Path) -> None:
 
     report = make_dir_engine(tmp_path).generate()
 
+    assert report.success is True
+    assert report.diagnostics == []
     assert report.cache is not None
     assert report.cache.misses == 2
     assert report.cache.miss_reasons.invalid == 2
@@ -705,6 +731,8 @@ def test_l2_cache_metrics_invalid_for_corrupt_payload(tmp_path: Path) -> None:
 
     report = make_dir_engine(tmp_path).generate()
 
+    assert report.success is True
+    assert report.diagnostics == []
     assert report.cache is not None
     assert report.cache.hits == 1
     assert report.cache.misses == 1

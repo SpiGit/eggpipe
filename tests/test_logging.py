@@ -37,6 +37,16 @@ def test_json_formatter_emits_required_and_optional_fields() -> None:
     assert data["extra"] == {"entries": 8}
 
 
+def test_json_formatter_accepts_exception_attribute() -> None:
+    record = make_record()
+    record.exception = "boom"
+
+    data = json.loads(JsonLogFormatter().format(record))
+
+    assert data["exception"] == "boom"
+    assert "exception" not in data.get("extra", {})
+
+
 def test_json_formatter_includes_exception() -> None:
     record = make_record()
     try:
@@ -69,7 +79,9 @@ def test_json_formatter_never_raises(
     data = json.loads(JsonLogFormatter().format(make_record()))
 
     assert data["level"] == "error"
+    assert data["logger"] == "eggpipe.engine"
     assert data["message"] == "log serialization failed"
+    assert data["ts"].endswith("Z")
 
 
 def test_setup_logging_selects_json_formatter() -> None:

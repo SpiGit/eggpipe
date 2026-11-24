@@ -108,6 +108,7 @@ class DocumentCache:
         """Load a cached document; any problem is a miss."""
         key = self.digest(path)
         if key is None:
+            # Unreadable source: discovery reports it separately, so this is no cache attempt.
             return None
         entry, reason = self._lookup(path)
         if entry is None:

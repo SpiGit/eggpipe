@@ -93,7 +93,8 @@ Roadmap 0.5.0 п. 3 требует контракт метрик и structured l
 - `exception` — текст трассировки отдельным полем, без встраивания в `message`.
 - Запись идёт в `log_destination` (stderr по умолчанию); stdout не используется,
   кроме явного `log_destination: stdout`.
-- `JsonLogFormatter` не бросает исключений наружу: при ошибке сериализации пишется
+- `JsonLogFormatter` (переименован из `JsonFormatter`, чтобы не путать с output-форматтером
+  отчёта) не бросает исключений наружу: при ошибке сериализации пишется
   минимальная запись `{"ts":...,"level":"error","logger":...,"message":"log serialization failed"}`.
 
 ### 3.3 Версионирование кэша
