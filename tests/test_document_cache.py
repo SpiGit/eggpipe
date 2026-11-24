@@ -367,10 +367,11 @@ model:
     [
         ("date", "not-a-date"),
         ("decimal", "not-a-number"),
+        ("decimal", {"not": "a string"}),
         ("unknown", "2024-01-01"),
     ],
 )
-def test_corrupt_tagged_payload_is_miss(tmp_path: Path, tag: str, value: str) -> None:
+def test_corrupt_tagged_payload_is_miss(tmp_path: Path, tag: str, value: Any) -> None:
     path = prepared(tmp_path, text=METADATA_DOC)
     payload_path = next((tmp_path / DOCS).glob("*.json"))
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
@@ -383,6 +384,32 @@ def test_corrupt_tagged_payload_is_miss(tmp_path: Path, tag: str, value: str) ->
     assert cache.load(path) is None
     document = CachedParser(build_format_registry(), cache).parse_document(path)
     assert document.model.entity("User") is not None
+
+
+def test_corrupt_mapping_payload_is_miss(tmp_path: Path) -> None:
+    path = prepared(tmp_path, text=METADATA_DOC)
+    payload_path = next((tmp_path / DOCS).glob("*.json"))
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    payload["model"]["entities"][0]["metadata"]["created"] = {
+        "__eggpipe_type__": "mapping",
+        "value": "not-a-mapping",
+    }
+    payload_path.write_text(json.dumps(payload), encoding="utf-8")
+    cache = make_cache(tmp_path)
+
+    assert cache.load(path) is None
+    document = CachedParser(build_format_registry(), cache).parse_document(path)
+    assert document.model.entity("User") is not None
+
+
+def test_deeply_nested_payload_is_miss(tmp_path: Path) -> None:
+    path = prepared(tmp_path)
+    payload_path = next((tmp_path / DOCS).glob("*.json"))
+    payload_path.write_text("[" * 2000 + "]" * 2000, encoding="utf-8")
+    cache = make_cache(tmp_path)
+
+    assert cache.load(path) is None
+    assert CachedParser(build_format_registry(), cache).parse_document(path) is not None
 
 
 def test_shared_import_digest_is_memoized(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

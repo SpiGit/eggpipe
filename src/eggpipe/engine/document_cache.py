@@ -111,7 +111,7 @@ class DocumentCache:
             return None
         try:
             return restore_document(payload, path)
-        except (ValidationError, ValueError, TypeError, ArithmeticError) as exc:
+        except (ValidationError, ValueError, TypeError, ArithmeticError, RecursionError) as exc:
             _LOG.debug("document cache payload is invalid for %s: %s", path, exc)
             return None
 
@@ -251,7 +251,7 @@ class DocumentCache:
     def _read_payload(self, key: str) -> dict[str, Any] | None:
         try:
             data = json.loads((self.docs_dir / f"{key}.json").read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except (OSError, ValueError, RecursionError):
             return None
         return data if isinstance(data, dict) else None
 
