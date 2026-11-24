@@ -969,7 +969,7 @@ def setup_logging(config: AppConfig) -> None:
     else:
         handler = logging.StreamHandler(sys.stderr)
     if config.log_mode == "json":
-        handler.setFormatter(JsonFormatter())
+        handler.setFormatter(JsonLogFormatter())
     else:
         handler.setFormatter(logging.Formatter(config.log_format))
     logger.addHandler(handler)
@@ -984,7 +984,7 @@ def get_logger(name: str) -> logging.Logger:
 - `log_mode: json` (ADR-0021) печатает по одной JSON-записи на строку: `ts`, `level`,
   `logger`, `message` обязательны; `run_id`, `event`, `duration_ms`, `exception`,
   `extra` опциональны. `log_format` в этом режиме игнорируется.
-- `JsonFormatter` не пробрасывает исключения: сбой сериализации даёт минимальную
+- `JsonLogFormatter` не пробрасывает исключения: сбой сериализации даёт минимальную
   запись и не меняет exit code.
 - `extra` содержит только скаляры/примитивы, без секретов и абсолютных путей.
 - Значения `variables`, похожие на секреты, редактируются в логах и `config show`.
@@ -1396,7 +1396,8 @@ Cache-hit отчёт: `status=skipped`, `action=skip`, `parse/validate/generate/
 `.eggpipe/cache/`:
 
 - `meta.json` — `cache_version`, `eggpipe_version` и записи по SHA-256 содержимого:
-  формат и его версия, версии плагина формата, `inputs` относительно каталога конфига;
+  формат и его версия, версии плагина формата, `inputs` относительно каталога конфига,
+  `paths` (путь источника → ключ) для причины промаха `changed`;
 - `docs/<sha256>.json` — path-free payload `ModelDocument`.
 
 Поток: discovery берёт формат из валидной записи без полного `load_yaml`; fingerprint
@@ -1418,10 +1419,11 @@ Payload — `ModelDocument` без `path`/`source`/`format`/`format_version`; п
 `cache_version`, поэтому старые записи один раз промахиваются.
 
 Метрики прогона (ADR-0021): `EngineReport.cache` публикует `hits`, `misses`,
-`miss_reasons`, `entries`, `bytes`; счётчики ведёт `DocumentCache`/`CachedParser`,
-`Engine` переносит их в отчёт. Причина промаха выбирается по приоритету
-`invalid → version → missing → changed`; discovery/fingerprint, читающие мету без
-разбора, в счётчики не входят. При отключённом L2 поле `cache` — `null`.
+`miss_reasons`, `entries`, `bytes`; счётчики ведёт `DocumentCache`, `CachedParser`
+вызывает `load()`, а `Engine` переносит снимок в отчёт. Причина промаха выбирается по
+приоритету `invalid → version → missing → changed`; discovery/fingerprint, читающие мету
+без разбора, в счётчики не входят. При отключённом L2 и при L1-пропуске поле `cache` —
+`null`.
 
 ---
 

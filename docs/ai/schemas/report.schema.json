@@ -45,6 +45,75 @@
       "title": "ArtifactReport",
       "type": "object"
     },
+    "CacheMissReasons": {
+      "additionalProperties": false,
+      "properties": {
+        "changed": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Changed",
+          "type": "integer"
+        },
+        "invalid": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Invalid",
+          "type": "integer"
+        },
+        "missing": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Missing",
+          "type": "integer"
+        },
+        "version": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "title": "CacheMissReasons",
+      "type": "object"
+    },
+    "CacheReport": {
+      "additionalProperties": false,
+      "description": "Per-run L2 cache metrics (ADR-0021).",
+      "properties": {
+        "bytes": {
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "entries": {
+          "minimum": 0,
+          "title": "Entries",
+          "type": "integer"
+        },
+        "hits": {
+          "minimum": 0,
+          "title": "Hits",
+          "type": "integer"
+        },
+        "miss_reasons": {
+          "$ref": "#/$defs/CacheMissReasons"
+        },
+        "misses": {
+          "minimum": 0,
+          "title": "Misses",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "hits",
+        "misses",
+        "miss_reasons",
+        "entries",
+        "bytes"
+      ],
+      "title": "CacheReport",
+      "type": "object"
+    },
     "Diagnostic": {
       "additionalProperties": false,
       "description": "Validation diagnostic; the code is stable and documented.",
@@ -315,6 +384,17 @@
       "title": "Artifacts",
       "type": "array"
     },
+    "cache": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CacheReport"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "diagnostics": {
       "items": {
         "$ref": "#/$defs/Diagnostic"
@@ -352,7 +432,7 @@
       "default": null
     },
     "report_version": {
-      "default": 2,
+      "default": 3,
       "title": "Report Version",
       "type": "integer"
     },

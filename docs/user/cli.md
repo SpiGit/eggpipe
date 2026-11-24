@@ -173,5 +173,16 @@ eggpipe clean --root ./project
 eggpipe generate --output-format json
 ```
 
-`report_version: 2`; содержит `formats`, `generators[].input_formats`, плоские
-`artifacts[].action`, `manifest`, `stale_locations`, `timings`.
+`report_version: 3`; содержит `formats`, `generators[].input_formats`, плоские
+`artifacts[].action`, `manifest`, `stale_locations`, `timings` и `cache` — сводные
+метрики L2 (`hits`, `misses`, `miss_reasons`, `entries`, `bytes`) или `null`, если
+кэш не используется.
+
+```bash
+EGGPIPE_LOG_MODE=json eggpipe generate --incremental
+```
+
+`EGGPIPE_LOG_MODE=json` (в окружении или `.env`) переключает логи на
+JSON Lines в stderr: по одному объекту на запись с полями `ts`, `level`, `logger`,
+`message`; `run_id`, `event`, `duration_ms`, `exception` и `extra` опциональны.
+По умолчанию режим `text` и прежний шаблон `log_format`.

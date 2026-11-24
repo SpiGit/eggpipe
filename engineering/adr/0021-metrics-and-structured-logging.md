@@ -93,7 +93,8 @@ Roadmap 0.5.0 п. 3 требует контракт метрик и structured l
 - `exception` — текст трассировки отдельным полем, без встраивания в `message`.
 - Запись идёт в `log_destination` (stderr по умолчанию); stdout не используется,
   кроме явного `log_destination: stdout`.
-- `JsonFormatter` не бросает исключений наружу: при ошибке сериализации пишется
+- `JsonLogFormatter` (переименован из `JsonFormatter`, чтобы не путать с output-форматтером
+  отчёта) не бросает исключений наружу: при ошибке сериализации пишется
   минимальная запись `{"ts":...,"level":"error","logger":...,"message":"log serialization failed"}`.
 
 ### 3.3 Версионирование кэша
@@ -124,7 +125,7 @@ PR реализации (отдельно от этого ADR и ТЗ v2.5):
 | `src/eggpipe/engine/document_cache.py` | счётчики hits/misses, причины промахов, entries/bytes |
 | `src/eggpipe/engine/parser_cache.py`, `src/eggpipe/engine/engine.py` | передача счётчиков в отчёт |
 | `src/eggpipe/config/app_config.py` | `log_mode: Literal["text", "json"] = "text"` |
-| `src/eggpipe/config/logging.py` | `JsonFormatter`, выбор режима; ошибки не пробрасываются |
+| `src/eggpipe/config/logging.py` | `JsonLogFormatter`, выбор режима; ошибки не пробрасываются |
 | `tests/test_report.py`, `tests/test_document_cache.py`, `tests/test_logging.py` | матрица §5 |
 | `engineering/system-design/index.md` | синхронизация после реализации |
 | `docs/ai/**` | пересборка при изменении публичной схемы отчёта |

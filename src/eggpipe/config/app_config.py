@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,6 +19,7 @@ class AppConfig(BaseSettings):
 
     log_level: str = "INFO"
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_mode: Literal["text", "json"] = "text"
     log_destination: str = "stderr"
 
     rules_file: Path | None = None

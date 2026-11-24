@@ -11,7 +11,7 @@ from typing import Any, Protocol
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.model import SourceModel
 
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 _TAG = "__eggpipe_type__"
 _MAPPING = "mapping"
 

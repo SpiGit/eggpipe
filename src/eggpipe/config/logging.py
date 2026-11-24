@@ -2,13 +2,73 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
+import time
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
+
+from typing_extensions import override
 
 from eggpipe.config.app_config import AppConfig
 
 LOGGER_NAME = "eggpipe"
+_FALLBACK_MESSAGE = "log serialization failed"
+_OPTIONAL_FIELDS = ("run_id", "event", "duration_ms", "exception")
+_STANDARD_FIELDS = frozenset(vars(logging.LogRecord("", 0, "", 0, "", None, None)))
+
+
+def _timestamp(created: float) -> str:
+    moment = datetime.fromtimestamp(created, tz=UTC)
+    return moment.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def _escape(value: object) -> str:
+    return str(value).replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _fallback_record(record: logging.LogRecord) -> str:
+    try:
+        name = record.name
+    except Exception:
+        name = LOGGER_NAME
+    timestamp = _timestamp(time.time())
+    return (
+        f'{{"ts":"{timestamp}","level":"error",'
+        f'"logger":"{_escape(name)}","message":"{_FALLBACK_MESSAGE}"}}'
+    )
+
+
+class JsonLogFormatter(logging.Formatter):
+    """One JSON object per line (ADR-0021)."""
+
+    @override
+    def format(self, record: logging.LogRecord) -> str:
+        try:
+            payload: dict[str, Any] = {
+                "ts": _timestamp(record.created),
+                "level": record.levelname.lower(),
+                "logger": record.name,
+                "message": record.getMessage(),
+            }
+            for key in _OPTIONAL_FIELDS:
+                value = getattr(record, key, None)
+                if value is not None:
+                    payload[key] = value
+            if record.exc_info:
+                payload["exception"] = self.formatException(record.exc_info)
+            extra = {
+                key: value
+                for key, value in vars(record).items()
+                if key not in _STANDARD_FIELDS and key not in _OPTIONAL_FIELDS
+            }
+            if extra:
+                payload["extra"] = extra
+            return json.dumps(payload, ensure_ascii=False, default=str, separators=(",", ":"))
+        except Exception:
+            return _fallback_record(record)
 
 
 def get_logger(name: str = LOGGER_NAME) -> logging.Logger:
@@ -37,9 +97,12 @@ def setup_logging(config: AppConfig) -> logging.Logger:
         handler = logging.StreamHandler(sys.stdout)
     else:
         handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(logging.Formatter(config.log_format))
+    if config.log_mode == "json":
+        handler.setFormatter(JsonLogFormatter())
+    else:
+        handler.setFormatter(logging.Formatter(config.log_format))
     logger.addHandler(handler)
     return logger
 
 
-__all__ = ["LOGGER_NAME", "get_logger", "setup_logging"]
+__all__ = ["LOGGER_NAME", "JsonLogFormatter", "get_logger", "setup_logging"]
