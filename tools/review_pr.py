@@ -29,9 +29,24 @@ def main(argv: list[str] | None = None) -> int:
         help="review event; COMMENT works for your own PRs",
     )
     parser.add_argument("--body", help="review body; reads stdin when omitted")
+    parser.add_argument(
+        "--body-file",
+        type=Path,
+        help="read review body from a UTF-8 file (for agents that cannot use heredoc)",
+    )
     args = parser.parse_args(argv)
 
-    body = args.body if args.body is not None else sys.stdin.read()
+    if args.body is not None and args.body_file is not None:
+        parser.error("--body and --body-file are mutually exclusive")
+    if args.body_file is not None:
+        try:
+            body = args.body_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise SystemExit(f"cannot read review body: {exc}") from exc
+    elif args.body is not None:
+        body = args.body
+    else:
+        body = sys.stdin.read()
     if not body.strip():
         raise SystemExit("review body is empty")
 
