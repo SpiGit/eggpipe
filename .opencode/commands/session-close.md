@@ -7,8 +7,8 @@ description: Закрыть рабочую сессию Eggpipe по прото�
 
 1. Дождись подтверждения пользователя, что PR смержен.
 2. Выполни чистку веток из раздела «Чистка веток»; удаляй только ветки merged PR.
-3. Обнови `.session-context.md`: текущее состояние, ссылка на backlog, план; правки не
-   коммить.
+3. Обнови `.session-context.md`: текущее состояние, ссылка на backlog, план; изменения не
+   входят в PR задачи, коммит — при закрытии дня.
 4. Выполни backlog closeout: перенеси `Backlog candidates` в
    [engineering/backlog.md](../../engineering/backlog.md), назначь `B-NNN`, проведи
    grooming, перенеси `done`/`dropped` в
