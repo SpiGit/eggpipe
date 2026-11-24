@@ -25,8 +25,8 @@
 - Релизная подготовка автоматизирована: `tools/bump_version.py` обновляет версию,
   `uv.lock`, CHANGELOG и `docs/ai`; `pages` вычисляет версию docs из `pyproject.toml`.
 - `check_docs.py` отклоняет литерал текущей версии в живых документах (DOC161).
-- `eggpipe gen list` подсказывает `gen list --all`, если плагины не загрузились;
-  тестовый хелпер `entry_points` фильтрует плагины по группе.
+- `eggpipe gen list` подсказывает `gen list --all`, если ни один генератор не загрузился;
+  общий тестовый хелпер `patch_entry_points` фильтрует плагины по группе.
 - `eggpipe format list` показывает `api_version`, `extends` и `base_versions`, как `format info`.
 - `eggpipe watch` — планирование прогонов по ADR-0019: серия правок даёт один прогон
   с потолком `max_delay = 10 × debounce_ms`, параллельные прогоны исключены, первый Ctrl+C
