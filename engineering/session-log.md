@@ -18,8 +18,9 @@
 - 2026-11-21 (пятнадцатая сессия: watch по ADR-0019, проверка модели, закрытие дня)
 - 2026-11-23 (шестнадцатая сессия: публикация ревью, имена сессий, закрытие дня)
 - 2026-11-24 (семнадцатая сессия: правила сессий и бэклога, closeout #72–#75)
+- 2026-11-24 (восемнадцатая сессия: ТЗ v2.5, метрики L2, JSON-логи, harness ревьюера)
 
-**Статус ТЗ:** v2.4 — рабочая версия (замещает v2.3)
+**Статус ТЗ:** v2.5 — рабочая версия (замещает v2.4)
 **Статус проекта:** beta (0.x); до 1.0 breaking changes возможны (ADR-0014)
 **Идентичность:** Eggpipe: package/CLI/config/state; старые имена остаются только в истории и ADR.
 **Реализация:** E0–E9 выполнены, релиз `0.4.0` опубликован на PyPI; код и сообщения English-only, EG-коды.
@@ -42,7 +43,7 @@
 - Model units: `monolith`, `file-per-model`, `directory-per-model`; слои и resources.
 - Глобальный manifest `.eggpipe/manifest.json`; lock `.eggpipe/lock`.
 - `cleanup: off` по умолчанию; удаляются только неизменённые owned-файлы.
-- CLI/JSON v2, `report_version: 2`; exit codes 0/1/2/130.
+- CLI/JSON v3, `report_version: 3`; блок `cache` (ADR-0021); JSON-логи `EGGPIPE_LOG_MODE`; exit codes 0/1/2/130.
 - Публичный API: `Engine`, `EngineReport`, `Diagnostic`, `ModelSlice`, `FieldDef`,
   `FormatInfo`, `FormatSchema`, `MergePolicy`, `generator`.
 - `Field`/`Enum` переименованы в `FieldDef`/`EnumDef`.
@@ -826,3 +827,52 @@ PR C — после PR A.
 | 1 | Harden document cache (B-047) | `load()` ловит `ValidationError`/`ValueError`/`TypeError`/`ArithmeticError`; экранирование `__eggpipe_type__`; тесты `exc.code` | Битый кэш не роняет прогон | feat |
 | 2 | Метрики/structured logging (B-050, ТЗ v2.5) | hits/misses кэша, контракт отчёта | Наблюдаемость 0.5.0 | spec/feat |
 | 3 | Grooming B-036/B-037 | troubleshooting hint; общий хелпер entry points | Чистый backlog | docs/test |
+
+---
+
+## 2026-11-24 — ТЗ v2.5, метрики L2 и JSON-логи
+
+### 1. План на день
+
+План изменён после открытия сессии: выбрана плановая задача 0.5.0 п. 3 (метрики),
+затем — два внеплановых harness-фикса.
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | ТЗ v2.5: метрики L2 и structured logging (ADR-0021) | Выполнено |
+| 2 | Реализация метрик и JSON-логов (B-050) | Выполнено |
+| 3 | Закрытие дня и backlog closeout | Выполнено |
+
+### 2. Выполнено
+
+| Задача | Результат |
+|--------|-----------|
+| Spec #82 | ТЗ v2.5 (§8.7, §8.8, §10.8), ADR-0021; v2.4 замещена; System Design, harness, README, `docs/ai`; две итерации ревью |
+| Harness #83 | Публикация вердикта через `review_pr.py --body-file`: heredoc не проходил правило, ревьюер считал shell запрещённым; запись только в `/tmp/opencode/**` |
+| Feat #84 | `report_version: 3` + блок `cache` (hits/misses/reasons/entries/bytes), `CACHE_VERSION: 3` и карта `paths`; `JsonLogFormatter`, `EGGPIPE_LOG_MODE`; тесты матрицы ADR-0021; coverage 86.31 % |
+| Harness #85 | `steps: 40`, бюджет шагов; правило «Critical/Major ⇒ CHANGES REQUESTED» после противоречивого «Major + APPROVE» |
+| Итог | `main` `bdb03eb` (#82–#85); 439 тестов; backlog 10 |
+
+### 3. Вне плана
+
+| Что | Причина | Импакт |
+|-----|---------|--------|
+| Фикс публикации ревьюера | Ревьюер не мог опубликовать вердикт: heredoc + права | Публикует сам через `--body-file` |
+| Лимит шагов и согласованность вердикта | Исчерпание 20 шагов; вердикт «Major + APPROVE» | 40 шагов, правило согласованности |
+| Повтор CI | macOS-раннер отменял job в очереди | Пустой коммит, CI зелёный |
+
+### 4. Не выполнено
+
+| Задача | Причина | Перенос |
+|--------|---------|---------|
+| 0.5.0 п. 4: регрессионные бенчмарки | После метрик, как требует roadmap | следующая сессия |
+| Minor ревью (#82–#85) | Только в `Backlog candidates` после APPROVE | B-049, B-051–B-054 |
+
+### 5. План на 2026-11-25
+
+| # | Задача | Контекст | Импакт | Формат / оценка |
+|---|--------|----------|--------|-----------------|
+| 1 | 0.5.0 п. 4: бенчмарки | baseline 0.4.0, пороги по `cache`/`timings`, сравнение в `engineering/benchmarks.md` | Критерий релиза 0.5.0 | feat/docs |
+| 2 | B-051: hardening кэша, раунд 2 | `RecursionError` в `_meta_state`, единые исключения, тесты rename/persist | Битый кэш не роняет прогон | fix |
+| 3 | B-054/B-053: логи и права ревьюера | абсолютные пути, `run_id`-эмиттеры; узкий `/tmp` scope, DOC146 | Инварианты harness | chore |
+| 4 | Релиз 0.5.0 | после пп. 1–2, чек-лист `engineering/release.md` | Выпуск вехи | release |
