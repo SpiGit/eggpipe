@@ -14,6 +14,7 @@ from typing_extensions import override
 from eggpipe import DocumentError, EntityModelFormat, FormatRegistry
 from eggpipe.core.cache import CACHE_VERSION, dump_payload, restore_document
 from eggpipe.core.parser import Parser
+from eggpipe.engine import document_cache
 from eggpipe.engine.document_cache import CacheEntry, DocumentCache
 from eggpipe.engine.parser_cache import CachedParser
 from eggpipe.engine.plugin_loader import build_format_registry
@@ -40,6 +41,10 @@ model:
   entities:
     - name: Post
 """
+
+METADATA_DOC = DOC.replace(
+    "      fields:", "      metadata:\n        created: 2024-01-01\n      fields:"
+)
 
 META = Path(".eggpipe") / "cache" / "meta.json"
 DOCS = Path(".eggpipe") / "cache" / "docs"
@@ -306,25 +311,121 @@ model:
     constraints = entity.fields[0].constraints
     assert constraints is not None
     assert isinstance(constraints.min, date)
+    assert isinstance(constraints.max, date)
+
+
+def test_payload_roundtrip_keeps_user_tag_key(tmp_path: Path) -> None:
+    path = write(
+        tmp_path / "model/tagged.yaml",
+        """\
+format: entity-model
+version: "1.0"
+model:
+  metadata:
+    __eggpipe_type__: date
+    value: "2024-01-01"
+  entities:
+    - name: Tagged
+""",
+    )
+    document = parse(path)
+
+    restored = restore_document(json.loads(json.dumps(dump_payload(document))), path)
+
+    assert restored.model.metadata == {"__eggpipe_type__": "date", "value": "2024-01-01"}
+
+
+def test_stored_user_tag_key_survives_roundtrip(tmp_path: Path) -> None:
+    path = write(
+        tmp_path / "model/tagged.yaml",
+        """\
+format: entity-model
+version: "1.0"
+model:
+  metadata:
+    __eggpipe_type__: datetime
+    value: "2024-01-01 03:04:05"
+  entities:
+    - name: Tagged
+""",
+    )
+    cache = make_cache(tmp_path)
+    cache.remember(path, parse(path))
+    cache.persist()
+
+    loaded = make_cache(tmp_path).load(path)
+
+    assert loaded is not None
+    assert loaded.model.metadata == {
+        "__eggpipe_type__": "datetime",
+        "value": "2024-01-01 03:04:05",
+    }
 
 
 @pytest.mark.parametrize(
-    "text",
+    ("tag", "value"),
     [
-        "format: [",
-        DOC.replace('version: "1.0"', 'version: "9.9"'),
-        DOC.replace("          type: integer\n", ""),
+        ("date", "not-a-date"),
+        ("decimal", "not-a-number"),
+        ("unknown", "2024-01-01"),
     ],
 )
-def test_parse_error_is_not_cached(tmp_path: Path, text: str) -> None:
+def test_corrupt_tagged_payload_is_miss(tmp_path: Path, tag: str, value: str) -> None:
+    path = prepared(tmp_path, text=METADATA_DOC)
+    payload_path = next((tmp_path / DOCS).glob("*.json"))
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    tagged = payload["model"]["entities"][0]["metadata"]["created"]
+    tagged["__eggpipe_type__"] = tag
+    tagged["value"] = value
+    payload_path.write_text(json.dumps(payload), encoding="utf-8")
+    cache = make_cache(tmp_path)
+
+    assert cache.load(path) is None
+    document = CachedParser(build_format_registry(), cache).parse_document(path)
+    assert document.model.entity("User") is not None
+
+
+def test_shared_import_digest_is_memoized(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    write(tmp_path / "model/base.yaml", DOC)
+    first = write(tmp_path / "model/first.yaml", IMPORTER)
+    second = write(tmp_path / "model/second.yaml", IMPORTER)
+    calls: list[str] = []
+    original = document_cache.digest
+
+    def counting(content: bytes) -> str:
+        calls.append(sha256(content).hexdigest())
+        return original(content)
+
+    monkeypatch.setattr(document_cache, "digest", counting)
+    cache = make_cache(tmp_path)
+    for path in (first, second):
+        cache.remember(path, parse(path))
+
+    base = sha256((tmp_path / "model/base.yaml").read_bytes()).hexdigest()
+    assert calls.count(base) == 1
+
+
+@pytest.mark.parametrize(
+    ("text", "code"),
+    [
+        ("format: [", "EG000"),
+        (DOC.replace('version: "1.0"', 'version: "9.9"'), "EG008"),
+        (DOC.replace("          type: integer\n", ""), "EG028"),
+    ],
+)
+def test_parse_error_is_not_cached(tmp_path: Path, text: str, code: str) -> None:
     path = write(tmp_path / "model/broken.yaml", text)
+    with pytest.raises(DocumentError) as direct:
+        parse(path)
     cache = make_cache(tmp_path)
     parser = CachedParser(build_format_registry(), cache)
 
-    with pytest.raises(DocumentError):
+    with pytest.raises(DocumentError) as cached:
         parser.parse_document(path)
     cache.persist()
 
+    assert cached.value.code == direct.value.code == code
+    assert cached.value.path == direct.value.path
     assert not (tmp_path / META).exists()
 
 

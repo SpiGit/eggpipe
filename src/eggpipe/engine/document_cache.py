@@ -111,7 +111,7 @@ class DocumentCache:
             return None
         try:
             return restore_document(payload, path)
-        except ValidationError as exc:
+        except (ValidationError, ValueError, TypeError, ArithmeticError) as exc:
             _LOG.debug("document cache payload is invalid for %s: %s", path, exc)
             return None
 
@@ -126,7 +126,7 @@ class DocumentCache:
                 return
             payload = dump_payload(document)
             restore_document(payload, path)
-        except (TypeError, ValueError) as exc:
+        except (TypeError, ValueError, ArithmeticError) as exc:
             _LOG.debug("document cache payload is not serializable for %s: %s", path, exc)
             return
         meta = self._meta_state()
@@ -200,8 +200,7 @@ class DocumentCache:
             candidate = (self.config_dir / relative).resolve()
             if not candidate.is_relative_to(self.config_dir.resolve()):
                 return False
-            content = self.read(candidate)
-            if content is None or digest(content) != expected:
+            if self.digest(candidate) != expected:
                 return False
         return True
 
@@ -243,10 +242,10 @@ class DocumentCache:
             candidate = candidate.resolve()
             if not candidate.is_relative_to(self.config_dir.resolve()):
                 return None
-            data = self.read(candidate)
-            if data is None:
+            value = self.digest(candidate)
+            if value is None:
                 return None
-            inputs[candidate.relative_to(self.config_dir.resolve()).as_posix()] = digest(data)
+            inputs[candidate.relative_to(self.config_dir.resolve()).as_posix()] = value
         return inputs
 
     def _read_payload(self, key: str) -> dict[str, Any] | None:

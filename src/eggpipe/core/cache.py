@@ -11,8 +11,9 @@ from typing import Any, Protocol
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.model import SourceModel
 
-CACHE_VERSION = 1
+CACHE_VERSION = 2
 _TAG = "__eggpipe_type__"
+_MAPPING = "mapping"
 
 
 class CachedFormatProbe(Protocol):
@@ -62,7 +63,10 @@ def restore_document(payload: dict[str, Any], path: Path) -> ModelDocument:
 
 def _encode(value: Any) -> Any:
     if isinstance(value, dict):
-        return {key: _encode(item) for key, item in value.items()}
+        items = {key: _encode(item) for key, item in value.items()}
+        if _TAG in value:
+            return {_TAG: _MAPPING, "value": items}
+        return items
     if isinstance(value, (list, tuple)):
         return [_encode(item) for item in value]
     if isinstance(value, datetime):
@@ -79,22 +83,34 @@ def _encode(value: Any) -> Any:
 
 
 def _decode(value: Any) -> Any:
+    """Decode a tagged payload; malformed tags raise so ``load()`` treats them as a miss.
+
+    Dicts that carry the tag key are escaped by :func:`_encode` as ``mapping``,
+    so a tag-shaped user dict is never mistaken for a scalar.
+    """
     if isinstance(value, list):
         return [_decode(item) for item in value]
     if not isinstance(value, dict):
         return value
     tag = value.get(_TAG)
-    if tag is not None and set(value) == {_TAG, "value"}:
-        raw = str(value["value"])
-        if tag == "datetime":
-            return datetime.fromisoformat(raw)
-        if tag == "date":
-            return date.fromisoformat(raw)
-        if tag == "time":
-            return time.fromisoformat(raw)
-        if tag == "decimal":
-            return Decimal(raw)
-    return {key: _decode(item) for key, item in value.items()}
+    if tag is None or set(value) != {_TAG, "value"}:
+        return {key: _decode(item) for key, item in value.items()}
+    raw = value["value"]
+    if tag == _MAPPING:
+        if not isinstance(raw, dict):
+            raise ValueError("cache mapping payload is not a mapping")
+        return {key: _decode(item) for key, item in raw.items()}
+    if not isinstance(raw, str):
+        raise ValueError(f"cache scalar payload {tag!r} is not a string")
+    if tag == "datetime":
+        return datetime.fromisoformat(raw)
+    if tag == "date":
+        return date.fromisoformat(raw)
+    if tag == "time":
+        return time.fromisoformat(raw)
+    if tag == "decimal":
+        return Decimal(raw)
+    raise ValueError(f"unknown cache type tag: {tag!r}")
 
 
 __all__ = ["CACHE_VERSION", "CachedFormatProbe", "digest", "dump_payload", "restore_document"]
