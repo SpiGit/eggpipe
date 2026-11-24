@@ -590,11 +590,14 @@ def test_l2_cache_is_not_used_for_entities(tmp_path: Path, monkeypatch: pytest.M
     CountingGenerator.calls = 0
     write_dir_model(tmp_path)
     make_dir_engine(tmp_path).generate()
+    meta_path = tmp_path / ".eggpipe" / "cache" / "meta.json"
+    before = meta_path.read_text(encoding="utf-8")
 
     calls = count_parses(monkeypatch)
     make_dir_engine(tmp_path).generate(entities=["Alpha"])
 
-    assert calls != []
+    assert len(calls) == 2
+    assert meta_path.read_text(encoding="utf-8") == before
 
 
 def test_l2_cache_is_used_when_artifacts_drift(
