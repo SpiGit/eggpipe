@@ -175,11 +175,14 @@ nullable-тип в OpenAPI 3.1 становится `["string", "null"]`.
 
 ## Тесты
 
+Перед запуском установите пример: тест регистрации entry points ищет генераторы
+в текущем окружении.
+
 ```bash
+uv pip install -e examples/reference-generators
 uv run pytest examples/reference-generators/tests -q
 ```
 
 Contract-тесты проверяют `validate_generator_contract`, имена артефактов, базовое
 содержимое, детерминизм двух прогонов, изоляцию `config.options` и регистрацию entry
-points. Тест entry points требует установленного примера:
-`uv pip install -e examples/reference-generators`.
+points.

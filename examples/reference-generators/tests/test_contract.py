@@ -116,8 +116,10 @@ def test_entry_points_are_registered() -> None:
     from eggpipe.engine.plugin_loader import load_generators_with_issues
 
     plugins, issues = load_generators_with_issues()
-    assert issues == []
-    assert {"sql", "pydantic", "typescript", "openapi"} <= set(plugins)
+    example_ids = {"sql", "pydantic", "typescript", "openapi"}
+    assert example_ids <= set(plugins)
+    # The test venv is often shared with other plugins: only this example's issues matter.
+    assert [issue for issue in issues if issue.entry_point in example_ids] == []
 
 
 def test_entity_order_is_stable() -> None:

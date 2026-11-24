@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import pytest
+from tests.helpers import patch_entry_points
 
 from eggpipe import (
     Artifact,
@@ -99,48 +100,42 @@ class BrokenFormat(CustomFormat):
 
 
 def test_load_generators(monkeypatch: pytest.MonkeyPatch) -> None:
-    entries = [EntryPoint("demo", DemoGenerator), EntryPoint("broken", BrokenGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch,
+        [EntryPoint("demo", DemoGenerator), EntryPoint("broken", BrokenGenerator)],
+        plugin_loader.GENERATOR_GROUP,
+    )
     assert set(plugin_loader.load_generators()) == {"demo"}
 
 
 def test_generator_issues(monkeypatch: pytest.MonkeyPatch) -> None:
-    entries = [
-        EntryPoint("demo", DemoGenerator),
-        EntryPoint("wrong-name", DemoGenerator),
-        EntryPoint("broken", BrokenGenerator),
-    ]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch,
+        [
+            EntryPoint("demo", DemoGenerator),
+            EntryPoint("wrong-name", DemoGenerator),
+            EntryPoint("broken", BrokenGenerator),
+        ],
+        plugin_loader.GENERATOR_GROUP,
+    )
     plugins, issues = plugin_loader.load_generators_with_issues()
     assert set(plugins) == {"demo"}
     assert {item.entry_point for item in issues} == {"wrong-name", "broken"}
 
 
 def test_decorator_generator_is_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return [EntryPoint("decorated", Decorated)]
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("decorated", Decorated)], plugin_loader.GENERATOR_GROUP
+    )
     plugins, issues = plugin_loader.load_generators_with_issues()
     assert issues == []
     assert set(plugins) == {"decorated"}
 
 
 def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
-    entries = [EntryPoint("missing", MissingGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("missing", MissingGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     plugins, issues = plugin_loader.load_generators_with_issues()
     assert plugins == {}
     issue = issues[0]
@@ -157,12 +152,9 @@ def test_missing_input_formats_is_reported(monkeypatch: pytest.MonkeyPatch) -> N
 def test_contract_issue_prints_code_once_in_cli_format(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    entries = [EntryPoint("missing", MissingGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("missing", MissingGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     _, issues = plugin_loader.load_generators_with_issues()
     issue = issues[0]
     line = f"warning: {issue.entry_point}: {issue.code}: {issue.message}"
@@ -173,15 +165,14 @@ def test_contract_issue_prints_code_once_in_cli_format(
 def test_eg302_issue_keeps_other_plugins_and_names_location(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    entries = [
-        EntryPoint("bad-signature", BadSignature),
-        EntryPoint("demo", DemoGenerator),
-    ]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch,
+        [
+            EntryPoint("bad-signature", BadSignature),
+            EntryPoint("demo", DemoGenerator),
+        ],
+        plugin_loader.GENERATOR_GROUP,
+    )
     plugins, issues = plugin_loader.load_generators_with_issues()
     assert set(plugins) == {"demo"}
     assert len(issues) == 1
@@ -205,17 +196,16 @@ def test_loader_level_issues_have_no_contract_code(monkeypatch: pytest.MonkeyPat
         def generate(self, input: GeneratorInput) -> GenerationResult:
             return GenerationResult()
 
-    entries = [
-        EntryPoint("demo", DemoGenerator),
-        EntryPoint("demo", Duplicate),
-        EntryPoint("wrong-name", DemoGenerator),
-        EntryPoint("broken", BrokenGenerator),
-    ]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch,
+        [
+            EntryPoint("demo", DemoGenerator),
+            EntryPoint("demo", Duplicate),
+            EntryPoint("wrong-name", DemoGenerator),
+            EntryPoint("broken", BrokenGenerator),
+        ],
+        plugin_loader.GENERATOR_GROUP,
+    )
     _, issues = plugin_loader.load_generators_with_issues()
     assert all(issue.code is None for issue in issues)
     messages = " ".join(issue.message for issue in issues)

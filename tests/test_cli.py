@@ -8,6 +8,7 @@ from typing import Any, ClassVar
 
 import pytest
 from reference_generator import ReferenceGenerator
+from tests.helpers import patch_entry_points
 from typer.testing import CliRunner
 
 from eggpipe import EntityModelFormat, GenerationResult, GeneratorInput
@@ -132,7 +133,7 @@ def test_format_list() -> None:
 
 
 def test_format_list_shows_inherited_format(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(
+    patch_entry_points(
         monkeypatch, [EntryPoint("demo-model", DemoModelFormat)], plugin_loader.FORMAT_GROUP
     )
     result = CliRunner().invoke(app, ["format", "list"])
@@ -143,7 +144,7 @@ def test_format_list_shows_inherited_format(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_format_info_unknown_without_close_matches(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [], plugin_loader.FORMAT_GROUP)
+    patch_entry_points(monkeypatch, [], plugin_loader.FORMAT_GROUP)
     result = CliRunner().invoke(app, ["format", "info", "zzzzzz"])
     assert result.exit_code == 2
     assert "did you mean" not in result.stderr
@@ -228,12 +229,9 @@ def test_generate_with_reference_plugin(tmp_path: Path, monkeypatch: pytest.Monk
         RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
         encoding="utf-8",
     )
-    entries = [EntryPoint("reference", ReferenceGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["generate", "-c", str(rules)])
     assert result.exit_code == 0
     assert (tmp_path / "out" / "model.json").is_file()
@@ -246,12 +244,9 @@ def test_generate_incremental_reports_skip(tmp_path: Path, monkeypatch: pytest.M
         RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
         encoding="utf-8",
     )
-    entries = [EntryPoint("reference", ReferenceGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     runner = CliRunner()
     first = runner.invoke(
         app, ["generate", "-c", str(rules), "--incremental", "--output-format", "json"]
@@ -273,12 +268,9 @@ def test_generate_incremental_from_env(tmp_path: Path, monkeypatch: pytest.Monke
         RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
         encoding="utf-8",
     )
-    entries = [EntryPoint("reference", ReferenceGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     monkeypatch.setenv("EGGPIPE_INCREMENTAL", "true")
     runner = CliRunner()
     first = runner.invoke(app, ["generate", "-c", str(rules), "--output-format", "json"])
@@ -299,12 +291,9 @@ def test_generate_strict_disables_incremental(
         RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
         encoding="utf-8",
     )
-    entries = [EntryPoint("reference", ReferenceGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     runner = CliRunner()
     first = runner.invoke(app, ["generate", "-c", str(rules), "--incremental", "--strict"])
     assert first.exit_code == 1
@@ -406,12 +395,9 @@ def test_clean_removes_all_global_locations(
         RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
         encoding="utf-8",
     )
-    entries = [EntryPoint("reference", ReferenceGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     first = CliRunner().invoke(app, ["generate", "-c", str(rules)])
     assert first.exit_code == 0
     rules.write_text(
@@ -479,12 +465,9 @@ def test_json_report_v2_action_and_timings(
         RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
         encoding="utf-8",
     )
-    entries = [EntryPoint("reference", ReferenceGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(
         app,
         ["generate", "-c", str(rules), "--output-format", "json"],
@@ -546,12 +529,9 @@ def test_generate_per_entity_requires_entity_scope(
         RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
         encoding="utf-8",
     )
-    entries = [EntryPoint("reference", ReferenceGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--entity", "User"])
     assert result.exit_code == 2
     assert "EG303" in result.stderr
@@ -635,12 +615,9 @@ def test_watch_debounce_flag_overrides_env(tmp_path: Path, monkeypatch: pytest.M
 
 
 def test_gen_info_shows_output_scope(monkeypatch: pytest.MonkeyPatch) -> None:
-    entries = [EntryPoint("reference", ReferenceGenerator)]
-
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
     result = CliRunner().invoke(app, ["gen", "info", "reference"])
     assert result.exit_code == 0
     assert "output_scope: model" in result.stdout
@@ -696,17 +673,6 @@ def test_generate_empty_entity_exits_2(tmp_path: Path, value: str) -> None:
     assert result.exit_code == 2
 
 
-def _patch_entry_points(
-    monkeypatch: pytest.MonkeyPatch,
-    entries: list[EntryPoint],
-    expected_group: str,
-) -> None:
-    def fake_entry_points(*, group: str) -> list[EntryPoint]:
-        return entries if group == expected_group else []
-
-    monkeypatch.setattr(plugin_loader, "entry_points", fake_entry_points)
-
-
 class DemoModelFormat(EntityModelFormat):
     """Format plugin for `format info` tests: extends entity-model."""
 
@@ -727,7 +693,7 @@ class BrokenGenerator(GeneratorPlugin):
 
 
 def test_gen_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(
+    patch_entry_points(
         monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
     )
     result = CliRunner().invoke(app, ["gen", "info", "reference"])
@@ -745,7 +711,7 @@ def test_gen_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_gen_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(
+    patch_entry_points(
         monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
     )
     result = CliRunner().invoke(app, ["gen", "info", "referense"])
@@ -756,7 +722,7 @@ def test_gen_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_format_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [], plugin_loader.GENERATOR_GROUP)
+    patch_entry_points(monkeypatch, [], plugin_loader.GENERATOR_GROUP)
     result = CliRunner().invoke(app, ["format", "info", "entity-model"])
     assert result.exit_code == 0
     lines = result.stdout.splitlines()
@@ -776,7 +742,7 @@ def test_format_info_shows_plugin_origin(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_format_info_shows_base_versions(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(
+    patch_entry_points(
         monkeypatch, [EntryPoint("demo-model", DemoModelFormat)], plugin_loader.FORMAT_GROUP
     )
     result = CliRunner().invoke(app, ["format", "info", "demo-model"])
@@ -787,7 +753,7 @@ def test_format_info_shows_base_versions(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_format_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [], plugin_loader.FORMAT_GROUP)
+    patch_entry_points(monkeypatch, [], plugin_loader.FORMAT_GROUP)
     result = CliRunner().invoke(app, ["format", "info", "entity-modell"])
     assert result.exit_code == 2
     assert "error: unknown format: entity-modell" in result.stderr
@@ -796,7 +762,7 @@ def test_format_info_unknown_suggests(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_plugin_issue_warning_includes_code(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(
+    patch_entry_points(
         monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
     )
     result = CliRunner().invoke(app, ["gen", "list", "--all"])
@@ -808,7 +774,7 @@ def test_plugin_issue_warning_includes_code(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_gen_list_hints_all_when_plugins_fail(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(
+    patch_entry_points(
         monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
     )
     result = CliRunner().invoke(app, ["gen", "list"])
@@ -819,7 +785,7 @@ def test_gen_list_hints_all_when_plugins_fail(monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_gen_list_without_plugins_or_issues(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(monkeypatch, [], plugin_loader.GENERATOR_GROUP)
+    patch_entry_points(monkeypatch, [], plugin_loader.GENERATOR_GROUP)
     result = CliRunner().invoke(app, ["gen", "list"])
     assert result.exit_code == 0
     assert result.stdout == "no generators\n"
@@ -827,7 +793,7 @@ def test_gen_list_without_plugins_or_issues(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_gen_list_all_shows_issues_without_hint(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_entry_points(
+    patch_entry_points(
         monkeypatch, [EntryPoint("broken", BrokenGenerator)], plugin_loader.GENERATOR_GROUP
     )
     result = CliRunner().invoke(app, ["gen", "list", "--all"])
