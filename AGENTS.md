@@ -38,7 +38,7 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 
 1. Актуальное ТЗ — файл со статусом **Актуальная** в `engineering/requirements/index.md` (сейчас `v2.4.md`):
    поведение, контракты, CLI, запись артефактов.
-2. `engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды, 0014 — beta-статус и совместимость до 1.0, 0015 — ветвление и релизная политика, 0016 — политика deprecation, 0017 — инкрементальная генерация, 0018 — per-entity генерация, 0019 — планирование и отмена в watch).
+2. `engineering/adr/` — принятые решения (0001 — композиция, 0002 — type checker, 0003 — null-семантика, 0004 — ownership/cleanup, 0005 — library API, 0006 — format extension, 0007 — наследование форматов, 0008 — model units/раскладки, 0009 — глобальный manifest, 0010 — decorator API, 0011 — публичный API v2 и идентичность, 0012 — English-only source, 0013 — EG-коды, 0014 — beta-статус и совместимость до 1.0, 0015 — ветвление и релизная политика, 0016 — политика deprecation, 0017 — инкрементальная генерация, 0018 — per-entity генерация, 0019 — планирование и отмена в watch, 0020 — кэш разбора документов).
 3. `engineering/system-design/index.md` — проектирование реализации (классы, потоки, структура).
 4. `engineering/requirements/index.md` — реестр версий; полный changelog — `changelog.md`.
 5. `README.md` и `.session-context.md` — краткое состояние проекта.
