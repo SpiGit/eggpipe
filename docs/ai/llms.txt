@@ -28,6 +28,6 @@
 
 ## Engineering
 
-- [Requirements v2.4](../../engineering/requirements/v2.4.md)
+- [Requirements v2.5](../../engineering/requirements/v2.5.md)
 - [System Design](../../engineering/system-design/index.md)
 - [ADR index](../../engineering/adr/index.md)

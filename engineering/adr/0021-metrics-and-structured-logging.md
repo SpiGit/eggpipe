@@ -145,7 +145,8 @@ Non-goals:
 |----------|----------|
 | Без `--incremental` | `cache: null`; остальные поля отчёта как в v2 |
 | Холодный incremental-прогон | `misses = N`, `hits = 0`, причины `missing`; `entries/bytes > 0` |
-| Повторный no-op incremental | `hits = N`, `misses = 0`; `miss_reasons` все нули; `report_version: 3` |
+| Повторный no-op incremental (L1 пропускает прогон) | `cache: null`, `generators[].status = "skipped"`; `parse_ms = 0` |
+| Промах L1 без изменения документов (изменён `variables`/ресурс) | `hits = N`, `misses = 0`; `miss_reasons` все нули; `report_version: 3` |
 | Изменён 1 из N | `hits = N-1`, `misses = 1`, причина `changed` |
 | Битые `meta.json`/payload | Промах `invalid`, прогон успешен, диагностики не добавлены |
 | Смена `cache_version`/`eggpipe_version` | Промах `version` |

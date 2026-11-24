@@ -54,7 +54,7 @@ DOCUMENTS = (
     "docs/ai/context.md",
     "docs/ai/tasks.md",
     "docs/ai/invariants.md",
-    "engineering/requirements/v2.4.md",
+    "engineering/requirements/v2.5.md",
     "engineering/system-design/index.md",
 )
 
@@ -139,7 +139,7 @@ def _llms_index() -> str:
 
 ## Engineering
 
-- [Requirements v2.4](../../engineering/requirements/v2.4.md)
+- [Requirements v2.5](../../engineering/requirements/v2.5.md)
 - [System Design](../../engineering/system-design/index.md)
 - [ADR index](../../engineering/adr/index.md)
 """
@@ -157,7 +157,7 @@ def _manifest() -> dict[str, Any]:
     return {
         "project": "eggpipe",
         "status": "beta",
-        "spec_version": "2.4",
+        "spec_version": "2.5",
         "package_version": eggpipe.__version__,
         "public_api": sorted(eggpipe.__all__),
         "commands": list(COMMANDS),
