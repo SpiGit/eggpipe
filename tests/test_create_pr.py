@@ -453,3 +453,6 @@ def test_shared_warning() -> None:
     assert warning is not None
     assert "CHANGELOG.md" in warning
     assert "single owner" in warning
+    archive_warning = shared_warning(["engineering/backlog-archive.md"])
+    assert archive_warning is not None
+    assert "engineering/backlog-archive.md" in archive_warning

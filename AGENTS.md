@@ -54,7 +54,10 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 | `engineering/system-design/index.md` | System Design |
 | `engineering/adr/` | Принятые архитектурные решения |
 | `engineering/reviews/` | Ревью и backlog P1/P2 |
+| `engineering/process/sessions.md` | Процесс сессий, backlog и handoff |
 | `engineering/backlog.md` | Отложенные minor и технический долг |
+| `engineering/backlog-archive.md` | Закрытые записи `done`/`dropped` |
+| `engineering/spikes/` | Spike-замеры и рекомендации |
 | `engineering/day-closure.md` | Шаблон и правила завершения дня |
 | `engineering/roadmap.md` | Направления развития и подготовка к 1.0 |
 | `engineering/decisions/eggpipe.md` | Имя, CLI/конфиг, бренд и идеи лого |
@@ -103,13 +106,13 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 
 ## Сессии и контекст
 
-- Одна сессия — одна задача или один день. Не держи одну сессию на несколько дней:
-  контекст переотправляется на каждом шаге и растёт вместе с историей.
-- Имя сессии: в первом ответе сессии напиши готовой строкой `Имя сессии: «<2–5 слов>»` —
+- Процесс сессии, backlog и handoff — в
+  [`engineering/process/sessions.md`](./engineering/process/sessions.md); ритуалы —
+  команды `/session-start` и `/session-close`.
+- Имя сессии: в первом ответе напиши готовой строкой `Имя сессии: «<2–5 слов>»` —
   пользователь копирует её в имя треда клиента (Zed не подхватывает title OpenCode).
-  После создания PR — `#<PR> <задача>`; при закрытии дня или сессии — `#<PR> (closed) <задача>`.
-  Параллельно задавай title сессии через `session_rename` (для TUI/CLI/логов); имя меняет
-  основной агент, subagent'ы его не трогают.
+  После создания PR — `#<PR> <задача>`; при закрытии — `#<PR> (closed) <задача>`.
+  Параллельно задавай title через `session_rename`; subagent'ы имя не меняют.
 - Передача состояния — через `.session-context.md` (текущее состояние и план) и
   `engineering/session-log.md` (история), а не через историю чата.
 - В начале сессии читай `.session-context.md`, `engineering/backlog.md` и только нужные
@@ -121,22 +124,19 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 
 ## Параллельная работа
 
-- Правила owned paths, shared files и generated-файлов — в `CONTRIBUTING.md`,
-  раздел «Параллельная работа».
-- `CHANGELOG.md`, `engineering/backlog.md`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/ai/**` и
-  `engineering/requirements/v*.md` редактирует только владелец; при пересечении задачи
-  выполняются последовательно.
+- Правила owned paths, shared files и generated-файлов — в `CONTRIBUTING.md` и
+  `engineering/process/sessions.md`; актуальный список shared files ведётся только там.
+- Shared files редактирует только владелец; при пересечении задачи выполняются
+  последовательно.
 - Subagent работает в отдельном worktree; основной агент координирует порядок merge.
 - Если owned paths пересекаются, задачи выполняются последовательно.
 
 ## Закрытие дня
 
 В конце дня заполнить `engineering/session-log.md` по шаблону
-[`engineering/day-closure.md`](./engineering/day-closure.md): план, выполнено, вне плана,
-не выполнено, план на следующий день. В `.session-context.md` оставить текущее состояние,
-план на следующий день и ссылку на `engineering/backlog.md`. На следующий день — не больше
-3–4 задач с импактом. Backlog closeout: `Backlog candidates` из PR body переносятся в
-`engineering/backlog.md` одним PR.
+[`engineering/day-closure.md`](./engineering/day-closure.md) и оставить handoff в
+`.session-context.md`. Backlog closeout, архив и лимит `open` — в
+`engineering/process/sessions.md`.
 
 ## PR review
 
@@ -161,27 +161,11 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 
 ## После merge PR
 
-Когда пользователь подтверждает, что PR смержен:
-
-1. Переключиться на `main`:
-   ```bash
-   git switch main
-   ```
-2. Забрать актуальное состояние и удалить исчезнувшие remote-ветки:
-   ```bash
-   git fetch --prune origin
-   git pull --ff-only origin main
-   ```
-3. Удалить локальные ветки, чьи PR уже merged. Для squash-merge нельзя полагаться
-   только на `git branch --merged`: сверяйся со списком merged PR в GitHub API.
-4. Удалить соответствующие remote-ветки:
-   ```bash
-   git push origin --delete <branch>
-   ```
-5. Выполнить `git remote prune origin` и проверить `git status`.
-
-Удалять только ветки, которые принадлежат merged PR. Незавершённые и чужие ветки
-не трогать.
+Когда пользователь подтверждает merge, выполни чистку веток по
+`engineering/process/sessions.md` (§«Чистка веток»): `main`, `fetch --prune`, удаление
+веток merged PR и `remote prune`. Для squash-merge сверяйся со списком merged PR в GitHub
+API, а не только с `git branch --merged`. Удаляй только ветки merged PR; незавершённые и
+чужие не трогай.
 
 ## Контекст
 
@@ -233,6 +217,8 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 - `uv run pytest --cov` — тесты и покрытие (порог 80%).
 - `uv build` + `uv run python tools/check_wheel.py dist` — сборка и проверка wheel/sdist.
 - `/spec-check [фокус]` — read-only проверка согласованности документации.
+- `/session-start` — ритуал открытия сессии (модель, состояние, backlog, DoR, имя).
+- `/session-close` — ритуал закрытия сессии (чистка веток, closeout, handoff, имя).
 - `/spec-release <версия>` — подготовка новой версии ТЗ и синхронизация документов.
 - `/adr-new <название>` — создание нового ADR по шаблону.
 - `uv run python tools/create_pr.py` — создать/обновить PR из текущей ветки (нужен `GH_TOKEN`).
