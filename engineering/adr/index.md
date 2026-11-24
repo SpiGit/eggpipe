@@ -22,7 +22,8 @@
 | [0018](./0018-per-entity-generation.md) | Per-entity генерация | Принято |
 | [0019](./0019-watch-scheduling-and-cancellation.md) | Watch: сериализация, max_delay и границы отмены | Принято |
 | [0020](./0020-document-parse-cache.md) | Кэш разбора документов (L2) | Принято |
+| [0021](./0021-metrics-and-structured-logging.md) | Метрики L2 и structured logging | Принято |
 
 Решения ADR-0007–0010 сформулированы для ТЗ v1.4 и вошли в v2.0 без изменения смысла.
 ADR-0011 фиксирует публичный API и идентичность Eggpipe для v2.1.
-Ссылки внутри ADR на v1.4 — исторические. В ADR-0001, 0003–0009 и 0011 коды `MGxxx` читать как `EGxxx` (ADR-0013), `GeneratorRules*` — как `ProjectConfig*`; действующие контракты — ТЗ v2.4.
+Ссылки внутри ADR на v1.4 — исторические. В ADR-0001, 0003–0009 и 0011 коды `MGxxx` читать как `EGxxx` (ADR-0013), `GeneratorRules*` — как `ProjectConfig*`; действующие контракты — ТЗ v2.5.

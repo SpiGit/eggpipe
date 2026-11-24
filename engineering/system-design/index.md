@@ -1,8 +1,8 @@
 # System Design — Eggpipe
 
-> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.4](../requirements/v2.4.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
+> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.5](../requirements/v2.5.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 2.4. Дата: 2026-11-18.*
+*Версия документа: 2.5. Дата: 2026-11-24.*
 
 ---
 
@@ -201,7 +201,7 @@ class GeneratorPlugin(ABC):
 композиции и замыкает enums/types. Режим разрешён, только если все выбранные генераторы
 объявили `output_scope="entity"`; иначе EG303. Per-entity генератор не зависит от других
 entities и пишет уникальные для каждой entity пути. Manifest location дополняется, cleanup
-не выполняется; incremental и watch с `--entity` не поддерживаются в v2.4. Решение —
+не выполняется; incremental и watch с `--entity` не поддерживаются. Решение —
 [ADR-0018](../adr/0018-per-entity-generation.md).
 
 **Жизненный цикл:** `__init__` → `validate_config()` → `generate()`.
@@ -914,6 +914,7 @@ class AppConfig(BaseSettings):
 
     log_level: str = "INFO"
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_mode: Literal["text", "json"] = "text"   # structured logging (ADR-0021)
     log_destination: str = "stderr"       # stderr | stdout | file:./eggpipe.log
 
     rules_file: Path | None = None         # -c / --config
@@ -925,7 +926,7 @@ class AppConfig(BaseSettings):
 ```
 
 - Приоритет: CLI-флаги → env → `.env` → defaults. Отдельного app-config-файла нет; `.eggpipe.yaml` — это `ProjectConfig`.
-- `plugins_dir` и `cache_dir` **удалены**: плагины из директорий с ручным `sys.path` не поддерживаются (§6.3); L1-кэш incremental реализован в `engine.py`, L2/L3 — future.
+- `plugins_dir` и `cache_dir` **удалены**: плагины из директорий с ручным `sys.path` не поддерживаются (§6.3); L1-кэш incremental реализован в `engine.py`, L2 — в `engine/document_cache.py` и `engine/parser_cache.py` (ADR-0020), L3 — future.
 - `config_file` переименован в `rules_file`, чтобы не путать с app config.
 - CLI собирает `AppConfig` после парсинга аргументов и передаёт override'ы в `Engine`.
 
@@ -967,7 +968,10 @@ def setup_logging(config: AppConfig) -> None:
         handler = RotatingFileHandler(dest[5:], maxBytes=10 * 1024 * 1024, backupCount=5)
     else:
         handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(logging.Formatter(config.log_format))
+    if config.log_mode == "json":
+        handler.setFormatter(JsonFormatter())
+    else:
+        handler.setFormatter(logging.Formatter(config.log_format))
     logger.addHandler(handler)
 
 def get_logger(name: str) -> logging.Logger:
@@ -977,6 +981,12 @@ def get_logger(name: str) -> logging.Logger:
 - В библиотеке `setup_logging()` не вызывается; на `eggpipe`-логгере висит `NullHandler`, `propagate` не ломает logging хоста.
 - Никакого `logging.basicConfig(force=True)`.
 - Логи не попадают на stdout (не ломается `--output-format json`) — только stderr/file.
+- `log_mode: json` (ADR-0021) печатает по одной JSON-записи на строку: `ts`, `level`,
+  `logger`, `message` обязательны; `run_id`, `event`, `duration_ms`, `exception`,
+  `extra` опциональны. `log_format` в этом режиме игнорируется.
+- `JsonFormatter` не пробрасывает исключения: сбой сериализации даёт минимальную
+  запись и не меняет exit code.
+- `extra` содержит только скаляры/примитивы, без секретов и абсолютных путей.
 - Значения `variables`, похожие на секреты, редактируются в логах и `config show`.
 
 ---
@@ -1138,7 +1148,7 @@ class JsonFormatter(OutputFormatter): ...    # только JSON в stdout
 
 ```json
 {
-  "report_version": 2,
+  "report_version": 3,
   "success": true,
   "exit_code": 0,
   "run_id": "01J...",
@@ -1176,16 +1186,29 @@ class JsonFormatter(OutputFormatter): ...    # только JSON в stdout
     "generate_ms": 55,
     "write_ms": 3,
     "total_ms": 73
+  },
+  "cache": {
+    "hits": 7,
+    "misses": 1,
+    "miss_reasons": {"changed": 1, "missing": 0, "invalid": 0, "version": 0},
+    "entries": 8,
+    "bytes": 14336
   }
 }
 ```
 
 - `EngineReport` — общий результат запуска (не путается с `GenerationResult` одного плагина).
-- `report_version: 2`; `artifacts` — плоский список с `generator`, без дублирования в `generators[]`.
+- `report_version: 3`; изменения аддитивны к v2 — добавлен `cache`, семантика остальных полей прежняя.
+- `artifacts` — плоский список с `generator`, без дублирования в `generators[]`.
 - `artifacts[].action` — `create|update|skip|delete|conflict|error|drift`;
   `generators[].status` — `ok|error|skipped`.
 - `timings` содержит обязательные `discovery_ms`, `fingerprint_ms`, `parse_ms`, `validate_ms`, `generate_ms`,
   `write_ms`, `total_ms`.
+- `cache` — `null`, если L2 не используется (включая пропуск прогона целиком на L1);
+  иначе сводные счётчики за прогон.
+  `hits + misses` равно числу документов фазы разбора, сумма `miss_reasons` равна `misses`;
+  причина выбирается по приоритету `invalid → version → missing → changed`.
+  `entries`/`bytes` — состояние `.eggpipe/cache/` на конец прогона (`--plan` не пишет).
 - `formats` — глобальная сводка; `manifest` — только locations; `stale_locations` — для EG051.
 - JSON-отчёт печатается только в stdout; логи — stderr/file.
 - `--quiet` подавляет человекочитаемый вывод, но не JSON.
@@ -1394,6 +1417,12 @@ Payload — `ModelDocument` без `path`/`source`/`format`/`format_version`; п
 выполняется под защитой `load()`. Смена кодировки payload сопровождается повышением
 `cache_version`, поэтому старые записи один раз промахиваются.
 
+Метрики прогона (ADR-0021): `EngineReport.cache` публикует `hits`, `misses`,
+`miss_reasons`, `entries`, `bytes`; счётчики ведёт `DocumentCache`/`CachedParser`,
+`Engine` переносит их в отчёт. Причина промаха выбирается по приоритету
+`invalid → version → missing → changed`; discovery/fingerprint, читающие мету без
+разбора, в счётчики не входят. При отключённом L2 поле `cache` — `null`.
+
 ---
 
 ## 9. Watch Mode
@@ -1492,7 +1521,7 @@ examples/
 ├── tpc-h-generator/
 └── tpc-h/
 docs/
-├── requirements/                # index, v1.0–v1.4, v2.0, v2.1, v2.2, v2.3, v2.4
+├── requirements/                # index, v1.0–v1.4, v2.0–v2.5
 ├── system-design/
 ├── reviews/
 ├── adr/
@@ -1517,7 +1546,7 @@ L1-кэш incremental — в `engine.py`, L2 — в `document_cache.py`/`parser_
 
 ---
 
-## 11. Тестирование (охват v2.4)
+## 11. Тестирование (охват v2.5)
 
 ### 11.1 Приоритеты
 
@@ -1534,6 +1563,7 @@ L1-кэш incremental — в `engine.py`, L2 — в `document_cache.py`/`parser_
 11. **Concurrency**: второй запуск при held lock; stale lock.
 12. **Determinism**: повторный запуск даёт идентичные байты; порядок source/artifact/plugin стабилен; артефакты не содержат абсолютных путей.
 13. **Per-entity**: `output_scope`, `--entity`, EG303, closure enums/types, manifest merge, cleanup off, incremental/watch ограничения.
+14. **Метрики и логи (ADR-0021)**: инварианты `cache` (`hits + misses`, сумма `miss_reasons`), `cache: null` без incremental, `--plan` без записи; JSON-лог — валидная строка на запись, обязательные поля, отсутствие секретов и абсолютных путей; сбой formatter не меняет exit code.
 
 ### 11.2 Property-based
 
@@ -1664,7 +1694,7 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v2.4, сводка)
+## 13. Проектировочные решения (v2.5, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|
@@ -1688,4 +1718,5 @@ addopts = "-ra --strict-markers"
 | `ruamel.yaml`, YAML 1.2, duplicate keys → error | Однозначность и отсутствие «тихих» потерь | §4.1 |
 | Локальные плагины через pip -e, не sys.path | Стандарт, без хаков | §6.3 |
 | Логи в stderr/file, CLI-вывод в stdout (rich) | Совместимость с `--output-format json` | §5.3 |
+| Метрики L2 в отчёте `report_version: 3`, JSON-логи через `log_mode` | Наблюдаемость без смены default-вывода | ADR-0021, ТЗ §8.7–8.8 |
 | `Engine` как библиотечный фасад без `sys.exit`/root-logger | First-class библиотечное использование | §2.8 |

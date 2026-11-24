@@ -180,7 +180,7 @@ uv run python tools/check_docs.py --strict
 - [Инженерная документация](./engineering/index.md) — ТЗ, ADR, System Design, ревью
 - [Быстрый старт](./docs/user/quickstart.md)
 - [Плагины](./docs/user/plugins.md)
-- [Техническое задание](./engineering/requirements/index.md) — актуальная версия v2.4
+- [Техническое задание](./engineering/requirements/index.md) — актуальная версия v2.5
 - [System Design](./engineering/system-design/index.md)
 - [ADR index](./engineering/adr/index.md)
 - [ADR-0001: семантика композиции](./engineering/adr/0001-composition-merge-semantics.md)
@@ -219,5 +219,5 @@ uv run python tools/check_docs.py --strict
 
 ## Статус
 
-**Стадия:** Eggpipe (0.x beta), ТЗ v2.4; версия пакета — в `CHANGELOG.md`. Реализованы E0–E9, пакет опубликован на PyPI; per-entity generation реализована (ADR-0018): `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity`:
-CLI/config/state, форматы и слои, decorator API, глобальный manifest, CLI/JSON v2, CI и release workflow.
+**Стадия:** Eggpipe (0.x beta), ТЗ v2.5; версия пакета — в `CHANGELOG.md`. Реализованы E0–E9, пакет опубликован на PyPI; per-entity generation реализована (ADR-0018): `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity`:
+CLI/config/state, форматы и слои, decorator API, глобальный manifest, CLI/JSON v3, CI и release workflow.

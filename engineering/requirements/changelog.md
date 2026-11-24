@@ -1,5 +1,15 @@
 # Changelog требований
 
+### v2.5 (2026-11-24)
+
+- JSON-отчёт: `report_version: 3`, аддитивный блок `cache` с метриками L2
+  (`hits`, `misses`, `miss_reasons`, `entries`, `bytes`).
+- Логирование: `log_mode` / `EGGPIPE_LOG_MODE` (`text` | `json`), JSON Lines-контракт.
+- Опубликован внутренний формат `.eggpipe/cache/` с `cache_version`; статус L2 в ТЗ и
+  System Design приведён к ADR-0020.
+- В примере manifest актуализирован `eggpipe_version` (B-041).
+- ADR-0021.
+
 ### v2.4 (2026-11-17)
 
 - Добавлена per-entity генерация: `--entity`, `Engine.build(entities=...)`.
