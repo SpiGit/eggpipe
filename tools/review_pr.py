@@ -41,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.body_file is not None:
         try:
             body = args.body_file.read_text(encoding="utf-8")
-        except OSError as exc:
+        except (OSError, UnicodeDecodeError) as exc:
             raise SystemExit(f"cannot read review body: {exc}") from exc
     elif args.body is not None:
         body = args.body
