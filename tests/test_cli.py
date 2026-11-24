@@ -252,6 +252,9 @@ def test_generate_incremental_reports_skip(tmp_path: Path, monkeypatch: pytest.M
         app, ["generate", "-c", str(rules), "--incremental", "--output-format", "json"]
     )
     assert first.exit_code == 0
+    first_report = json.loads(first.stdout)
+    assert first_report["cache"]["misses"] == 1
+    assert first_report["cache"]["miss_reasons"]["missing"] == 1
     second = runner.invoke(
         app, ["generate", "-c", str(rules), "--incremental", "--output-format", "json"]
     )
@@ -260,6 +263,7 @@ def test_generate_incremental_reports_skip(tmp_path: Path, monkeypatch: pytest.M
     assert report["generators"][0]["status"] == "skipped"
     assert report["artifacts"][0]["action"] == "skip"
     assert report["formats"] == []
+    assert report["cache"] is None
 
 
 def test_generate_incremental_from_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -306,8 +310,9 @@ def test_generate_json(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--output-format", "json"])
     assert result.exit_code == 0
     report = json.loads(result.stdout)
-    assert report["report_version"] == 2
+    assert report["report_version"] == 3
     assert report["success"] is True
+    assert report["cache"] is None
     assert report["formats"] == [{"name": "entity-model", "version": "1.0", "entities": 1}]
     assert report["manifest"] == {"manifest_version": 2, "locations": []}
     assert report["stale_locations"] == []

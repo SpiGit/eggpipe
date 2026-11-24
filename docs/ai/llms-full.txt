@@ -15,8 +15,7 @@
 - Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
 - Актуальное ТЗ: `engineering/requirements/v2.5.md`.
 - Версия пакета: из `pyproject.toml`; версия ТЗ: `2.5`.
-- Схемы `docs/ai/schemas/` и `report_version` в user-доках отражают текущий код; ТЗ может
-  опережать реализацию до соответствующего PR (сейчас: отчёт v3 — спецификация, код — v2).
+- Схемы `docs/ai/schemas/` и `report_version` в user-доках генерируются из текущего кода.
 - Статус: beta (0.x); до 1.0 breaking changes возможны (ADR-0014).
 - Brand assets: `docs/assets/brand/`.
 
@@ -704,8 +703,19 @@ eggpipe clean --root ./project
 eggpipe generate --output-format json
 ```
 
-`report_version: 2`; содержит `formats`, `generators[].input_formats`, плоские
-`artifacts[].action`, `manifest`, `stale_locations`, `timings`.
+`report_version: 3`; содержит `formats`, `generators[].input_formats`, плоские
+`artifacts[].action`, `manifest`, `stale_locations`, `timings` и `cache` — сводные
+метрики L2 (`hits`, `misses`, `miss_reasons`, `entries`, `bytes`) или `null`, если
+кэш не используется.
+
+```bash
+EGGPIPE_LOG_MODE=json eggpipe generate --incremental
+```
+
+`EGGPIPE_LOG_MODE=json` (в окружении или `.env`) переключает логи на
+JSON Lines в stderr: по одному объекту на запись с полями `ts`, `level`, `logger`,
+`message`; `run_id`, `event`, `duration_ms`, `exception` и `extra` опциональны.
+По умолчанию режим `text` и прежний шаблон `log_format`.
 
 ---
 

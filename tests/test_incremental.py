@@ -627,3 +627,85 @@ def test_l2_cache_is_not_written_with_force(
     make_dir_engine(tmp_path, force=True).generate()
 
     assert len(calls) == 2
+
+
+def test_l2_cache_metrics_on_cold_changed_and_skipped_runs(tmp_path: Path) -> None:
+    first, _ = write_dir_model(tmp_path)
+
+    cold = make_dir_engine(tmp_path).generate()
+    assert cold.report_version == 3
+    assert cold.cache is not None
+    assert cold.cache.hits == 0
+    assert cold.cache.misses == 2
+    assert cold.cache.miss_reasons.missing == 2
+    assert cold.cache.entries == 2
+    assert cold.cache.bytes > 0
+
+    skipped = make_dir_engine(tmp_path).generate()
+    assert skipped.cache is None
+
+    first.write_text(DIR_MODEL_ALPHA + "# changed\n", encoding="utf-8")
+    changed = make_dir_engine(tmp_path).generate()
+    assert changed.cache is not None
+    assert changed.cache.hits == 1
+    assert changed.cache.misses == 1
+    assert changed.cache.miss_reasons.changed == 1
+    assert changed.cache.miss_reasons.missing == 0
+
+
+def test_l2_cache_metrics_are_null_without_incremental(tmp_path: Path) -> None:
+    write_dir_model(tmp_path)
+    report = make_dir_engine(tmp_path, incremental=False).generate()
+    assert report.cache is None
+
+
+def test_l2_cache_metrics_are_null_for_entities(tmp_path: Path) -> None:
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    report = make_dir_engine(tmp_path).generate(entities=["Alpha"])
+    assert report.cache is None
+
+
+def test_l2_cache_metrics_version_miss(tmp_path: Path) -> None:
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    meta_path = tmp_path / ".eggpipe" / "cache" / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["cache_version"] = 0
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+    (tmp_path / "out" / "out.txt").unlink()
+
+    report = make_dir_engine(tmp_path).generate()
+
+    assert report.cache is not None
+    assert report.cache.misses == 2
+    assert report.cache.miss_reasons.version == 2
+
+
+def test_l2_cache_metrics_invalid_for_corrupt_meta(tmp_path: Path) -> None:
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    meta_path = tmp_path / ".eggpipe" / "cache" / "meta.json"
+    meta_path.write_text("{broken", encoding="utf-8")
+    (tmp_path / "out" / "out.txt").unlink()
+
+    report = make_dir_engine(tmp_path).generate()
+
+    assert report.cache is not None
+    assert report.cache.misses == 2
+    assert report.cache.miss_reasons.invalid == 2
+
+
+def test_l2_cache_metrics_invalid_for_corrupt_payload(tmp_path: Path) -> None:
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    payloads = sorted((tmp_path / ".eggpipe" / "cache" / "docs").glob("*.json"))
+    payloads[0].write_text("{broken", encoding="utf-8")
+    (tmp_path / "out" / "out.txt").unlink()
+
+    report = make_dir_engine(tmp_path).generate()
+
+    assert report.cache is not None
+    assert report.cache.hits == 1
+    assert report.cache.misses == 1
+    assert report.cache.miss_reasons.invalid == 1

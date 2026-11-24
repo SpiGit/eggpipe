@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- JSON-отчёт `report_version: 3`: блок `cache` с метриками L2 (`hits`, `misses`,
+  `miss_reasons`, `entries`, `bytes`); ADR-0021.
+- Структурированные логи: `EGGPIPE_LOG_MODE=json` — JSON Lines в stderr
+  (`ts`, `level`, `logger`, `message`; опционально `run_id`, `event`, `duration_ms`,
+  `exception`, `extra`).
+
 ### Changed
 
 - Процесс: сессии и backlog описаны в `engineering/process/sessions.md`, ритуалы — команды

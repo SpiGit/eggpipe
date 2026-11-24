@@ -12,6 +12,7 @@ from eggpipe.config.logging import get_logger
 from eggpipe.core.cache import CACHE_VERSION, digest, dump_payload, restore_document
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
+from eggpipe.engine.report import CacheMissReasons, CacheReport
 from eggpipe.interfaces.formats import FormatPlugin
 from eggpipe.utils.exceptions import ConfigValidationError, DocumentError
 from eggpipe.utils.files import write_json_atomic
@@ -40,6 +41,7 @@ class CacheMeta(BaseModel):
     cache_version: int = CACHE_VERSION
     eggpipe_version: str
     entries: dict[str, CacheEntry] = Field(default_factory=dict)
+    paths: dict[str, str] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -66,6 +68,16 @@ class DocumentCache:
         self._staged: dict[str, dict[str, Any]] = {}
         self._touched: set[str] = set()
         self._invalid: set[str] = set()
+        self._meta_invalid = False
+        self._meta_version_mismatch = False
+        self.hits = 0
+        self.misses = 0
+        self.miss_reasons: dict[str, int] = {
+            "changed": 0,
+            "missing": 0,
+            "invalid": 0,
+            "version": 0,
+        }
 
     def read(self, path: Path) -> bytes | None:
         """Read a file once per run; ``None`` marks an unreadable path.
@@ -89,31 +101,99 @@ class DocumentCache:
 
     def entry(self, path: Path) -> CacheEntry | None:
         """Return a valid entry for the current file content, or ``None``."""
-        key = self.digest(path)
-        if key is None:
-            return None
-        entry = self._meta_state().entries.get(key)
-        if entry is None:
-            return None
-        if not self._versions_match(entry) or not self._closure_matches(entry):
-            self._invalid.add(key)
-            return None
-        self._touched.add(key)
+        entry, _ = self._lookup(path)
         return entry
 
     def load(self, path: Path) -> ModelDocument | None:
         """Load a cached document; any problem is a miss."""
         key = self.digest(path)
-        if key is None or self.entry(path) is None:
+        if key is None:
+            return None
+        entry, reason = self._lookup(path)
+        if entry is None:
+            self._record_miss(reason or "missing")
             return None
         payload = self._read_payload(key)
         if payload is None:
+            payload_file = self.docs_dir / f"{key}.json"
+            self._record_miss("invalid" if payload_file.exists() else "missing")
             return None
         try:
-            return restore_document(payload, path)
+            document = restore_document(payload, path)
         except (ValidationError, ValueError, TypeError, ArithmeticError, RecursionError) as exc:
             _LOG.debug("document cache payload is invalid for %s: %s", path, exc)
+            self._record_miss("invalid")
             return None
+        self.hits += 1
+        return document
+
+    def _lookup(self, path: Path) -> tuple[CacheEntry | None, str]:
+        key = self.digest(path)
+        if key is None:
+            return None, ""
+        entry = self._meta_state().entries.get(key)
+        if entry is None:
+            return None, self._absent_reason(path)
+        if not self._versions_match(entry) or not self._closure_matches(entry):
+            self._invalid.add(key)
+            return None, "version"
+        self._touched.add(key)
+        self._remember_path(path, key)
+        return entry, ""
+
+    def _absent_reason(self, path: Path) -> str:
+        if self._meta_invalid:
+            return "invalid"
+        if self._meta_version_mismatch:
+            return "version"
+        relative = self._relative(path)
+        if relative is not None and relative in self._meta_state().paths:
+            return "changed"
+        return "missing"
+
+    def _relative(self, path: Path) -> str | None:
+        try:
+            return path.resolve().relative_to(self.config_dir.resolve()).as_posix()
+        except ValueError:
+            return None
+
+    def _remember_path(self, path: Path, key: str) -> None:
+        relative = self._relative(path)
+        if relative is None:
+            return
+        meta = self._meta_state()
+        if meta.paths.get(relative) == key:
+            return
+        self._meta = meta.model_copy(update={"paths": {**meta.paths, relative: key}})
+
+    def _record_miss(self, reason: str) -> None:
+        self.misses += 1
+        self.miss_reasons[reason] = self.miss_reasons.get(reason, 0) + 1
+
+    def report(self) -> CacheReport:
+        """Snapshot metrics for the current run (ADR-0021)."""
+        entries, size = self._disk_usage()
+        return CacheReport(
+            hits=self.hits,
+            misses=self.misses,
+            miss_reasons=CacheMissReasons(**self.miss_reasons),
+            entries=entries,
+            bytes=size,
+        )
+
+    def _disk_usage(self) -> tuple[int, int]:
+        entries = 0
+        size = 0
+        try:
+            for item in self.docs_dir.glob("*.json"):
+                try:
+                    size += item.stat().st_size
+                except OSError:
+                    continue
+                entries += 1
+        except OSError:
+            return 0, 0
+        return entries, size
 
     def remember(self, path: Path, document: ModelDocument) -> None:
         """Stage a successfully parsed document for persistence."""
@@ -130,7 +210,13 @@ class DocumentCache:
             _LOG.debug("document cache payload is not serializable for %s: %s", path, exc)
             return
         meta = self._meta_state()
-        self._meta = meta.model_copy(update={"entries": {**meta.entries, key: entry}})
+        paths = dict(meta.paths)
+        relative = self._relative(path)
+        if relative is not None:
+            paths[relative] = key
+        self._meta = meta.model_copy(
+            update={"entries": {**meta.entries, key: entry}, "paths": paths}
+        )
         self._staged[key] = payload
         self._touched.add(key)
         self._invalid.discard(key)
@@ -143,7 +229,8 @@ class DocumentCache:
             for key, value in meta.entries.items()
             if key in self._touched and key not in self._invalid
         }
-        if not self._staged and set(entries) == set(meta.entries):
+        paths = {path: key for path, key in meta.paths.items() if key in entries}
+        if not self._staged and entries == meta.entries and paths == meta.paths:
             return
         try:
             self.docs_dir.mkdir(parents=True, exist_ok=True)
@@ -158,6 +245,7 @@ class DocumentCache:
                     cache_version=CACHE_VERSION,
                     eggpipe_version=self.eggpipe_version,
                     entries=entries,
+                    paths=paths,
                 ),
                 compact=True,
                 durable=False,
@@ -173,12 +261,17 @@ class DocumentCache:
         try:
             data = json.loads(self.meta_path.read_text(encoding="utf-8"))
             meta = CacheMeta.model_validate(data)
-        except (OSError, ValueError) as exc:
+        except FileNotFoundError:
+            self._meta = empty
+            return empty
+        except (OSError, ValueError, RecursionError) as exc:
             _LOG.debug("document cache is ignored: %s", exc)
+            self._meta_invalid = True
             self._meta = empty
             return empty
         if meta.cache_version != CACHE_VERSION or meta.eggpipe_version != self.eggpipe_version:
             _LOG.debug("document cache version mismatch")
+            self._meta_version_mismatch = True
             self._meta = empty
             return empty
         self._meta = meta

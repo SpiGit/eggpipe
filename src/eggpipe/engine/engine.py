@@ -350,8 +350,9 @@ class Engine:
                 if not report.success:
                     return report
                 report = self._write_pending(report)
-                if self._cache is not None:
+                if self._cache is not None and report.cache is not None:
                     self._cache.persist()
+                    report = report.model_copy(update={"cache": self._cache.report()})
                 return report
         except LockError as exc:
             return self._report(
@@ -691,7 +692,8 @@ class Engine:
             "generate_ms": 0,
             "write_ms": 0,
         }
-        return self._report(True, 0, diagnostics, generators, started, artifacts)
+        report = self._report(True, 0, diagnostics, generators, started, artifacts)
+        return report.model_copy(update={"cache": None})
 
     def _stale_location_entries(self) -> list[StaleLocation]:
         try:
@@ -863,6 +865,7 @@ class Engine:
             manifest=self._manifest_summary(),
             stale_locations=list(self._stale),
             timings=self._timings_with_total(),
+            cache=self._cache.report() if self._cache is not None else None,
         )
 
     def _timings_with_total(self) -> dict[str, int]:
