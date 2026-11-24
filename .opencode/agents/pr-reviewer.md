@@ -22,6 +22,15 @@ permissions:
   - action: shell
     resource: "uv run python tools/review_pr.py *"
     effect: allow
+  - action: external_directory
+    resource: "/tmp/opencode/**"
+    effect: allow
+  - action: edit
+    resource: "/tmp/opencode/**"
+    effect: allow
+  - action: read
+    resource: "/tmp/opencode/**"
+    effect: allow
   - action: read
     resource: "*.env"
     effect: deny
@@ -40,7 +49,9 @@ permissions:
 
 - Основной источник — пакет, переданный в задаче: diff, перечень изменённых файлов и
   текст «Критериев приёмки» из PR body.
-- Если diff не передан, запроси его; не реконструируй изменение по окружению.
+- Diff может быть передан файлом в `/tmp/opencode/` — прочитай его инструментом read.
+  Git и прочие shell-команды запускать нельзя; если diff не передан ни текстом, ни файлом,
+  верни вердикт с пометкой, что diff не проверен.
 - Если критерии не переданы, ревьюй по явным блокерам и отметь это в вердикте.
 - Читай только изменённые файлы и минимально необходимый контекст. Начинай с
   `docs/ai/context.md` и `docs/ai/invariants.md`, а не с полного ТЗ или System Design.
@@ -77,21 +88,18 @@ permissions:
 
 Вердикт публикует сам ревьюер, чтобы каждая итерация оставалась в истории PR:
 
-- Тело передавай через stdin heredoc с quoted-разделителем: обратные кавычки и `$`
-  в находках не должны исполняться shell.
+1. Запиши тело вердикта в `/tmp/opencode/pr-<N>-review-<k>.md` инструментом `write`
+   (каталог разрешён отдельным правилом; файлы репозитория по-прежнему нельзя менять).
+2. Опубликуй одной строкой, без heredoc и без переносов:
 
-  ```bash
-  uv run python tools/review_pr.py --pr <N> --event COMMENT <<'EOF'
-  ## Ревью PR #<N> — итерация <k>
-  VERDICT: ...
-  ...
-  EOF
-  ```
+   ```bash
+   uv run python tools/review_pr.py --pr <N> --event COMMENT --body-file /tmp/opencode/pr-<N>-review-<k>.md
+   ```
 
-  `event=COMMENT` обязателен: GitHub не позволяет approve собственный PR.
-  Если shell-scanner отвергает heredoc — `--body` только в одинарных кавычках
-  (обратные кавычки и `$` в них литеральны, встроенный `'` экранируй как `'\''`);
-  в двойных кавычках `--body` не использовать.
+   Эта команда разрешена явным правилом; `git`, `pwd` и остальной shell запрещены.
+   `--body` в одинарных кавычках — только если `--body-file` недоступен.
+
+- `event=COMMENT` обязателен: GitHub не позволяет approve собственный PR.
 - Номер PR берётся из задачи; если он не передан — верни вердикт и укажи, что публикация
   без номера невозможна.
 - Тело ревью: первая строка — заголовок `## Ревью PR #<N> — итерация <k>` (номер итерации —
