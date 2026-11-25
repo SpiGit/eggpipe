@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples" / "tpc-h"
 CHANGED_DOC = Path("model") / "orders" / "base.yaml"
 EXCLUDED = (".eggpipe", "generated")
-DEFAULT_ITERATIONS = 10
+DEFAULT_ITERATIONS = 20
 
 SAMPLE_NAMES = ("full", "no-op", "changed")
 
@@ -134,7 +134,7 @@ def _cache_row(name: str, report: EngineReport) -> str:
     )
     return (
         f"| {name} | hits={cache.hits}, misses={cache.misses} ({reasons_text}), "
-        f"entries={cache.entries}, bytes={cache.bytes} |"
+        f"entries={cache.entries}, bytes={cache.bytes} B |"
     )
 
 
