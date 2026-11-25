@@ -24,7 +24,7 @@ ADR-0022 разделил документы на живые и историче
 
 Оба случая — не утверждение о текущем состоянии проекта, а исторические данные. Правило
 при этом продолжает действовать на живые документы: README, `docs/**`, System Design,
-`AGENTS.md`, `CONTRIBUTING.md`, roadmap, `.session-context.md` и workflows.
+`AGENTS.md`, `CONTRIBUTING.md`, `opencode.json`, workflows и `.session-context.md`.
 
 ## 2. Решение
 
