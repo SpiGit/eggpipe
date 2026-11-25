@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date, datetime
 from hashlib import sha256
 from pathlib import Path
@@ -193,6 +194,31 @@ def test_corrupt_meta_is_miss_and_recovers(tmp_path: Path) -> None:
     cache.remember(path, parse(path))
     cache.persist()
     assert make_cache(tmp_path).load(path) is not None
+
+
+def test_corrupt_meta_logs_single_line_without_absolute_paths(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    path = prepared(tmp_path)
+    data = read_meta(tmp_path)
+    next(iter(data["entries"].values()))["format"] = ["not-a-string"]
+    (tmp_path / META).write_text(json.dumps(data), encoding="utf-8")
+
+    with caplog.at_level(logging.DEBUG, logger="eggpipe"):
+        assert make_cache(tmp_path).load(path) is None
+
+    messages = [
+        record.getMessage()
+        for record in caplog.records
+        if record.getMessage().startswith("document cache is ignored")
+    ]
+    assert len(messages) == 1
+    message = messages[0]
+    assert message.startswith(
+        "document cache is ignored: ValidationError: 1 validation error for CacheMeta"
+    )
+    assert "\n" not in message
+    assert str(tmp_path) not in message
 
 
 def test_deeply_nested_meta_is_miss_and_recovers(tmp_path: Path) -> None:

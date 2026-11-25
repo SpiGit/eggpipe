@@ -26,37 +26,48 @@ def _timestamp(created: float) -> str:
     return moment.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
+_CONTROL_ESCAPES = {"\n": "\\n", "\r": "\\r", "\t": "\\t", "\b": "\\b", "\f": "\\f"}
+
+
+def _escape_char(char: str) -> str:
+    if char >= " ":
+        return char
+    return _CONTROL_ESCAPES.get(char, f"\\u{ord(char):04x}")
+
+
 def _escape(value: object) -> str:
-    return (
-        str(value)
-        .replace("\\", "\\\\")
-        .replace('"', '\\"')
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-    )
+    text = str(value).replace("\\", "\\\\").replace('"', '\\"')
+    return "".join(_escape_char(char) for char in text)
+
+
+def _posix(text: str) -> str:
+    return text.replace(os.sep, "/") if os.sep != "/" else text
 
 
 def relative_text(value: object, *, base: Path) -> str:
     """Render path-bearing text relative to ``base`` for logs (ADR-0021)."""
-    text = str(value)
-    prefix = str(base)
+    text = _posix(str(value))
+    prefix = _posix(str(base))
     if not prefix:
         return text
+    if prefix == "/":
+        return text.lstrip("/") or "."
+    prefix = prefix.rstrip("/")
     if text == prefix:
         return "."
-    return text.replace(prefix + os.sep, "")
+    marker = prefix + "/"
+    if text.startswith(marker):
+        return text[len(marker) :]
+    return text.replace(marker, "")
 
 
 def display_path(path: Path, *, base: Path) -> str:
     """Relative POSIX path for logs; outside ``base`` it keeps a ``../`` form (ADR-0021)."""
     try:
-        return path.resolve().relative_to(base.resolve()).as_posix()
-    except ValueError:
-        pass
-    try:
-        return Path(os.path.relpath(path, base)).as_posix()
+        relative = os.path.relpath(path.resolve(), base.resolve())
     except ValueError:
         return path.name
+    return Path(relative).as_posix()
 
 
 def _fallback_record(record: logging.LogRecord) -> str:
