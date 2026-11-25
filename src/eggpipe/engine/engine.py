@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from eggpipe.config.app_config import AppConfig
-from eggpipe.config.logging import get_logger, relative_text
+from eggpipe.config.logging import display_path, get_logger, relative_text
 from eggpipe.config.project_config import GeneratorConfig, ProjectConfig
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
@@ -538,7 +538,9 @@ class Engine:
         for source in sources:
             content = self._read_bytes(source)
             if content is None:
-                self._disable_incremental(f"cannot read source: {source}")
+                self._disable_incremental(
+                    f"cannot read source: {display_path(source, base=self.config_dir)}"
+                )
                 return None
             files[source] = content
 
@@ -553,13 +555,17 @@ class Engine:
             for candidate in inputs:
                 candidate = candidate.resolve()
                 if not candidate.is_relative_to(self.config_dir) or not candidate.is_file():
-                    self._disable_incremental(f"unsafe input path: {candidate}")
+                    self._disable_incremental(
+                        f"unsafe input path: {display_path(candidate, base=self.config_dir)}"
+                    )
                     return None
                 if candidate in files:
                     continue
                 content = self._read_bytes(candidate)
                 if content is None:
-                    self._disable_incremental(f"cannot read input: {candidate}")
+                    self._disable_incremental(
+                        f"cannot read input: {display_path(candidate, base=self.config_dir)}"
+                    )
                     return None
                 files[candidate] = content
                 pending.append(candidate)
@@ -584,7 +590,13 @@ class Engine:
         try:
             declared = plugin.input_paths(data, path.parent)
         except DocumentError as exc:
-            self._disable_incremental(f"format {format_name} cannot resolve inputs: {exc.message}")
+            location = (
+                f"{display_path(exc.path, base=self.config_dir)}: " if exc.path is not None else ""
+            )
+            self._disable_incremental(
+                f"format {format_name} cannot resolve inputs: {location}"
+                f"{relative_text(exc.message, base=self.config_dir)}"
+            )
             return None
         if declared is None:
             self._disable_incremental(f"format {format_name} does not declare input dependencies")

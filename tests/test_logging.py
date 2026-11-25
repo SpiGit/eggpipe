@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from eggpipe.config.app_config import AppConfig
-from eggpipe.config.logging import JsonLogFormatter, relative_text, setup_logging
+from eggpipe.config.logging import JsonLogFormatter, display_path, relative_text, setup_logging
 
 
 def make_record() -> logging.LogRecord:
@@ -96,6 +96,14 @@ def test_relative_text_strips_base_prefix(tmp_path: Path) -> None:
         == f"invalid YAML: {os.path.join('model', 'base.yaml')}"
     )
     assert relative_text(tmp_path, base=tmp_path) == "."
+
+
+def test_display_path_stays_relative_outside_base(tmp_path: Path) -> None:
+    base = tmp_path / "project"
+    base.mkdir()
+
+    assert display_path(base / "model" / "base.yaml", base=base) == "model/base.yaml"
+    assert display_path(tmp_path / "outside.yaml", base=base) == "../outside.yaml"
 
 
 def test_json_formatter_never_raises(

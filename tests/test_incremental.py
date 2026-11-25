@@ -447,6 +447,35 @@ def test_json_debug_logs_avoid_absolute_paths_and_secrets(
         assert "s3cret-token" not in line
 
 
+def test_json_debug_logs_make_outside_root_inputs_relative(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    (tmp_path / "outside.yaml").write_text(
+        "format: entity-model\nversion: '1.0'\nmodel: {}\n", encoding="utf-8"
+    )
+    model = MODEL.replace(
+        "model:\n",
+        "model:\n  imports:\n    - path: ../outside.yaml\n      as: base\n",
+    )
+    (project / "model.yaml").write_text(model, encoding="utf-8")
+
+    with caplog.at_level(logging.DEBUG, logger="eggpipe"):
+        report = make_engine(project).generate()
+
+    assert report.success is False
+    lines = [
+        JsonLogFormatter().format(record)
+        for record in caplog.records
+        if record.name == "eggpipe" or record.name.startswith("eggpipe.")
+    ]
+    assert any('"event":"incremental.disabled"' in line for line in lines)
+    assert any("unsafe input path: ../outside.yaml" in line for line in lines)
+    for line in lines:
+        assert str(tmp_path) not in line
+
+
 def test_incremental_hits_for_format_inputs_in_nested_dir(tmp_path: Path) -> None:
     CountingGenerator.calls = 0
     models = tmp_path / "models"

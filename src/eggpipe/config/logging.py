@@ -47,6 +47,18 @@ def relative_text(value: object, *, base: Path) -> str:
     return text.replace(prefix + os.sep, "")
 
 
+def display_path(path: Path, *, base: Path) -> str:
+    """Relative POSIX path for logs; outside ``base`` it keeps a ``../`` form (ADR-0021)."""
+    try:
+        return path.resolve().relative_to(base.resolve()).as_posix()
+    except ValueError:
+        pass
+    try:
+        return Path(os.path.relpath(path, base)).as_posix()
+    except ValueError:
+        return path.name
+
+
 def _fallback_record(record: logging.LogRecord) -> str:
     try:
         name = record.name
@@ -123,4 +135,11 @@ def setup_logging(config: AppConfig) -> logging.Logger:
     return logger
 
 
-__all__ = ["LOGGER_NAME", "JsonLogFormatter", "get_logger", "relative_text", "setup_logging"]
+__all__ = [
+    "LOGGER_NAME",
+    "JsonLogFormatter",
+    "display_path",
+    "get_logger",
+    "relative_text",
+    "setup_logging",
+]
