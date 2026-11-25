@@ -61,3 +61,4 @@
 | B-042 | dropped | dropped: включено в B-025 | PR #49 review | — | #87 | 2026-11-25 |
 | B-049 | dropped | dropped: включено в B-048 | PR #72/#74/#78, #82/#84 review | — | #87 | 2026-11-25 |
 | B-052 | dropped | dropped: включено в B-025 | PR #82/#84 review | — | #87 | 2026-11-25 |
+| B-051 | done | Document cache hardening, раунд 2: `_meta_state()` ловит `RecursionError` и тест на него; унифицировать наборы исключений в `remember()`/`_meta_state()`; усилить тесты: причина промаха в `test_deeply_nested_payload_is_miss`, `RecursionError` из `restore_document`, `entity("User") is not None`; после rename карта `paths` хранит устаревшее отображение; тест «L1-хит → `persist()` не вызывается» | PR #79, #84 review | Битый `meta.json` не роняет прогон, единое правило для недоверенного кэша | #91 | 2026-11-25 |
