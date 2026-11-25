@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from eggpipe.config.logging import get_logger
+from eggpipe.config.logging import get_logger, relative_text
 from eggpipe.core.cache import CACHE_VERSION, digest, dump_payload, restore_document
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
@@ -25,6 +25,12 @@ DOCS_DIR = "docs"
 # Corrupt or hostile cache data is a miss, never an error (ADR-0020).
 _CACHE_DATA_ERRORS = (TypeError, ValueError, ArithmeticError, RecursionError)
 _CACHE_FILE_ERRORS = (OSError, *_CACHE_DATA_ERRORS)
+
+
+def _summary(exc: BaseException) -> str:
+    """One-line exception summary: later lines may embed absolute paths (ADR-0021)."""
+    lines = str(exc).splitlines()
+    return f"{type(exc).__name__}: {lines[0]}" if lines else type(exc).__name__
 
 
 class CacheEntry(BaseModel):
@@ -59,10 +65,12 @@ class DocumentCache:
         config_dir: Path,
         registry: FormatRegistry,
         eggpipe_version: str,
+        run_id: str,
     ) -> None:
         self.config_dir = config_dir
         self.registry = registry
         self.eggpipe_version = eggpipe_version
+        self.run_id = run_id
         self.root = config_dir / ".eggpipe" / "cache"
         self.meta_path = self.root / META_FILE
         self.docs_dir = self.root / DOCS_DIR
@@ -127,7 +135,12 @@ class DocumentCache:
         try:
             document = restore_document(payload, path)
         except _CACHE_DATA_ERRORS as exc:
-            _LOG.debug("document cache payload is invalid for %s: %s", path, exc)
+            self._debug(
+                "cache.payload.invalid",
+                "document cache payload is invalid for %s: %s",
+                self._display_path(path),
+                _summary(exc),
+            )
             self._record_miss("invalid")
             return None
         self.hits += 1
@@ -162,6 +175,12 @@ class DocumentCache:
             return path.resolve().relative_to(self.config_dir.resolve()).as_posix()
         except ValueError:
             return None
+
+    def _display_path(self, path: Path) -> str:
+        return self._relative(path) or path.name
+
+    def _debug(self, event: str, message: str, *args: object) -> None:
+        _LOG.debug(message, *args, extra={"run_id": self.run_id, "event": event})
 
     def _remember_path(self, path: Path, key: str) -> None:
         relative = self._relative(path)
@@ -214,7 +233,12 @@ class DocumentCache:
             payload = dump_payload(document)
             restore_document(payload, path)
         except _CACHE_DATA_ERRORS as exc:
-            _LOG.debug("document cache payload is not serializable for %s: %s", path, exc)
+            self._debug(
+                "cache.payload.unserializable",
+                "document cache payload is not serializable for %s: %s",
+                self._display_path(path),
+                _summary(exc),
+            )
             return
         meta = self._meta_state()
         paths = dict(meta.paths)
@@ -264,7 +288,11 @@ class DocumentCache:
             )
             self._prune_docs(entries)
         except OSError as exc:
-            _LOG.debug("document cache was not persisted: %s", exc)
+            self._debug(
+                "cache.persist.failed",
+                "document cache was not persisted: %s",
+                relative_text(_summary(exc), base=self.config_dir),
+            )
 
     def _meta_state(self) -> CacheMeta:
         if self._meta is not None:
@@ -277,12 +305,16 @@ class DocumentCache:
             self._meta = empty
             return empty
         except _CACHE_FILE_ERRORS as exc:
-            _LOG.debug("document cache is ignored: %s", exc)
+            self._debug(
+                "cache.meta.invalid",
+                "document cache is ignored: %s",
+                relative_text(_summary(exc), base=self.config_dir),
+            )
             self._meta_invalid = True
             self._meta = empty
             return empty
         if meta.cache_version != CACHE_VERSION or meta.eggpipe_version != self.eggpipe_version:
-            _LOG.debug("document cache version mismatch")
+            self._debug("cache.version.mismatch", "document cache version mismatch")
             self._meta_version_mismatch = True
             self._meta = empty
             return empty

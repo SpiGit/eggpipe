@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from eggpipe.config.app_config import AppConfig
-from eggpipe.config.logging import get_logger
+from eggpipe.config.logging import get_logger, relative_text
 from eggpipe.config.project_config import GeneratorConfig, ProjectConfig
 from eggpipe.core.composition import Composition, CompositionResult
 from eggpipe.core.discovery import SourceGroup, discover_sources
@@ -151,11 +151,18 @@ class Engine:
             if self._fingerprint is not None:
                 cached = self._cached_report(self._fingerprint, started, diagnostics)
                 if cached is not None:
-                    _LOG.debug("incremental cache hit")
+                    _LOG.debug(
+                        "incremental cache hit",
+                        extra=self._incremental_log("incremental.hit"),
+                    )
                     return cached
             _LOG.debug(
                 "incremental cache disabled: %s",
-                self._incremental_reason or "input fingerprint changed or artifacts drifted",
+                relative_text(
+                    self._incremental_reason or "input fingerprint changed or artifacts drifted",
+                    base=self.config_dir,
+                ),
+                extra=self._incremental_log("incremental.disabled"),
             )
             if self._fingerprint is None:
                 self._cache = None
@@ -220,6 +227,7 @@ class Engine:
                 config_dir=self.config_dir,
                 registry=self.registry,
                 eggpipe_version=__version__,
+                run_id=self.run_id,
             )
         )
 
@@ -596,6 +604,13 @@ class Engine:
     def _disable_incremental(self, reason: str) -> None:
         self._incremental_reason = reason
         return None
+
+    def _incremental_log(self, event: str) -> dict[str, object]:
+        return {
+            "run_id": self.run_id,
+            "event": event,
+            "duration_ms": self._timings.get("fingerprint_ms", 0),
+        }
 
     def _cached_report(
         self,

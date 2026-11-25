@@ -11,7 +11,8 @@
   `miss_reasons`, `entries`, `bytes`); ADR-0021.
 - Структурированные логи: `EGGPIPE_LOG_MODE=json` — JSON Lines в stderr
   (`ts`, `level`, `logger`, `message`; опционально `run_id`, `event`, `duration_ms`,
-  `exception`, `extra`).
+  `exception`, `extra`). Debug-события incremental и L2-кэша несут `run_id`, `event` и
+  `duration_ms`, а пути в сообщениях относительные.
 
 ### Changed
 

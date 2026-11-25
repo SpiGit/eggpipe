@@ -24,7 +24,9 @@ from eggpipe import (
     ProjectConfig,
     SourceConfig,
 )
+from eggpipe.config.logging import JsonLogFormatter
 from eggpipe.config.project_config import DiagnosticsConfig
+from eggpipe.core.cache import digest
 from eggpipe.engine.document_cache import DocumentCache
 
 MODEL = """\
@@ -87,12 +89,14 @@ def make_engine(
     stale_dates: bool = False,
     formats: FormatRegistry | None = None,
     source: Path = Path("model.yaml"),
+    variables: dict[str, str] | None = None,
 ) -> Engine:
     rules = ProjectConfig(
         version="1.0",
         sources=(SourceConfig(path=source, layout="monolith"),),
         generators=(GeneratorConfig(id="counting", output_dir=Path("out")),),
         diagnostics=DiagnosticsConfig(stale_dates=stale_dates),
+        variables=variables or {},
     )
     return Engine(
         AppConfig(
@@ -409,6 +413,38 @@ def test_incremental_logs_disable_reason(tmp_path: Path, caplog: pytest.LogCaptu
     with caplog.at_level(logging.DEBUG, logger="eggpipe.engine.engine"):
         make_engine(tmp_path, force=True).generate()
     assert any("incremental cache disabled" in item.getMessage() for item in caplog.records)
+
+
+def test_json_debug_logs_avoid_absolute_paths_and_secrets(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    CountingGenerator.calls = 0
+    model = tmp_path / "model.yaml"
+    model.write_text(MODEL, encoding="utf-8")
+    make_engine(tmp_path).generate()
+
+    state = tmp_path / ".eggpipe"
+    key = digest(model.read_bytes())
+    (state / "cache" / "docs" / f"{key}.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "out" / "out.txt").unlink()
+
+    with caplog.at_level(logging.DEBUG, logger="eggpipe"):
+        report = make_engine(tmp_path, variables={"api_token": "s3cret-token"}).generate()
+
+    assert report.success is True
+    lines = [
+        JsonLogFormatter().format(record)
+        for record in caplog.records
+        if record.name == "eggpipe" or record.name.startswith("eggpipe.")
+    ]
+    assert lines
+    payloads = [json.loads(line) for line in lines]
+    assert {payload["run_id"] for payload in payloads} == {report.run_id}
+    events = {payload["event"] for payload in payloads if "event" in payload}
+    assert {"incremental.disabled", "cache.payload.invalid"} <= events
+    for line in lines:
+        assert str(tmp_path) not in line
+        assert "s3cret-token" not in line
 
 
 def test_incremental_hits_for_format_inputs_in_nested_dir(tmp_path: Path) -> None:

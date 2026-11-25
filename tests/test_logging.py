@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
+from pathlib import Path
 
 import pytest
 
 from eggpipe.config.app_config import AppConfig
-from eggpipe.config.logging import JsonLogFormatter, setup_logging
+from eggpipe.config.logging import JsonLogFormatter, relative_text, setup_logging
 
 
 def make_record() -> logging.LogRecord:
@@ -66,6 +68,34 @@ def test_json_formatter_serializes_non_primitive_extra() -> None:
     data = json.loads(JsonLogFormatter().format(record))
 
     assert isinstance(data["extra"]["payload"], str)
+
+
+def test_fallback_record_escapes_control_characters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def broken(*args: object, **kwargs: object) -> str:
+        raise ValueError("boom")
+
+    monkeypatch.setattr("eggpipe.config.logging.json.dumps", broken)
+    record = make_record()
+    record.name = 'eggpipe.engine\n"quoted"'
+
+    line = JsonLogFormatter().format(record)
+    data = json.loads(line)
+
+    assert "\n" not in line
+    assert data["logger"] == 'eggpipe.engine\n"quoted"'
+
+
+def test_relative_text_strips_base_prefix(tmp_path: Path) -> None:
+    path = tmp_path / "model" / "base.yaml"
+
+    assert relative_text(path, base=tmp_path) == os.path.join("model", "base.yaml")
+    assert (
+        relative_text(f"invalid YAML: {path}", base=tmp_path)
+        == f"invalid YAML: {os.path.join('model', 'base.yaml')}"
+    )
+    assert relative_text(tmp_path, base=tmp_path) == "."
 
 
 def test_json_formatter_never_raises(
