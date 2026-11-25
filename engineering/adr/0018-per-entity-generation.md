@@ -2,7 +2,7 @@
 
 - **Статус:** принято
 - **Дата:** 2026-11-17
-- **Связанные документы:** [ТЗ v2.4 §6.1.2, §8.2, §10](../requirements/v2.4.md), [ADR-0004](./0004-ownership-manifest-cleanup.md), [ADR-0009](./0009-global-manifest-ownership.md), [ADR-0017](./0017-incremental-generation.md)
+- **Связанные документы:** [ТЗ v2.5 §6.1.2, §8.2, §10](../requirements/v2.5.md), [ADR-0004](./0004-ownership-manifest-cleanup.md), [ADR-0009](./0009-global-manifest-ownership.md), [ADR-0017](./0017-incremental-generation.md)
 
 ---
 

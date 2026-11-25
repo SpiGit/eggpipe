@@ -2,7 +2,7 @@
 
 - **Статус:** принято
 - **Дата:** 2026-11-23
-- **Связанные документы:** [ТЗ v2.4 §10.7](../requirements/v2.4.md), [ADR-0017](./0017-incremental-generation.md), [ADR-0018](./0018-per-entity-generation.md), [System Design §8.6, §9.3](../system-design/index.md), [Roadmap 0.5.0](../roadmap.md), [Spike L2/L3](../spikes/2026-11-23-l2-l3-cache.md)
+- **Связанные документы:** [ТЗ v2.5 §10.7](../requirements/v2.5.md), [ADR-0017](./0017-incremental-generation.md), [ADR-0018](./0018-per-entity-generation.md), [System Design §8.6, §9.3](../system-design/index.md), [Roadmap 0.5.0](../roadmap.md), [Spike L2/L3](../spikes/2026-11-23-l2-l3-cache.md)
 
 ---
 

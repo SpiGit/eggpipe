@@ -2,7 +2,7 @@
 
 - **Статус:** принято
 - **Дата:** 2026-11-20
-- **Связанные документы:** [ТЗ v2.4 §8.5](../requirements/v2.4.md), [System Design §9](../system-design/index.md), [Roadmap 0.5.0](../roadmap.md), [ADR-0017](./0017-incremental-generation.md)
+- **Связанные документы:** [ТЗ v2.5 §8.5](../requirements/v2.5.md), [System Design §9](../system-design/index.md), [Roadmap 0.5.0](../roadmap.md), [ADR-0017](./0017-incremental-generation.md)
 
 ---
 

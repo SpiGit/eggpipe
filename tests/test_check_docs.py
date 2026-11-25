@@ -5,15 +5,33 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.check_docs import (
     ROOT,
     SUPERSEDED_STATUS,
     Checker,
+    Frontmatter,
     VersionRow,
+    effective_effect,
     iter_outside_fences,
     parse_frontmatter,
 )
+
+DENY_ACTIONS = ("edit", "subagent", "webfetch", "websearch", "shell")
+NARROW_READ_RULES = (
+    {"action": "read", "resource": "/tmp/opencode/*", "effect": "deny"},
+    {"action": "read", "resource": "/tmp/opencode/pr-*.md", "effect": "allow"},
+    {"action": "read", "resource": "*.env", "effect": "deny"},
+)
+
+
+def agent_rules(*extra: dict[str, str]) -> Frontmatter:
+    rules: list[dict[str, str]] = [
+        {"action": action, "resource": "*", "effect": "deny"} for action in DENY_ACTIONS
+    ]
+    return {"mode": "subagent", "permissions": [*rules, *extra]}
+
 
 FRONTMATTER = """---
 description: test agent
@@ -54,6 +72,88 @@ class TestChecker(unittest.TestCase):
         checker = Checker(ROOT)
         checker.run()
         self.assertEqual(checker.findings, [])
+
+    def test_effective_effect_uses_last_match(self) -> None:
+        rules = [
+            {"action": "edit", "resource": "*", "effect": "deny"},
+            {"action": "edit", "resource": "*", "effect": "allow"},
+        ]
+        self.assertEqual(effective_effect(rules, "edit", "model.yaml"), "allow")
+        self.assertIsNone(effective_effect(rules, "read", "model.yaml"))
+
+    def test_agent_narrow_review_permissions_pass(self) -> None:
+        data = agent_rules(
+            {"action": "edit", "resource": "/tmp/opencode/pr-*.md", "effect": "allow"},
+            *NARROW_READ_RULES,
+        )
+        checker = Checker(ROOT)
+        checker.check_agent(ROOT / ".opencode/agents/pr-reviewer.md", data)
+        self.assertEqual(checker.findings, [])
+
+    def test_agent_late_broad_allow_is_rejected(self) -> None:
+        data = agent_rules(
+            {"action": "edit", "resource": "*", "effect": "allow"},
+            *NARROW_READ_RULES,
+        )
+        checker = Checker(ROOT)
+        checker.check_agent(ROOT / ".opencode/agents/pr-reviewer.md", data)
+        messages = [finding.message for finding in checker.findings]
+        self.assertIn("pr-reviewer.md must deny edit", messages)
+
+    def test_agent_broad_tmp_allow_is_rejected(self) -> None:
+        data = agent_rules(
+            {"action": "edit", "resource": "/tmp/opencode/**", "effect": "allow"},
+            {"action": "read", "resource": "/tmp/opencode/*", "effect": "deny"},
+            {"action": "read", "resource": "/tmp/opencode/**", "effect": "allow"},
+            {"action": "read", "resource": "*.env", "effect": "deny"},
+        )
+        checker = Checker(ROOT)
+        checker.check_agent(ROOT / ".opencode/agents/pr-reviewer.md", data)
+        messages = [finding.message for finding in checker.findings]
+        self.assertIn("pr-reviewer must not edit files outside /tmp/opencode/pr-*.md", messages)
+        self.assertIn("pr-reviewer must not read files outside /tmp/opencode/pr-*.md", messages)
+
+    def test_agent_must_deny_secret_reads(self) -> None:
+        data = agent_rules(
+            {"action": "edit", "resource": "/tmp/opencode/pr-*.md", "effect": "allow"},
+            {"action": "read", "resource": "/tmp/opencode/*", "effect": "deny"},
+            {"action": "read", "resource": "/tmp/opencode/pr-*.md", "effect": "allow"},
+        )
+        checker = Checker(ROOT)
+        checker.check_agent(ROOT / ".opencode/agents/pr-reviewer.md", data)
+        messages = [finding.message for finding in checker.findings]
+        self.assertIn("pr-reviewer.md must deny secret file reads", messages)
+
+    def test_stale_ai_docs_detected(self) -> None:
+        from tools import build_ai_docs
+
+        stale = dict(build_ai_docs.build())
+        first = next(iter(stale))
+        stale[first] += "\n"
+        with patch.object(build_ai_docs, "build", return_value=stale):
+            checker = Checker(ROOT)
+            checker.check_ai_docs_freshness()
+        self.assertEqual([finding.code for finding in checker.findings], ["DOC170"])
+
+    def test_freshness_skipped_without_package(self) -> None:
+        missing = ModuleNotFoundError("No module named 'eggpipe'", name="eggpipe")
+        with patch("tools.check_docs._load_builder", side_effect=missing):
+            checker = Checker(ROOT)
+            checker.check_ai_docs_freshness()
+        self.assertEqual(checker.findings, [])
+
+    def test_freshness_reports_broken_import(self) -> None:
+        missing = ModuleNotFoundError("No module named 'pydantic'", name="pydantic")
+        with patch("tools.check_docs._load_builder", side_effect=missing):
+            checker = Checker(ROOT)
+            checker.check_ai_docs_freshness()
+        self.assertEqual([finding.code for finding in checker.findings], ["DOC171"])
+
+    def test_freshness_skipped_for_foreign_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            checker = Checker(Path(directory))
+            checker.check_ai_docs_freshness()
+            self.assertEqual(checker.findings, [])
 
     def test_broken_relative_link(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
