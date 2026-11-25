@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 import time
 from datetime import UTC, datetime
@@ -26,7 +27,36 @@ def _timestamp(created: float) -> str:
 
 
 def _escape(value: object) -> str:
-    return str(value).replace("\\", "\\\\").replace('"', '\\"')
+    return (
+        str(value)
+        .replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+    )
+
+
+def relative_text(value: object, *, base: Path) -> str:
+    """Render path-bearing text relative to ``base`` for logs (ADR-0021)."""
+    text = str(value)
+    prefix = str(base)
+    if not prefix:
+        return text
+    if text == prefix:
+        return "."
+    return text.replace(prefix + os.sep, "")
+
+
+def display_path(path: Path, *, base: Path) -> str:
+    """Relative POSIX path for logs; outside ``base`` it keeps a ``../`` form (ADR-0021)."""
+    try:
+        return path.resolve().relative_to(base.resolve()).as_posix()
+    except ValueError:
+        pass
+    try:
+        return Path(os.path.relpath(path, base)).as_posix()
+    except ValueError:
+        return path.name
 
 
 def _fallback_record(record: logging.LogRecord) -> str:
@@ -105,4 +135,11 @@ def setup_logging(config: AppConfig) -> logging.Logger:
     return logger
 
 
-__all__ = ["LOGGER_NAME", "JsonLogFormatter", "get_logger", "setup_logging"]
+__all__ = [
+    "LOGGER_NAME",
+    "JsonLogFormatter",
+    "display_path",
+    "get_logger",
+    "relative_text",
+    "setup_logging",
+]

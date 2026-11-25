@@ -89,12 +89,13 @@ def _measure_noop(root: Path, iterations: int) -> tuple[float, dict[str, float],
     _generate(root, incremental=True)  # warm-up: populate caches and artifacts
     samples: list[float] = []
     phases: list[dict[str, int]] = []
-    report = _generate(root, incremental=True)[1]
+    reports: list[EngineReport] = []
     for _ in range(iterations):
         elapsed, report = _generate(root, incremental=True)
         samples.append(elapsed)
         phases.append(report.timings)
-    return _median_ms(samples), _median_phases(phases), report
+        reports.append(report)
+    return _median_ms(samples), _median_phases(phases), reports[-1]
 
 
 def _measure_changed(root: Path, iterations: int) -> tuple[float, dict[str, float], EngineReport]:
@@ -102,16 +103,17 @@ def _measure_changed(root: Path, iterations: int) -> tuple[float, dict[str, floa
     original = doc.read_text(encoding="utf-8")
     samples: list[float] = []
     phases: list[dict[str, int]] = []
-    report = _generate(root, incremental=True)[1]
+    reports: list[EngineReport] = []
     try:
         for index in range(iterations):
             doc.write_text(f"{original}\n# benchmark change {index}\n", encoding="utf-8")
             elapsed, report = _generate(root, incremental=True)
             samples.append(elapsed)
             phases.append(report.timings)
+            reports.append(report)
     finally:
         doc.write_text(original, encoding="utf-8")
-    return _median_ms(samples), _median_phases(phases), report
+    return _median_ms(samples), _median_phases(phases), reports[-1]
 
 
 def _median_phases(phases: list[dict[str, int]]) -> dict[str, float]:

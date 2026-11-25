@@ -70,6 +70,7 @@ def make_cache(
         config_dir=root,
         registry=registry or build_format_registry(),
         eggpipe_version=version,
+        run_id="test-run",
     )
 
 
