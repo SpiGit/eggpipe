@@ -23,6 +23,7 @@
 | [0019](./0019-watch-scheduling-and-cancellation.md) | Watch: сериализация, max_delay и границы отмены | Принято |
 | [0020](./0020-document-parse-cache.md) | Кэш разбора документов (L2) | Принято |
 | [0021](./0021-metrics-and-structured-logging.md) | Метрики L2 и structured logging | Принято |
+| [0022](./0022-documentation-version-policy.md) | Политика версий в документации | Принято |
 
 Решения ADR-0007–0010 сформулированы для ТЗ v1.4 и вошли в v2.0 без изменения смысла.
 ADR-0011 фиксирует публичный API и идентичность Eggpipe для v2.1.
