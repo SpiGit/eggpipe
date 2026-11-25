@@ -194,6 +194,52 @@ def test_corrupt_meta_is_miss_and_recovers(tmp_path: Path) -> None:
     assert make_cache(tmp_path).load(path) is not None
 
 
+def test_deeply_nested_meta_is_miss_and_recovers(tmp_path: Path) -> None:
+    path = prepared(tmp_path)
+    (tmp_path / META).write_text("[" * 2000 + "]" * 2000, encoding="utf-8")
+    cache = make_cache(tmp_path)
+
+    assert cache.load(path) is None
+    assert cache.miss_reasons["invalid"] == 1
+
+    cache = make_cache(tmp_path)
+    document = CachedParser(build_format_registry(), cache).parse_document(path)
+    cache.persist()
+
+    assert document.model.entity("User") is not None
+    assert make_cache(tmp_path).load(path) is not None
+
+
+def test_recursion_error_during_remember_is_ignored(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = write(tmp_path / "model/user.yaml", DOC)
+
+    def fail(_payload: dict[str, Any], _path: Path) -> None:
+        raise RecursionError("payload is too deep")
+
+    monkeypatch.setattr(document_cache, "restore_document", fail)
+    cache = make_cache(tmp_path)
+
+    cache.remember(path, parse(path))
+    cache.persist()
+
+    assert not (tmp_path / META).exists()
+
+
+def test_rename_drops_stale_path_mapping(tmp_path: Path) -> None:
+    path = prepared(tmp_path, name="user")
+    renamed = path.rename(tmp_path / "model" / "account.yaml")
+
+    cache = make_cache(tmp_path)
+    assert cache.load(renamed) is not None
+    cache.persist()
+
+    assert read_meta(tmp_path)["paths"] == {
+        "model/account.yaml": sha256(renamed.read_bytes()).hexdigest()
+    }
+
+
 def test_corrupt_payload_is_miss(tmp_path: Path) -> None:
     path = prepared(tmp_path)
     payload = next((tmp_path / DOCS).glob("*.json"))
@@ -409,7 +455,9 @@ def test_deeply_nested_payload_is_miss(tmp_path: Path) -> None:
     cache = make_cache(tmp_path)
 
     assert cache.load(path) is None
-    assert CachedParser(build_format_registry(), cache).parse_document(path) is not None
+    assert cache.miss_reasons["invalid"] == 1
+    document = CachedParser(build_format_registry(), cache).parse_document(path)
+    assert document.model.entity("User") is not None
 
 
 def test_shared_import_digest_is_memoized(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

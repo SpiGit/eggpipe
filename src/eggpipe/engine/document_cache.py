@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field
 
 from eggpipe.config.logging import get_logger
 from eggpipe.core.cache import CACHE_VERSION, digest, dump_payload, restore_document
@@ -21,6 +21,10 @@ from eggpipe.utils.yaml import YamlLoadError, parse_yaml
 _LOG = get_logger(__name__)
 META_FILE = "meta.json"
 DOCS_DIR = "docs"
+
+# Corrupt or hostile cache data is a miss, never an error (ADR-0020).
+_CACHE_DATA_ERRORS = (TypeError, ValueError, ArithmeticError, RecursionError)
+_CACHE_FILE_ERRORS = (OSError, *_CACHE_DATA_ERRORS)
 
 
 class CacheEntry(BaseModel):
@@ -67,6 +71,7 @@ class DocumentCache:
         self._digests: dict[Path, str | None] = {}
         self._staged: dict[str, dict[str, Any]] = {}
         self._touched: set[str] = set()
+        self._touched_paths: set[str] = set()
         self._invalid: set[str] = set()
         self._meta_invalid = False
         self._meta_version_mismatch = False
@@ -121,7 +126,7 @@ class DocumentCache:
             return None
         try:
             document = restore_document(payload, path)
-        except (ValidationError, ValueError, TypeError, ArithmeticError, RecursionError) as exc:
+        except _CACHE_DATA_ERRORS as exc:
             _LOG.debug("document cache payload is invalid for %s: %s", path, exc)
             self._record_miss("invalid")
             return None
@@ -162,6 +167,7 @@ class DocumentCache:
         relative = self._relative(path)
         if relative is None:
             return
+        self._touched_paths.add(relative)
         meta = self._meta_state()
         if meta.paths.get(relative) == key:
             return
@@ -207,7 +213,7 @@ class DocumentCache:
                 return
             payload = dump_payload(document)
             restore_document(payload, path)
-        except (TypeError, ValueError, ArithmeticError) as exc:
+        except _CACHE_DATA_ERRORS as exc:
             _LOG.debug("document cache payload is not serializable for %s: %s", path, exc)
             return
         meta = self._meta_state()
@@ -215,6 +221,7 @@ class DocumentCache:
         relative = self._relative(path)
         if relative is not None:
             paths[relative] = key
+            self._touched_paths.add(relative)
         self._meta = meta.model_copy(
             update={"entries": {**meta.entries, key: entry}, "paths": paths}
         )
@@ -230,7 +237,11 @@ class DocumentCache:
             for key, value in meta.entries.items()
             if key in self._touched and key not in self._invalid
         }
-        paths = {path: key for path, key in meta.paths.items() if key in entries}
+        paths = {
+            path: key
+            for path, key in meta.paths.items()
+            if key in entries and path in self._touched_paths
+        }
         if not self._staged and entries == meta.entries and paths == meta.paths:
             return
         try:
@@ -265,7 +276,7 @@ class DocumentCache:
         except FileNotFoundError:
             self._meta = empty
             return empty
-        except (OSError, ValueError, RecursionError) as exc:
+        except _CACHE_FILE_ERRORS as exc:
             _LOG.debug("document cache is ignored: %s", exc)
             self._meta_invalid = True
             self._meta = empty
@@ -345,7 +356,7 @@ class DocumentCache:
     def _read_payload(self, key: str) -> dict[str, Any] | None:
         try:
             data = json.loads((self.docs_dir / f"{key}.json").read_text(encoding="utf-8"))
-        except (OSError, ValueError, RecursionError):
+        except _CACHE_FILE_ERRORS:
             return None
         return data if isinstance(data, dict) else None
 

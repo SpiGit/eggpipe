@@ -25,6 +25,7 @@ from eggpipe import (
     SourceConfig,
 )
 from eggpipe.config.project_config import DiagnosticsConfig
+from eggpipe.engine.document_cache import DocumentCache
 
 MODEL = """\
 format: entity-model
@@ -548,6 +549,28 @@ def test_l2_cache_hits_when_file_is_renamed(
 
     assert report.success is True
     assert calls == []
+    paths = json.loads((tmp_path / ".eggpipe" / "cache" / "meta.json").read_text())["paths"]
+    assert "model/c.yaml" in paths
+    assert "model/b.yaml" not in paths
+
+
+def test_l1_hit_does_not_persist_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    CountingGenerator.calls = 0
+    write_dir_model(tmp_path)
+    make_dir_engine(tmp_path).generate()
+    persisted: list[Path] = []
+    original = DocumentCache.persist
+
+    def wrapper(self: DocumentCache) -> None:
+        persisted.append(self.meta_path)
+        original(self)
+
+    monkeypatch.setattr(DocumentCache, "persist", wrapper)
+    report = make_dir_engine(tmp_path).generate()
+
+    assert report.success is True
+    assert report.cache is None
+    assert persisted == []
 
 
 def test_l2_cache_recovers_from_corruption(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

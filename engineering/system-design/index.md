@@ -1403,8 +1403,10 @@ Cache-hit отчёт: `status=skipped`, `action=skip`, `parse/validate/generate/
 Поток: discovery берёт формат из валидной записи без полного `load_yaml`; fingerprint
 получает imports из меты и проверяет closure по хэшам; `CachedParser` загружает
 неизменённые документы и разбирает только промахи; запись выполняется в конце
-`generate` под `.eggpipe/lock`, prune — до набора текущего прогона. Валидность
-определяют версии, closure и схема payload; любая проблема — промах и полный путь.
+`generate` под `.eggpipe/lock`, prune записей, payload'ов и карты `paths` — до набора
+текущего прогона. Валидность определяют версии, closure и схема payload; любая
+проблема с недоверенными данными — промах и полный путь, а не исключение (включая
+`RecursionError` на глубоко вложенном JSON).
 `--plan` читает кэш, но не пишет; `--entity`, `--check`, `--force`, `--clean`,
 `--strict`, `stale_dates`, `allow_outside_imports` отключают L2 вместе с L1.
 
