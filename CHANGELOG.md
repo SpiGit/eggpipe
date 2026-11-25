@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-25
+
 ### Added
 
 - JSON-отчёт `report_version: 3`: блок `cache` с метриками L2 (`hits`, `misses`,
