@@ -58,3 +58,6 @@
 | B-036 | done | `troubleshooting.md`: подсказка про `gen list --all`; уточнить формулировку CHANGELOG (подсказка только при полной неудаче загрузки) | PR #52 review | DX при сломанных плагинах | #81 | 2026-11-24 |
 | B-037 | done | Изоляция тестов: общий хелпер `tests/helpers.py::patch_entry_points` с фильтрацией по группе вместо инлайновых `fake_entry_points` (`tests/test_cli.py`, `tests/test_plugin_loader.py`); reference-примеры фильтруют `issues` по id примера; cookbook — установка примера до тестов (включает B-038) | PR #52/#53 review | Тесты не изолируют чужие группы; хрупкость в общем окружении | #81 | 2026-11-24 |
 | B-050 | done | ТЗ v2.5: метрики hits/misses кэша; публикация формата `.eggpipe/cache/`; `eggpipe_version` в примере manifest; пакет с roadmap 0.5.0 п. 3 | PR #46/#47/#73 review | Единый пакет изменений ТЗ | #82, #84 | 2026-11-24 |
+| B-042 | dropped | dropped: включено в B-025 | PR #49 review | — | — | 2026-11-25 |
+| B-049 | dropped | dropped: включено в B-048 | PR #72/#74/#78, #82/#84 review | — | — | 2026-11-25 |
+| B-052 | dropped | dropped: включено в B-025 | PR #82/#84 review | — | — | 2026-11-25 |
