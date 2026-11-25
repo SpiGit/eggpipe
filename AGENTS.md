@@ -142,7 +142,7 @@ reference- и TPC-H-плагины, golden-тесты. Per-entity генерац
 
 1. Создать PR и дождаться `ci-success`.
 2. Убедиться, что `HEAD` запушен, и передать subagent `pr-reviewer` (Qwen3.8 Flash)
-   пакет ревью: diff (текстом или файлом в `/tmp/opencode/`), список изменённых файлов
+   пакет ревью: diff (текстом или файлом `/tmp/opencode/pr-<N>-*.md`), список изменённых файлов
    и «Критерии приёмки» из PR body. Номер PR передаётся в пакете: ревьюер публикует
    вердикт сам.
 3. Ревьюер публикует verdict и находки через `tools/review_pr.py --body-file`
@@ -209,7 +209,8 @@ API, а не только с `git branch --merged`. Удаляй только в
 
 - Dev/CI используют `uv` и закоммиченный `uv.lock`; для пользователей — `pip`.
 - `uv sync --extra dev` — установка dev-окружения.
-- `uv run python tools/check_docs.py --strict` — проверка ссылок, версий, harness и терминов.
+- `uv run python tools/check_docs.py --strict` — проверка ссылок, версий, harness, терминов
+  и свежести `docs/ai` (DOC170).
 - `uv run python tools/bump_version.py <version>` — подготовка релиза (версия, CHANGELOG, docs/ai).
 - `uv run python tools/preflight.py --stamp` — пропуск тяжёлых проверок, если дерево
   не менялось с последнего успешного прогона.

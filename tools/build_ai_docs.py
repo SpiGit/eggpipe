@@ -32,6 +32,7 @@ LLMS_FULL_SOURCES = (
     ROOT / "docs" / "user" / "api" / "generator.md",
     ROOT / "docs" / "user" / "api" / "format.md",
     ROOT / "docs" / "user" / "api" / "models.md",
+    ROOT / "docs" / "user" / "plugins.md",
     ROOT / "docs" / "user" / "plugin-template.md",
 )
 
@@ -70,16 +71,23 @@ COMMANDS = (
 )
 
 
+def build() -> dict[Path, str]:
+    """Return generated documentation content by path, without writing files."""
+    return {
+        SCHEMA_DIR / "model.schema.json": _json(_schema(ModelDocument)),
+        SCHEMA_DIR / "config.schema.json": _json(_schema(ProjectConfig)),
+        SCHEMA_DIR / "report.schema.json": _json(_schema(EngineReport)),
+        SCHEMA_DIR / "manifest.schema.json": _json(_schema(Manifest)),
+        AI_DIR / "diagnostics.json": _json(_diagnostics()),
+        AI_DIR / "llms.txt": _llms_index(),
+        AI_DIR / "llms-full.txt": _llms_full(),
+        AI_DIR / "manifest.json": _json(_manifest()),
+    }
+
+
 def main() -> None:
-    SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
-    _write_json(SCHEMA_DIR / "model.schema.json", _schema(ModelDocument))
-    _write_json(SCHEMA_DIR / "config.schema.json", _schema(ProjectConfig))
-    _write_json(SCHEMA_DIR / "report.schema.json", _schema(EngineReport))
-    _write_json(SCHEMA_DIR / "manifest.schema.json", _schema(Manifest))
-    _write_json(AI_DIR / "diagnostics.json", _diagnostics())
-    _write_text(AI_DIR / "llms.txt", _llms_index())
-    _write_text(AI_DIR / "llms-full.txt", _llms_full())
-    _write_json(AI_DIR / "manifest.json", _manifest())
+    for path, text in build().items():
+        _write_text(path, text)
 
 
 def _schema(model: type[Any]) -> dict[str, Any]:
@@ -176,8 +184,8 @@ def _manifest() -> dict[str, Any]:
     }
 
 
-def _write_json(path: Path, value: Any) -> None:
-    _write_text(path, json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+def _json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
 
 def _write_text(path: Path, value: str) -> None:

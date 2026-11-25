@@ -10,7 +10,8 @@ Checked:
 - live documents do not hardcode the current package version (DOC161);
 - historical versions are protected from edits in opencode.json;
 - harness contracts: frontmatter of agents, commands and skills;
-- core terms, diagnostic codes and forbidden flags.
+- core terms, diagnostic codes and forbidden flags;
+- generated `docs/ai` matches `tools/build_ai_docs.py` (DOC170).
 
 Usage:
     python tools/check_docs.py
@@ -26,9 +27,10 @@ import json
 import re
 import sys
 import tomllib
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,6 +45,17 @@ DOCUMENT_VERSION_LABEL = (
 )  # fmt: skip
 SPEC_STATUS_LABEL = "\u0421\u0442\u0430\u0442\u0443\u0441 \u0422\u0417"  # Spec status
 SKIP_PARTS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
+# Representative resources for the effective-permission check (DOC146).
+AGENT_DENY_PROBES = {
+    "edit": "project/model.yaml",
+    "subagent": "general",
+    "shell": "rm -rf project",
+    "webfetch": "https://example.com",
+    "websearch": "eggpipe permissions",
+}
+READ_SECRET_PROBES = (".env", "config/.env", "secrets/token.env")
+REVIEW_ALLOWED_FILE = "/tmp/opencode/pr-93-package.md"
+REVIEW_FORBIDDEN_FILE = "/tmp/opencode/review-body.md"
 # Files where the current package version is data, not a claim about the live state.
 # The check is a heuristic: a foreign package pinned to the same version string in prose
 # outside a code fence would also be flagged. Keep such pins in code fences.
@@ -269,6 +282,23 @@ def parse_frontmatter(text: str) -> tuple[Frontmatter, str] | None:
     return data, "\n".join(lines[closing + 1 :])
 
 
+def effective_effect(permissions: Sequence[object], action: str, resource: str) -> str | None:
+    """Resolve the effective effect for a resource; the last matching rule wins."""
+    effect: str | None = None
+    for rule in permissions:
+        if not isinstance(rule, dict):
+            continue
+        pattern = rule.get("resource")
+        if (
+            rule.get("action") == action
+            and isinstance(pattern, str)
+            and fnmatch.fnmatchcase(resource, pattern)
+        ):
+            value = rule.get("effect")
+            effect = value if isinstance(value, str) else None
+    return effect
+
+
 class Checker:
     def __init__(self, root: Path, strict: bool = False) -> None:
         self.root = root
@@ -320,6 +350,7 @@ class Checker:
         self.check_frontmatter()
         self.check_terms()
         self.check_diagnostic_codes()
+        self.check_ai_docs_freshness()
 
     def check_required_files(self) -> None:
         for name in REQUIRED_FILES:
@@ -622,20 +653,32 @@ class Checker:
         if not isinstance(permissions, list):
             self.error("DOC145", path, None, f"{path.name} has no permissions")
             return
-        required = ("edit", "subagent", "shell", "webfetch", "websearch")
-        for action in required:
-            if not any(
-                isinstance(rule, dict)
-                and rule.get("action") == action
-                and rule.get("effect") == "deny"
-                for rule in permissions
-            ):
+        for action, probe in AGENT_DENY_PROBES.items():
+            if effective_effect(permissions, action, probe) != "deny":
                 self.error("DOC146", path, None, f"{path.name} must deny {action}")
-        if path.name == "pr-reviewer.md" and not any(
-            isinstance(rule, dict) and rule.get("action") == "read" and rule.get("effect") == "deny"
-            for rule in permissions
+        if any(
+            effective_effect(permissions, "read", probe) != "deny" for probe in READ_SECRET_PROBES
         ):
-            self.error("DOC146", path, None, "pr-reviewer must deny secret file reads")
+            self.error("DOC146", path, None, f"{path.name} must deny secret file reads")
+        if path.name != "pr-reviewer.md":
+            return
+        for action in ("edit", "read"):
+            if effective_effect(permissions, action, REVIEW_FORBIDDEN_FILE) != "deny":
+                self.error(
+                    "DOC146",
+                    path,
+                    None,
+                    f"pr-reviewer must not {action} files outside /tmp/opencode/pr-*.md",
+                )
+            if effective_effect(permissions, action, REVIEW_ALLOWED_FILE) != "allow":
+                self.error(
+                    "DOC146",
+                    path,
+                    None,
+                    f"pr-reviewer must {action} files matching /tmp/opencode/pr-*.md",
+                )
+        if effective_effect(permissions, "read", "model.yaml") == "deny":
+            self.error("DOC146", path, None, "pr-reviewer must read repository files")
 
     def check_command(self, path: Path, data: Frontmatter) -> None:
         if path.name == "spec-check.md" and data.get("agent") != "spec-reviewer":
@@ -727,6 +770,47 @@ class Checker:
                             number,
                             f"unknown diagnostic code {code}",
                         )
+
+    def check_ai_docs_freshness(self) -> None:
+        """Generated ``docs/ai`` must match the builder output (DOC170)."""
+        if self.root.resolve() != ROOT.resolve():
+            return
+        try:
+            documents = _load_builder().build()
+        except Exception as exc:
+            self.error(
+                "DOC171",
+                ROOT / "tools" / "build_ai_docs.py",
+                None,
+                f"cannot build AI docs: {type(exc).__name__}: {exc}",
+            )
+            return
+        for path, expected in documents.items():
+            try:
+                actual = path.read_text(encoding="utf-8")
+            except OSError:
+                self.error(
+                    "DOC170",
+                    path,
+                    None,
+                    "generated file is missing; run tools/build_ai_docs.py",
+                )
+                continue
+            if actual != expected:
+                self.error(
+                    "DOC170",
+                    path,
+                    None,
+                    "generated file is stale; run tools/build_ai_docs.py",
+                )
+
+
+def _load_builder() -> Any:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools import build_ai_docs
+
+    return build_ai_docs
 
 
 def main(argv: list[str] | None = None) -> int:
