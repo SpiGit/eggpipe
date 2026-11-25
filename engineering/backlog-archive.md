@@ -67,3 +67,6 @@
 | B-055 | done | Benchmark follow-ups (#88 review): убрать лишний `_generate(...)` перед циклом в `_measure_noop`/`_measure_changed`; переименовать подпись заполненного `CacheReport` в `test_render_contains_rows` с `"no-op"` на `"changed"` | PR #88 review | Меньше лишних прогонов и яснее тест | #93 | 2026-11-25 |
 | B-057 | done | Structured logging, пути и тесты: `display_path` — один `os.path.relpath` от resolved путей (симлинки без длинной `../`); `relative_text` — POSIX, все вхождения базы, root-base; `DocumentCache._display_path` через общий helper; fallback-запись экранирует все control-символы; тесты POSIX/симлинк/control/повтор базы, E2E CLI `EGGPIPE_LOG_MODE=json`, многострочный pydantic `_summary`; `plugins.md` — требование к тексту `DocumentError` | PR #93 review | Единый безопасный рендер путей | #96 | 2026-11-25 |
 | B-040 | done | ADR-0022: политика версий в документации (`DOC161`, allowlist, `bump_version.py`, `mike` из `pyproject.toml`), ссылка из release guide | PR #51 review | Зафиксированное решение | #98 | 2026-11-25 |
+| B-060 | dropped | dropped: включено в B-043 | PR #94 review | — | — | 2026-11-25 |
+| B-062 | dropped | dropped: включено в B-059 | PR #96 review | — | — | 2026-11-25 |
+| B-063 | dropped | dropped: включено в B-025 | PR #98 review | — | — | 2026-11-25 |
