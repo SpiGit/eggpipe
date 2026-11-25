@@ -34,13 +34,17 @@
   каждая итерация ревью видна в истории. Имя сессии — готовая строка для копирования в
   первом ответе, `#<PR>` после создания PR, `(closed)` при закрытии.
 - Harness: `pr-reviewer` публикует вердикт через `--body-file` (heredoc не нужен);
-  запись разрешена только в `/tmp/opencode/**`. Лимит — 40 шагов; вердикт обязан
-  соответствовать находкам: Critical/Major ⇒ `CHANGES REQUESTED`.
+  писать можно только `/tmp/opencode/pr-<N>-review-<k>.md`, читать — `/tmp/opencode/pr-*.md`;
+  `DOC146` проверяет итоговый эффект правил, поэтому поздний широкий `allow` не отменяет
+  `deny`. Лимит — 40 шагов; вердикт обязан соответствовать находкам: Critical/Major ⇒
+  `CHANGES REQUESTED`.
 - Ошибки аргументов `@generator(...)` приходят из загрузчика с кодом `EG301` и подсказкой;
   общие hint-константы и формат локации вынесены в `core/plugin_contract.py`.
 - Релизная подготовка автоматизирована: `tools/bump_version.py` обновляет версию,
   `uv.lock`, CHANGELOG и `docs/ai`; `pages` вычисляет версию docs из `pyproject.toml`.
-- `check_docs.py` отклоняет литерал текущей версии в живых документах (DOC161).
+- `check_docs.py` отклоняет литерал текущей версии в живых документах (DOC161) и сверяет
+  `docs/ai` с выводом `tools/build_ai_docs.py` (DOC170/DOC171); `docs/user/plugins.md`
+  включён в `llms-full.txt`; шапки ADR-0001, 0007–0010, 0017–0020 ссылаются на ТЗ v2.5.
 - `eggpipe gen list` подсказывает `gen list --all`, если ни один генератор не загрузился;
   общий тестовый хелпер `patch_entry_points` фильтрует плагины по группе.
 - `eggpipe format list` показывает `api_version`, `extends` и `base_versions`, как `format info`.
