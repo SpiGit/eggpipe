@@ -55,10 +55,7 @@ def relative_text(value: object, *, base: Path) -> str:
     prefix = prefix.rstrip("/")
     if text == prefix:
         return "."
-    marker = prefix + "/"
-    if text.startswith(marker):
-        return text[len(marker) :]
-    return text.replace(marker, "")
+    return text.replace(prefix + "/", "")
 
 
 def display_path(path: Path, *, base: Path) -> str:

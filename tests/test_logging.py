@@ -114,6 +114,12 @@ def test_relative_text_strips_base_anywhere_in_multiline_text(tmp_path: Path) ->
     )
 
 
+def test_relative_text_strips_every_base_occurrence(tmp_path: Path) -> None:
+    path = tmp_path / "model" / "base.yaml"
+
+    assert relative_text(f"{path}: {path}", base=tmp_path) == ("model/base.yaml: model/base.yaml")
+
+
 def test_relative_text_handles_root_base() -> None:
     assert relative_text("/model/base.yaml", base=Path("/")) == "model/base.yaml"
     assert relative_text("/", base=Path("/")) == "."
