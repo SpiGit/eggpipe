@@ -68,6 +68,8 @@ PACKAGE_VERSION_ALLOWLIST = (
     "engineering/requirements/",
     "engineering/roadmap.md",
     "engineering/backlog.md",
+    "engineering/backlog-archive.md",
+    "engineering/spikes/",
     ".github/pull_request_template.md",
     "examples/",
 )

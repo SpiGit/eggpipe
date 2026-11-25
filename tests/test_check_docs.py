@@ -214,6 +214,22 @@ class TestChecker(unittest.TestCase):
             checker.check_package_version_literals()
             self.assertEqual(checker.findings, [])
 
+    def test_package_version_in_allowlisted_historical_records(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "eggpipe"\nversion = "1.2.3"\n', encoding="utf-8"
+            )
+            archive = root / "engineering/backlog-archive.md"
+            spikes = root / "engineering/spikes"
+            archive.parent.mkdir(parents=True)
+            spikes.mkdir(parents=True)
+            archive.write_text("| B-001 | done | релиз 1.2.3 |\n", encoding="utf-8")
+            (spikes / "2026-11-23-cache.md").write_text("Сделано в 1.2.3.\n", encoding="utf-8")
+            checker = Checker(root)
+            checker.check_package_version_literals()
+            self.assertEqual(checker.findings, [])
+
     def test_hardcoded_package_version_in_workflow(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
