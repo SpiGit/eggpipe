@@ -319,6 +319,23 @@ def test_generate_json(tmp_path: Path) -> None:
     assert report["artifacts"] == []
 
 
+def test_generate_json_log_mode_writes_json_lines_to_stderr(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    runner = CliRunner()
+    env = {"EGGPIPE_LOG_MODE": "json", "EGGPIPE_LOG_LEVEL": "debug"}
+
+    assert runner.invoke(app, ["generate", "-c", str(rules)], env=env).exit_code == 0
+    result = runner.invoke(app, ["generate", "-c", str(rules), "--incremental"], env=env)
+
+    assert result.exit_code == 0
+    lines = [line for line in result.stderr.splitlines() if line.strip()]
+    assert lines
+    for line in lines:
+        payload = json.loads(line)
+        assert {"ts", "level", "logger", "message"} <= set(payload)
+        assert str(tmp_path) not in line
+
+
 def test_generate_strict_json_has_null_cache(tmp_path: Path) -> None:
     _, rules = project(tmp_path)
     result = CliRunner().invoke(

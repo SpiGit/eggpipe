@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from eggpipe.config.logging import get_logger, relative_text
+from eggpipe.config.logging import display_path, get_logger, relative_text
 from eggpipe.core.cache import CACHE_VERSION, digest, dump_payload, restore_document
 from eggpipe.core.document import ModelDocument
 from eggpipe.core.format_registry import FormatRegistry
@@ -177,7 +177,7 @@ class DocumentCache:
             return None
 
     def _display_path(self, path: Path) -> str:
-        return self._relative(path) or path.name
+        return display_path(path, base=self.config_dir)
 
     def _debug(self, event: str, message: str, *args: object) -> None:
         _LOG.debug(message, *args, extra={"run_id": self.run_id, "event": event})

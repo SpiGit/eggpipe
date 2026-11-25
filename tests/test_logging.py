@@ -78,24 +78,51 @@ def test_fallback_record_escapes_control_characters(
 
     monkeypatch.setattr("eggpipe.config.logging.json.dumps", broken)
     record = make_record()
-    record.name = 'eggpipe.engine\n"quoted"'
+    name = 'eggpipe.engine\n"quoted"\r\t\x00'
+    record.name = name
 
     line = JsonLogFormatter().format(record)
     data = json.loads(line)
 
-    assert "\n" not in line
-    assert data["logger"] == 'eggpipe.engine\n"quoted"'
+    assert not {"\n", "\r", "\t", "\x00"} & set(line)
+    assert data["logger"] == name
 
 
-def test_relative_text_strips_base_prefix(tmp_path: Path) -> None:
+def test_relative_text_renders_posix_paths(tmp_path: Path) -> None:
     path = tmp_path / "model" / "base.yaml"
 
-    assert relative_text(path, base=tmp_path) == os.path.join("model", "base.yaml")
-    assert (
-        relative_text(f"invalid YAML: {path}", base=tmp_path)
-        == f"invalid YAML: {os.path.join('model', 'base.yaml')}"
+    assert relative_text(path, base=tmp_path) == "model/base.yaml"
+    assert relative_text(f"invalid YAML: {path}", base=tmp_path) == (
+        "invalid YAML: model/base.yaml"
     )
     assert relative_text(tmp_path, base=tmp_path) == "."
+
+
+def test_relative_text_normalizes_native_separators(tmp_path: Path) -> None:
+    text = os.path.join(str(tmp_path), "model", "base.yaml")
+
+    assert relative_text(f"invalid YAML: {text}", base=tmp_path) == "invalid YAML: model/base.yaml"
+
+
+def test_relative_text_strips_base_anywhere_in_multiline_text(tmp_path: Path) -> None:
+    path = tmp_path / "model" / "base.yaml"
+
+    text = f"failed to read {path}:\n  line 3: {path} is empty"
+
+    assert relative_text(text, base=tmp_path) == (
+        "failed to read model/base.yaml:\n  line 3: model/base.yaml is empty"
+    )
+
+
+def test_relative_text_strips_every_base_occurrence(tmp_path: Path) -> None:
+    path = tmp_path / "model" / "base.yaml"
+
+    assert relative_text(f"{path}: {path}", base=tmp_path) == ("model/base.yaml: model/base.yaml")
+
+
+def test_relative_text_handles_root_base() -> None:
+    assert relative_text("/model/base.yaml", base=Path("/")) == "model/base.yaml"
+    assert relative_text("/", base=Path("/")) == "."
 
 
 def test_display_path_stays_relative_outside_base(tmp_path: Path) -> None:
@@ -104,6 +131,18 @@ def test_display_path_stays_relative_outside_base(tmp_path: Path) -> None:
 
     assert display_path(base / "model" / "base.yaml", base=base) == "model/base.yaml"
     assert display_path(tmp_path / "outside.yaml", base=base) == "../outside.yaml"
+
+
+def test_display_path_resolves_symlinked_base(tmp_path: Path) -> None:
+    real = tmp_path / "real"
+    real.mkdir()
+    link = tmp_path / "link"
+    try:
+        link.symlink_to(real, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks are not available")
+
+    assert display_path(real / "model" / "base.yaml", base=link) == "model/base.yaml"
 
 
 def test_json_formatter_never_raises(
