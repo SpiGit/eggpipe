@@ -225,7 +225,8 @@ API, а не только с `git branch --merged`. Удаляй только в
 - `/spec-release <версия>` — подготовка новой версии ТЗ и синхронизация документов.
 - `/adr-new <название>` — создание нового ADR по шаблону.
 - `uv run python tools/create_pr.py` — создать/обновить PR из текущей ветки (нужен `GH_TOKEN`).
-- `uv run python tools/benchmark.py` — базовый бенчмарк TPC-H.
+- `uv run python tools/benchmark.py` — регрессионные сценарии TPC-H (полный прогон,
+  incremental no-op, изменён 1 из 8); нужен `uv pip install -e examples/tpc-h-generator`.
 - `uv run python tools/review_pr.py` — опубликовать review-комментарий в PR (нужен `GH_TOKEN`).
 - Subagent `pr-reviewer` — независимое ревью PR на Qwen3.8 Flash.
 - Skill `spec-consistency` — чек-лист кросс-документной проверки.

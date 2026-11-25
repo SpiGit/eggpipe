@@ -15,6 +15,10 @@
 
 ### Changed
 
+- `tools/benchmark.py` измеряет регрессионные сценарии TPC-H (полный `generate`,
+  incremental no-op и «изменён 1 из 8») на временной копии примера; нужен
+  `uv pip install -e examples/tpc-h-generator`; baseline предыдущего релиза и пороги —
+  `engineering/benchmarks.md`.
 - Процесс: сессии и backlog описаны в `engineering/process/sessions.md`, ритуалы — команды
   `/session-start` и `/session-close`; backlog закрывается в `engineering/backlog-archive.md`
   с лимитом 10 `open`.
