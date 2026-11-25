@@ -135,6 +135,20 @@ class TestChecker(unittest.TestCase):
             checker.check_ai_docs_freshness()
         self.assertEqual([finding.code for finding in checker.findings], ["DOC170"])
 
+    def test_freshness_skipped_without_package(self) -> None:
+        missing = ModuleNotFoundError("No module named 'eggpipe'", name="eggpipe")
+        with patch("tools.check_docs._load_builder", side_effect=missing):
+            checker = Checker(ROOT)
+            checker.check_ai_docs_freshness()
+        self.assertEqual(checker.findings, [])
+
+    def test_freshness_reports_broken_import(self) -> None:
+        missing = ModuleNotFoundError("No module named 'pydantic'", name="pydantic")
+        with patch("tools.check_docs._load_builder", side_effect=missing):
+            checker = Checker(ROOT)
+            checker.check_ai_docs_freshness()
+        self.assertEqual([finding.code for finding in checker.findings], ["DOC171"])
+
     def test_freshness_skipped_for_foreign_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             checker = Checker(Path(directory))

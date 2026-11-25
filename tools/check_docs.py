@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Check Eggpipe documentation consistency.
 
-The script has no external dependencies and targets Python 3.11+.
+The script targets Python 3.11+ and needs no third-party packages; the ``docs/ai``
+freshness check imports ``eggpipe`` when the package is installed.
 
 Checked:
 - required files exist and JSON configuration is valid;
@@ -11,7 +12,7 @@ Checked:
 - historical versions are protected from edits in opencode.json;
 - harness contracts: frontmatter of agents, commands and skills;
 - core terms, diagnostic codes and forbidden flags;
-- generated `docs/ai` matches `tools/build_ai_docs.py` (DOC170).
+- generated `docs/ai` matches `tools/build_ai_docs.py` (DOC170), when `eggpipe` is importable.
 
 Usage:
     python tools/check_docs.py
@@ -777,6 +778,15 @@ class Checker:
             return
         try:
             documents = _load_builder().build()
+        except ModuleNotFoundError as exc:
+            if exc.name != "eggpipe":
+                self.error(
+                    "DOC171",
+                    ROOT / "tools" / "build_ai_docs.py",
+                    None,
+                    f"cannot build AI docs: {type(exc).__name__}: {exc}",
+                )
+            return
         except Exception as exc:
             self.error(
                 "DOC171",

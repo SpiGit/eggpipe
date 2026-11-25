@@ -156,7 +156,7 @@ def _llms_index() -> str:
 def _llms_full() -> str:
     parts = ["# Eggpipe — full AI context\n"]
     for path in LLMS_FULL_SOURCES:
-        parts.append(f"\n---\n\n<!-- source: {path.relative_to(ROOT)} -->\n\n")
+        parts.append(f"\n---\n\n<!-- source: {path.relative_to(ROOT).as_posix()} -->\n\n")
         parts.append(path.read_text(encoding="utf-8"))
     return "".join(parts)
 
