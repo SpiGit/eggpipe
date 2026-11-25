@@ -21,6 +21,7 @@
 - 2026-11-24 (восемнадцатая сессия: ТЗ v2.5, метрики L2, JSON-логи, harness ревьюера)
 - 2026-11-25 (девятнадцатая сессия: structured logging, права ревьюера, freshness `docs/ai`)
 - 2026-11-25 (двадцатая сессия: ADR-0022 политики версий документации)
+- 2026-11-25 (двадцать первая сессия: closeout backlog, релиз 0.5.0)
 
 **Статус ТЗ:** v2.5 — рабочая версия (замещает v2.4)
 **Статус проекта:** beta (0.x); до 1.0 breaking changes возможны (ADR-0014)
@@ -972,3 +973,47 @@ chore-пакет; B-040 не начинался.
 | 1 | Релиз 0.5.0 | `engineering/release.md`: `bump_version.py`, полный чек-лист, тег и публикация; scope вехи закрыт | Выпуск вехи 0.5.0 | release |
 | 2 | B-061/B-062: tooling и тест-гигиена | DOC121-гейт шапок ADR, CRLF в `_write_text`, скобки в `test_logging.py` | Предсказуемая сборка docs/ai, читаемые тесты | chore |
 | 3 | B-048: кэш — эффективность и документация | raw YAML между фазами, atomic-JSON helper, `cache_version`, матрица ADR-0021 | Меньше разборов и расхождений | chore/docs |
+
+---
+
+## 2026-11-25 — closeout backlog и релиз 0.5.0
+
+### 1. План на день
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | Closeout backlog перед релизом | Выполнено (#100) |
+| 2 | Релиз 0.5.0 по `engineering/release.md` | Выполнено (#101) |
+
+### 2. Выполнено
+
+| Задача | Результат |
+|--------|-----------|
+| Closeout (#100) | Backlog 10 → 7 `open`: B-060 → B-043, B-062 → B-059, B-063 → B-025; записи перенесены в архив как `dropped`; ревью 1 итерация — APPROVE |
+| Релиз (#101) | `bump_version.py 0.5.0`: версия пакета, CHANGELOG `[0.5.0] - 2026-11-25`, `uv.lock`, `docs/ai`; ADR-0023 расширил allowlist DOC161 для архива backlog и spikes; регресс-тест |
+| Ревью #101 | 2 итерации: CHANGES REQUESTED (Major — `roadmap` в перечне живых документов ADR-0023) → APPROVE после правки |
+| Проверки | Preflight: ruff, format, pyrefly, pytest 470 passed, coverage 86.45%, `check_docs --strict` 108 файлов, mkdocs, build, `check_wheel.py`; CI `ci`/`docs` — success |
+| Выпуск | Тег `v0.5.0`, release workflow success: build, GitHub Release (wheel/sdist/sbom), PyPI 0.5.0; docs `0.5`/`latest` опубликованы |
+| Post-release sync | Roadmap: 0.5.0 — выпущенный релиз, следующая веха 0.6.0; handoff закрыт; backlog B-064 |
+
+### 3. Вне плана
+
+| Что | Причина | Импакт |
+|-----|---------|--------|
+| ADR-0023 и расширение allowlist DOC161 | `bump_version.py 0.5.0` выявил ложные DOC161 на архиве backlog и spike-записях; ADR-0022 §2.6 требует ADR на изменение списка | Политика версий согласована с историческими записями |
+| Merge через UI | PAT не имеет права merge через API (`403`) | Merge выполняет пользователь |
+| CI на `323a1e8` | `macos-latest / Python 3.11` — `cancelled` (инфраструктура), не тест | Следующий коммит `9f49875` — все проверки зелёные |
+
+### 4. Не выполнено
+
+| Задача | Причина | Перенос |
+|--------|---------|---------|
+| — | — | — |
+
+### 5. План на следующий день
+
+| # | Задача | Контекст | Импакт | Формат / оценка |
+|---|--------|----------|--------|-----------------|
+| 1 | B-048: кэш — эффективность и документация | raw YAML между фазами, atomic-JSON helper, матрица ADR-0021, `cache_version` | Меньше разборов и расхождений | chore/docs |
+| 2 | B-043: preflight/watch/reviewer permissions | `SKIP_PARTS`, стампы, гонка debounce, маска `review_pr.py` | Устойчивые проверки и sandbox | chore |
+| 3 | B-061/B-059: tooling и тест-гигиена | DOC121-гейт, CRLF, `model_construct`, скобки в `test_logging.py` | Предсказуемая сборка docs/ai, тесты ближе к данным | chore |
