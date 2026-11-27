@@ -127,7 +127,8 @@ release workflow проверен, тег `v0.4.0` поставлен на `main
 - migration guide для пользователей `0.x`;
 - финальный аудит документации и примеров;
 - проверка wheel/sdist, attestations и release workflow;
-- `gen info --plugin PATH` для локальных dev-плагинов (B-028, требует отдельной версии ТЗ после v2.6).
+- `gen info --plugin PATH` для локальных dev-плагинов (B-028, требует отдельной версии ТЗ после v2.6);
+- PostgreSQL transform/upsert example — кандидат (см. §5 «Reference examples»).
 
 ### 1.0.0
 
