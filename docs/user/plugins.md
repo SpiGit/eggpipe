@@ -227,16 +227,17 @@ def user_sql(...): ...
 | `eggpipe generate` | все entities среза, один вызов |
 | `eggpipe generate --entity User` | срез из `User`, один вызов |
 | `eggpipe generate --entity User,Post` | срез из `User` и `Post`, один вызов |
+| `eggpipe generate --entity-all` | по одному вызову на каждую entity, выбранную для генератора |
 
 Раскладки `file-per-model`/`directory-per-model` влияют только на композицию источников
 и не меняют число вызовов. Если один запуск должен создать артефакт на каждую entity,
 генератор итерируется по `model.entities`. Если нужен именно отдельный вызов на entity,
-запускайте команду отдельно для каждой entity (`--entity User`, затем `--entity Post`) или
-вызывайте `engine.generate(entities=["User"])` отдельно для каждой entity.
+используйте `--entity-all` (в API — `entity_all=True`); он вызывает генератор по одной
+entity и не требует перечислять имена. Альтернатива — запускать команду отдельно для
+каждой entity (`--entity User`, затем `--entity Post`).
 
-`--entity` принимает точные имена; маски (`*`, `lu_*`) не поддерживаются. Если entity
-много, сформируйте список заранее и передайте его одним значением
-`--entity User,Post,Comment`.
+`--entity` принимает точные имена; маски (`*`, `lu_*`) не поддерживаются. Для всех
+entities используйте `--entity-all`; он несовместим с `--entity`.
 
 ## Ошибки контракта
 

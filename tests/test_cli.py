@@ -606,9 +606,74 @@ class PerEntity(GeneratorPlugin):
     assert "EG018" in result.stderr
 
 
+def test_generate_entity_all_with_local_plugin(tmp_path: Path) -> None:
+    model, rules = project(tmp_path)
+    model.write_text(MODEL_TWO, encoding="utf-8")
+    plugin = per_entity_plugin(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: per-entity\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--plugin", str(plugin), "--entity-all"],
+    )
+    assert result.exit_code == 0
+    assert (tmp_path / "out" / "user.txt").is_file()
+    assert (tmp_path / "out" / "post.txt").is_file()
+
+
+def test_generate_entity_all_plan_does_not_write(tmp_path: Path) -> None:
+    model, rules = project(tmp_path)
+    model.write_text(MODEL_TWO, encoding="utf-8")
+    plugin = per_entity_plugin(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: per-entity\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--plugin", str(plugin), "--entity-all", "--plan"],
+    )
+    assert result.exit_code == 0
+    assert not (tmp_path / "out").exists()
+
+
+def test_generate_rejects_entity_and_entity_all(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--entity", "User", "--entity-all"],
+    )
+    assert result.exit_code == 2
+    assert "--entity and --entity-all are mutually exclusive" in result.stderr
+
+
+def test_generate_entity_all_requires_entity_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, rules = project(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: reference\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    patch_entry_points(
+        monkeypatch, [EntryPoint("reference", ReferenceGenerator)], plugin_loader.GENERATOR_GROUP
+    )
+    result = CliRunner().invoke(app, ["generate", "-c", str(rules), "--entity-all"])
+    assert result.exit_code == 2
+    assert "EG303" in result.stderr
+
+
 def test_watch_rejects_entity_option(tmp_path: Path) -> None:
     _, rules = project(tmp_path)
     result = CliRunner().invoke(app, ["watch", "-c", str(rules), "--entity", "User"])
+    assert result.exit_code == 2
+
+
+def test_watch_rejects_entity_all_option(tmp_path: Path) -> None:
+    _, rules = project(tmp_path)
+    result = CliRunner().invoke(app, ["watch", "-c", str(rules), "--entity-all"])
     assert result.exit_code == 2
 
 

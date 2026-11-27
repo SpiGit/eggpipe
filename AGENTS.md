@@ -30,7 +30,7 @@
 
 Репозиторий содержит реализацию ядра и спецификацию ТЗ v2.6: composition, форматы и слои, decorator API,
 watch, JSON-отчёт v3, метрики L2 и structured logging, provenance, глобальный manifest/lock, cleanup, `Engine`, CLI,
-reference- и TPC-H-плагины, golden-тесты. Per-entity генерация реализована: `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity` (ADR-0018). ТЗ v2.6 добавляет `--entity-all`/`entity_all` (ADR-0024); реализация — отдельным PR.
+reference- и TPC-H-плагины, golden-тесты. Per-entity генерация реализована: `output_scope`, `Engine.build/generate/check(entities=...)`, CLI `--entity` (ADR-0018), `--entity-all`/`entity_all` (ADR-0024, ТЗ v2.6).
 
 ## Источники истины
 

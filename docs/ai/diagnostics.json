@@ -128,7 +128,7 @@
   {
     "code": "EG018",
     "level": "error",
-    "message": "Неизвестное имя в `input` или `--entity`; пустой `--entity` (API)",
+    "message": "Неизвестное имя в `input` или `--entity`; пустой `--entity` (API); `--entity-all` на модели без entities",
     "phase": "slice",
     "status": "реализовано"
   },

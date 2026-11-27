@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- `--entity-all` / `Engine.build/generate/check(entity_all=True)`: per-entity генерация
+  для всех entities без перечисления имён. Требует `output_scope="entity"`, вызывает
+  генератор по одной entity, дополняет manifest, отключает cleanup и incremental;
+  `watch` флаг не поддерживает. ADR-0024, ТЗ v2.6.
+
 ## [0.5.0] - 2026-11-25
 
 ### Added

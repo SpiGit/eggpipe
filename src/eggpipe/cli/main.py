@@ -100,6 +100,7 @@ class RunOptions:
     config: Path | None
     generator: list[str] | None
     entity: list[str] | None
+    entity_all: bool
     plugins: list[Path] | None
     output: Path | None
     variables: list[str] | None
@@ -253,6 +254,8 @@ def _location(location: Any) -> str:
 def _run_engine(options: RunOptions) -> None:
     if options.output_format not in {"text", "json"}:
         raise ConfigValidationError("--output-format must be text or json")
+    if options.entity is not None and options.entity_all:
+        raise ConfigValidationError("--entity and --entity-all are mutually exclusive")
     rules, config_dir = _load_rules(options.config)
     rules = _filter_rules(rules, _selected_generators(options.generator))
     app_config = AppConfig(
@@ -283,11 +286,11 @@ def _run_engine(options: RunOptions) -> None:
     if options.entity is not None and entities is None:
         raise ConfigValidationError("--entity requires at least one name")
     if options.check:
-        report = engine.check(entities=entities)
+        report = engine.check(entities=entities, entity_all=options.entity_all)
     elif options.plan:
-        report = engine.build(entities=entities)
+        report = engine.build(entities=entities, entity_all=options.entity_all)
     else:
-        report = engine.generate(entities=entities)
+        report = engine.generate(entities=entities, entity_all=options.entity_all)
     code = _print_report(
         report,
         ReportOptions(
@@ -310,6 +313,7 @@ def generate(
     config: ConfigOption = None,
     generator: GeneratorOption = None,
     entity: Annotated[list[str] | None, typer.Option("--entity")] = None,
+    entity_all: Annotated[bool, typer.Option("--entity-all")] = False,
     plugin: Annotated[list[Path] | None, typer.Option("--plugin")] = None,
     output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
     variable: Annotated[list[str] | None, typer.Option("--var")] = None,
@@ -336,6 +340,7 @@ def generate(
             config=config,
             generator=generator,
             entity=entity,
+            entity_all=entity_all,
             plugins=plugin,
             output=output,
             variables=variable,
