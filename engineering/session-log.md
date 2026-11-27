@@ -22,16 +22,17 @@
 - 2026-11-25 (девятнадцатая сессия: structured logging, права ревьюера, freshness `docs/ai`)
 - 2026-11-25 (двадцатая сессия: ADR-0022 политики версий документации)
 - 2026-11-25 (двадцать первая сессия: closeout backlog, релиз 0.5.0)
+- 2026-11-27 (двадцать вторая сессия: per-entity all, релиз 0.6.0, post-release)
 
-**Статус ТЗ:** v2.5 — рабочая версия (замещает v2.4)
+**Статус ТЗ:** v2.6 — рабочая версия (замещает v2.5)
 **Статус проекта:** beta (0.x); до 1.0 breaking changes возможны (ADR-0014)
 **Идентичность:** Eggpipe: package/CLI/config/state; старые имена остаются только в истории и ADR.
-**Реализация:** E0–E9 выполнены, релиз `0.4.0` опубликован на PyPI; код и сообщения English-only, EG-коды.
+**Реализация:** E0–E9 выполнены, релиз `0.6.0` опубликован на PyPI; код и сообщения English-only, EG-коды.
 **Code review:** `engineering/reviews/2026-11-13-code-quality-review.md`; skill `clean-code` добавлен; M1/M2/M4/M6/M8 исправлены.
 **Patterns review:** `engineering/reviews/2026-11-13-patterns-review.md`; skill `python-patterns` добавлен; P1–P15 применены; continue-аудит: 74 → 39, оставшиеся — guard clauses.
 **Project review (2026-11-13):** `engineering/reviews/2026-11-13-project-review.md` — ревью ТЗ и кода (Qwen3.8 Max). Документация: 2 P0 (`GeneratorContext` в примерах README/plugin-guide/ТЗ; skill `plugin-contract` со старым контрактом), 11 P1 (JSON-отчёт `action` vs `status`, `timings`, EG014, дерево модулей, `--plugin`, ТЗ v2.1 и ADR-0011 выпущены), 15 P2. Код: 0 P0, 3 P1 (те же `status`/`timings`; пустой план в `artifact_writer.write()` ломает cleanup), 16 P2; 203 теста passed, ruff/pyrefly чистые. Исправлены P0-1, P0-2, P1-8, P1-10, P1-12, P1-13, K3, K5; ТЗ v2.1 и ADR-0011 выпущены; код P1 исправлен; код P2 K4/K8/K12–K14/K16–K18 исправлен; K10: core → engine устранён; остаётся core.discovery ↔ config.
 **Harness:** этапы 0–4 завершены.
-**Roadmap:** `engineering/roadmap.md` — направления после 0.4.0 и подготовка к 1.0.
+**Roadmap:** `engineering/roadmap.md` — направления после 0.6.0 и подготовка к 1.0 (0.7.0).
 **Ветвление:** trunk-based, без постоянной `develop`; релизы с тегов на `main` (ADR-0015).
 **Deprecation:** окно и механизмы предупреждений зафиксированы в ADR-0016.
 
@@ -1017,3 +1018,52 @@ chore-пакет; B-040 не начинался.
 | 1 | B-048: кэш — эффективность и документация | raw YAML между фазами, atomic-JSON helper, матрица ADR-0021, `cache_version` | Меньше разборов и расхождений | chore/docs |
 | 2 | B-043: preflight/watch/reviewer permissions | `SKIP_PARTS`, стампы, гонка debounce, маска `review_pr.py` | Устойчивые проверки и sandbox | chore |
 | 3 | B-061/B-059: tooling и тест-гигиена | DOC121-гейт, CRLF, `model_construct`, скобки в `test_logging.py` | Предсказуемая сборка docs/ai, тесты ближе к данным | chore |
+
+---
+
+## 2026-11-27 — per-entity all, релиз 0.6.0
+
+### 1. План на день
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | Разобрать замечание по per-entity вызову и `--entity-all` | Выполнено (#103/#104) |
+| 2 | Реализовать `--entity-all` по ТЗ v2.6/ADR-0024 | Выполнено (#105) |
+| 3 | Выпустить релиз по `engineering/release.md` | Выполнено (#106) |
+| 4 | Post-release sync roadmap/handoff | Выполнено (#107) |
+
+### 2. Выполнено
+
+| Задача | Результат |
+|--------|-----------|
+| Разбор замечания (#103) | User docs: `output_scope` не переключает режим; `--entity` — точные имена; layout не влияет на число вызовов; 2 итерации ревью → APPROVE |
+| Спецификация (#104) | ТЗ v2.6: `--entity-all`/`entity_all=True`; ADR-0024; System Design §8.8; version sync harness; 2 итерации ревью → APPROVE |
+| Реализация (#105) | Engine/CLI, per-entity вызовы, агрегация отчёта, `location.entity`, EG018/EG303/EG030/EG042; tests/docs; 2 итерации ревью → APPROVE после Critical fix |
+| Релиз (#106) | `bump_version.py 0.6.0`: версия, CHANGELOG `[0.6.0] - 2026-11-27`, `uv.lock`, `docs/ai`; roadmap развёл 0.6.0 и 1.0 readiness; 1 итерация → APPROVE |
+| Выпуск | Тег `v0.6.0`; release workflow success: build, GitHub Release (wheel/sdist/sbom), PyPI 0.6.0; docs `0.6`/`latest` |
+| Post-release (#107) | Roadmap: 0.6.0 выпущен, следующая веха 0.7.0; PostgreSQL/B-028 → 0.7.0; handoff закрыт; 2 итерации ревью → APPROVE |
+| Проверки | Итог: 490 passed, coverage 86.66%, ruff/format/pyrefly/check_docs/mkdocs/build/check_wheel/preflight зелёные; `main` CI 17/17 |
+| Backlog closeout | B-064 закрыт как выполненный (#104); новая B-065 (#105 review); B-061 расширен #104 review; открыто 8 |
+
+### 3. Вне плана
+
+| Что | Причина | Импакт |
+|-----|---------|--------|
+| Critical fix в `--entity-all` | Ревью #105 нашло ошибку слота diagnostics в `validate_config` | Regression-тест и корректный `status="error"` |
+| Merge через UI | PAT не имеет права merge через API (`403`) | Merge выполнял пользователь |
+| Roadmap 0.7.0 | 0.6.0 фактически выпущен как feature-релиз `--entity-all` | 1.0 readiness перенесён в 0.7.0 |
+
+### 4. Не выполнено
+
+| Задача | Причина | Перенос |
+|--------|---------|---------|
+| B-048, B-043 | День занят spec/implementation/релизом | следующий день |
+| Follow-up minor #104/#105 | Не блокируют релиз; зафиксированы в backlog/handoff | B-061, B-065 |
+
+### 5. План на следующий день
+
+| # | Задача | Контекст | Импакт | Формат / оценка |
+|---|--------|----------|--------|-----------------|
+| 1 | B-048: кэш — эффективность и документация | raw YAML между фазами, atomic-JSON helper, матрица ADR-0021, `cache_version` | Меньше разборов и расхождений | chore/docs |
+| 2 | B-043: preflight/watch/reviewer permissions | `SKIP_PARTS`, стампы, гонка debounce, маска `review_pr.py` | Устойчивые проверки и sandbox | chore |
+| 3 | B-061/B-059/B-065: tooling и тест-гигиена | DOC121-гейт, CRLF, `model_construct`, комментарий в ТЗ v2.6, полный прогон `validate_config` | Предсказуемая сборка docs/ai и покрытие тестами | chore |
