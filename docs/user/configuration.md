@@ -68,6 +68,11 @@ sources:
 
 `files`/`model_dirs` — точные имена или glob (`*`, `**`, `?`, `[...]`).
 
+Раскладка влияет только на композицию модели и не задаёт число вызовов генератора:
+обычный `eggpipe generate` передаёт один `ModelSlice` со всеми entities независимо от
+`file-per-model`/`directory-per-model`. Для отдельного вызова на entity используйте
+`--entity`; подробнее — [CLI](cli.md) и [Per-entity генерация](plugins.md).
+
 ## Generators
 
 ```yaml
