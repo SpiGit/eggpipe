@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-27
+
 ### Added
 
 - `--entity-all` / `Engine.build/generate/check(entity_all=True)`: per-entity генерация
