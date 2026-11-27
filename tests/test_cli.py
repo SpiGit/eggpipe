@@ -623,6 +623,22 @@ def test_generate_entity_all_with_local_plugin(tmp_path: Path) -> None:
     assert (tmp_path / "out" / "post.txt").is_file()
 
 
+def test_generate_entity_all_plan_does_not_write(tmp_path: Path) -> None:
+    model, rules = project(tmp_path)
+    model.write_text(MODEL_TWO, encoding="utf-8")
+    plugin = per_entity_plugin(tmp_path)
+    rules.write_text(
+        RULES.replace("generators: []", "generators:\n  - id: per-entity\n    output_dir: ./out"),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(
+        app,
+        ["generate", "-c", str(rules), "--plugin", str(plugin), "--entity-all", "--plan"],
+    )
+    assert result.exit_code == 0
+    assert not (tmp_path / "out").exists()
+
+
 def test_generate_rejects_entity_and_entity_all(tmp_path: Path) -> None:
     _, rules = project(tmp_path)
     result = CliRunner().invoke(

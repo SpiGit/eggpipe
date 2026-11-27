@@ -38,7 +38,7 @@ eggpipe generate -g oracle-ddl
 | `--force` | перезаписать unowned-файлы |
 | `--strict` | warnings → errors |
 | `--ignore` | коды warnings через запятую |
-| `--clean` | cleanup enabled для запуска; в per-entity не выполняется (+ Warning EG030) |
+| `--clean` | cleanup enabled для запуска; в per-entity (включая `--entity-all`) не выполняется (+ Warning EG030) |
 | `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict`/`--entity`/`--entity-all` |
 | `--include-disabled` | включить `enabled: false` |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |

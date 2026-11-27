@@ -99,6 +99,11 @@ class EntityAllGenerator(GeneratorPlugin):
         )
 
 
+class EntityAllGeneratorTwo(EntityAllGenerator):
+    id = "entity-all-2"
+    name = "Entity all 2"
+
+
 class FailingEntityGenerator(EntityAllGenerator):
     id = "failing-entity"
     name = "Failing entity"
@@ -118,7 +123,33 @@ class FailingEntityGenerator(EntityAllGenerator):
                     ]
                 }
             )
+        if any(entity.name == "User" for entity in input.model.entities):
+            return result.model_copy(
+                update={
+                    "warnings": [
+                        Diagnostic(
+                            level="warning",
+                            code="EG300",
+                            message="User warning",
+                        )
+                    ]
+                }
+            )
         return result
+
+
+class BrokenConfigGenerator(EntityAllGenerator):
+    id = "broken-config"
+    name = "Broken config"
+    calls: ClassVar[list[tuple[str, ...]]] = []
+
+    @override
+    def validate_config(self, config: GeneratorConfig) -> list[Diagnostic]:
+        raise RuntimeError("broken config")
+
+    @override
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        return super().generate(input)
 
 
 class DuplicatePathGenerator(EntityAllGenerator):
@@ -421,11 +452,78 @@ def test_entity_all_continues_after_entity_error_and_writes_nothing(tmp_path: Pa
     assert report.success is False
     assert FailingEntityGenerator.calls == [("User",), ("Post",)]
     assert any(
-        item.code == "EG300" and item.location is not None and item.location.entity == "Post"
+        item.code == "EG300"
+        and item.level == "error"
+        and item.location is not None
+        and item.location.entity == "Post"
+        for item in report.diagnostics
+    )
+    assert any(
+        item.code == "EG300"
+        and item.level == "warning"
+        and item.location is not None
+        and item.location.entity == "User"
         for item in report.diagnostics
     )
     assert not (tmp_path / "out" / "user.txt").exists()
     assert not (tmp_path / "out" / "post.txt").exists()
+
+
+def test_entity_all_aggregates_multiple_generators(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    rules = ProjectConfig(
+        version="1.0",
+        sources=(SourceConfig(path=Path("model.yaml"), layout="monolith"),),
+        generators=(
+            GeneratorConfig(id="entity-all", output_dir=Path("out-a")),
+            GeneratorConfig(id="entity-all-2", output_dir=Path("out-b")),
+        ),
+    )
+    engine = Engine(
+        AppConfig(),
+        rules,
+        config_dir=tmp_path,
+        generators={
+            "entity-all": EntityAllGenerator(),
+            "entity-all-2": EntityAllGeneratorTwo(),
+        },
+    )
+
+    report = engine.generate(entity_all=True)
+
+    assert report.success is True
+    assert [item.id for item in report.generators] == ["entity-all", "entity-all-2"]
+    assert (tmp_path / "out-a" / "user.txt").is_file()
+    assert (tmp_path / "out-a" / "post.txt").is_file()
+    assert (tmp_path / "out-b" / "user.txt").is_file()
+    assert (tmp_path / "out-b" / "post.txt").is_file()
+
+
+def test_entity_all_build_does_not_write(tmp_path: Path) -> None:
+    EntityAllGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(tmp_path, generator_id="entity-all", plugin=EntityAllGenerator()).build(
+        entity_all=True
+    )
+
+    assert report.success is True
+    assert EntityAllGenerator.calls == [("User",), ("Post",)]
+    assert not (tmp_path / "out").exists()
+
+
+def test_entity_all_validate_config_failure_is_error(tmp_path: Path) -> None:
+    BrokenConfigGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(
+        tmp_path, generator_id="broken-config", plugin=BrokenConfigGenerator()
+    ).generate(entity_all=True)
+
+    assert report.success is False
+    assert report.exit_code == 1
+    assert report.generators[0].status == "error"
+    assert any(item.code == "EG300" for item in report.diagnostics)
+    assert BrokenConfigGenerator.calls == []
+    assert not (tmp_path / "out").exists()
 
 
 def test_entity_all_check_requires_entity_scope(tmp_path: Path) -> None:

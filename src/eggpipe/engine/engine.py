@@ -872,7 +872,6 @@ class Engine:
             config_diagnostics = plugin.validate_config(generator_config)
         except Exception as exc:
             return (
-                [],
                 [
                     error(
                         "EG300",
@@ -880,6 +879,7 @@ class Engine:
                         f"{type(exc).__name__}: {exc}",
                     )
                 ],
+                [],
             )
         return _partition(config_diagnostics)
 
