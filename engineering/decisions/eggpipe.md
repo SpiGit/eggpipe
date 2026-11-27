@@ -2,7 +2,7 @@
 
 - **Статус:** имя выбрано
 - **Дата:** 2026-11-12
-- **ТЗ:** [v2.5](../requirements/v2.5.md)
+- **ТЗ:** [v2.6](../requirements/v2.6.md)
 - **Бренд:** EggPipe
 - **Пакет / import / CLI:** `eggpipe`
 - **Конфиг:** `.eggpipe.yaml`

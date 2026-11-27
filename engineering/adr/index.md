@@ -25,7 +25,8 @@
 | [0021](./0021-metrics-and-structured-logging.md) | Метрики L2 и structured logging | Принято |
 | [0022](./0022-documentation-version-policy.md) | Политика версий в документации | Принято |
 | [0023](./0023-doc161-historical-records.md) | Allowlist DOC161 для исторических записей | Принято |
+| [0024](./0024-entity-all-per-entity-invocation.md) | `--entity-all`: per-entity вызов для всех entities | Принято |
 
 Решения ADR-0007–0010 сформулированы для ТЗ v1.4 и вошли в v2.0 без изменения смысла.
 ADR-0011 фиксирует публичный API и идентичность Eggpipe для v2.1.
-Ссылки внутри ADR на v1.4 — исторические. В ADR-0001, 0003–0009 и 0011 коды `MGxxx` читать как `EGxxx` (ADR-0013), `GeneratorRules*` — как `ProjectConfig*`; действующие контракты — ТЗ v2.5.
+Ссылки внутри ADR на v1.4 — исторические. В ADR-0001, 0003–0009 и 0011 коды `MGxxx` читать как `EGxxx` (ADR-0013), `GeneratorRules*` — как `ProjectConfig*`; действующие контракты — ТЗ v2.6.

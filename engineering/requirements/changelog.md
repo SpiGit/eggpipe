@@ -1,5 +1,16 @@
 # Changelog требований
 
+### v2.6 (2026-11-27)
+
+- Добавлен `--entity-all` / `Engine.build/generate/check(entity_all=True)`:
+  per-entity вызов для всех entities без явного списка.
+- Режим несовместим с `--entity`/`entities`, требует `output_scope="entity"`;
+  manifest дополняется, cleanup и incremental отключены, watch не поддерживается.
+- Каждый вызов получает одну entity; отчёт агрегирует вызовы в один `generators[]`,
+  диагностики сохраняют `location.entity`.
+- Glob-маски, auto-split по `output_scope` и новые раскладки не вводятся.
+- ADR-0024.
+
 ### v2.5 (2026-11-24)
 
 - JSON-отчёт: `report_version: 3`, аддитивный блок `cache` с метриками L2
