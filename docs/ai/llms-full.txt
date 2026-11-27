@@ -13,8 +13,8 @@
 - Проект: **Eggpipe**.
 - Package/import/CLI: `eggpipe`.
 - Конфиг: `.eggpipe.yaml`; state: `.eggpipe/`.
-- Актуальное ТЗ: `engineering/requirements/v2.5.md`.
-- Версия пакета: из `pyproject.toml`; версия ТЗ: `2.5`.
+- Актуальное ТЗ: `engineering/requirements/v2.6.md`.
+- Версия пакета: из `pyproject.toml`; версия ТЗ: `2.6`.
 - Схемы `docs/ai/schemas/` и `report_version` в user-доках генерируются из текущего кода.
 - Статус: beta (0.x); до 1.0 breaking changes возможны (ADR-0014).
 - Brand assets: `docs/assets/brand/`.
@@ -86,7 +86,7 @@ eggpipe clean [--dry-run] [--yes] [--root PATH]
 
 ## Добавить генератор
 
-1. Прочитать `engineering/requirements/v2.5.md` §6.1 и `docs/user/plugins.md`.
+1. Прочитать `engineering/requirements/v2.6.md` §6.1 и `docs/user/plugins.md`.
 2. Создать функцию с `@generator(id=..., input_formats=...)`.
 3. Аннотировать аргументы только `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
 4. Вернуть `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]` или `GenerationResult`.
@@ -145,7 +145,7 @@ uv run python tools/check_wheel.py dist
 ## Документация
 
 - Актуальное ТЗ — только файл со статусом **Актуальная** в
-  `engineering/requirements/index.md` (сейчас `v2.5.md`).
+  `engineering/requirements/index.md` (сейчас `v2.6.md`).
 - Все версии ТЗ кроме файла со статусом «Актуальная» — read-only; старые ADR не переписывать.
 - Новое поведение — новая версия ТЗ; ADR не переписываются задним числом.
 - Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `Entity`, `FieldDef`, `EnumDef`,
@@ -159,6 +159,8 @@ uv run python tools/check_wheel.py dist
 - `GenerationContext` и входы плагина не мутировать.
 - Ошибки плагинов не должны ломать другие генераторы.
 - Ownership — только глобальный `.eggpipe/manifest.json`.
+- Per-entity режим включается только `--entity`/`--entity-all`; `output_scope` сам режим
+  не переключает. В нём manifest дополняется, cleanup и incremental отключены.
 - Не ослаблять path/symlink/casefold-проверки.
 - Не логировать секреты; `config show` редактирует `*token*`, `*secret*`, `*password*`.
 

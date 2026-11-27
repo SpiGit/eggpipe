@@ -6,7 +6,7 @@
 ## Документация
 
 - Актуальное ТЗ — только файл со статусом **Актуальная** в
-  `engineering/requirements/index.md` (сейчас `v2.5.md`).
+  `engineering/requirements/index.md` (сейчас `v2.6.md`).
 - Все версии ТЗ кроме файла со статусом «Актуальная» — read-only; старые ADR не переписывать.
 - Новое поведение — новая версия ТЗ; ADR не переписываются задним числом.
 - Термины: `ModelDocument`, `SourceModel`, `ModelSlice`, `Entity`, `FieldDef`, `EnumDef`,
@@ -20,6 +20,8 @@
 - `GenerationContext` и входы плагина не мутировать.
 - Ошибки плагинов не должны ломать другие генераторы.
 - Ownership — только глобальный `.eggpipe/manifest.json`.
+- Per-entity режим включается только `--entity`/`--entity-all`; `output_scope` сам режим
+  не переключает. В нём manifest дополняется, cleanup и incremental отключены.
 - Не ослаблять path/symlink/casefold-проверки.
 - Не логировать секреты; `config show` редактирует `*token*`, `*secret*`, `*password*`.
 

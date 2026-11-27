@@ -1,8 +1,8 @@
 # System Design — Eggpipe
 
-> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.5](../requirements/v2.5.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
+> Документ реализации для проекта eggpipe. Соответствует [ТЗ v2.6](../requirements/v2.6.md). Правила композиции — [ADR-0001](../adr/0001-composition-merge-semantics.md), [ADR-0007](../adr/0007-format-inheritance.md), [ADR-0008](../adr/0008-model-units-and-source-layouts.md).
 
-*Версия документа: 2.5. Дата: 2026-11-24.*
+*Версия документа: 2.6. Дата: 2026-11-27.*
 
 ---
 
@@ -198,11 +198,13 @@ class GeneratorPlugin(ABC):
 `GenerationContext.formats` содержит форматы среза; `Entity.format` — источник истины.
 
 **Per-entity generation:** `--entity` / `Engine.build(entities=...)` фильтрует entities после
-композиции и замыкает enums/types. Режим разрешён, только если все выбранные генераторы
-объявили `output_scope="entity"`; иначе EG303. Per-entity генератор не зависит от других
-entities и пишет уникальные для каждой entity пути. Manifest location дополняется, cleanup
-не выполняется; incremental и watch с `--entity` не поддерживаются. Решение —
-[ADR-0018](../adr/0018-per-entity-generation.md).
+композиции и замыкает enums/types. `--entity-all` / `Engine.build(entity_all=True)` выбирает
+все entities и вызывает генератор отдельно для каждой; `entities` и `entity_all`
+взаимоисключающие. Режим разрешён, только если все выбранные генераторы объявили
+`output_scope="entity"`; иначе EG303. Per-entity генератор не зависит от других entities и
+пишет уникальные для каждой entity пути. Manifest location дополняется, cleanup не
+выполняется; incremental и watch с `--entity`/`--entity-all` не поддерживаются. Решения —
+[ADR-0018](../adr/0018-per-entity-generation.md), [ADR-0024](../adr/0024-entity-all-per-entity-invocation.md).
 
 **Жизненный цикл:** `__init__` → `validate_config()` → `generate()`.
 
@@ -347,11 +349,14 @@ class Engine:
     ): ...
 
     def build(self, *, incremental: bool | None = None,
-              entities: Collection[str] | None = None) -> EngineReport: ...
-        # парсинг/валидация/генерация без записи; entities=None — полный прогон
-    def generate(self, *, entities: Collection[str] | None = None) -> EngineReport: ...
-        # build + запись артефактов
-    def check(self, *, entities: Collection[str] | None = None) -> EngineReport: ...
+              entities: Collection[str] | None = None,
+              entity_all: bool = False) -> EngineReport: ...
+        # парсинг/валидация/генерация без записи; entities=None + entity_all=False — полный прогон
+    def generate(self, *, entities: Collection[str] | None = None,
+                 entity_all: bool = False) -> EngineReport: ...
+        # build + запись артефактов; entity_all=True — вызов на каждую entity
+    def check(self, *, entities: Collection[str] | None = None,
+              entity_all: bool = False) -> EngineReport: ...
         # drift без записи; success=false, exit_code=1
 ```
 
@@ -788,7 +793,7 @@ def validate(
 | EG015 | Пустой description у required-поля | warning | validate |
 | EG016 | `default` не приводится к итоговому type | error | validate |
 | EG017 | `default` нарушает constraints/enum | error | validate |
-| EG018 | Неизвестное имя в `input`/`--entity` | error | slice |
+| EG018 | Неизвестное имя в `input`/`--entity`; пустой выбор `--entity-all` | error | slice |
 | EG019 | Пустой enum / дубликат имени/значения | error | validate |
 | EG020 | Цикл `CustomType.base` / depth > 10 | error | validate |
 | EG021 | Неприменимый/противоречивый constraint | error | validate |
@@ -1063,6 +1068,7 @@ def generate(
     models: Optional[list[Path]] = typer.Argument(None),
     generator: Optional[list[str]] = typer.Option(None, "-g", "--generator"),
     entity: Optional[list[str]] = typer.Option(None, "--entity"),
+    entity_all: bool = typer.Option(False, "--entity-all"),
     config: Optional[Path] = typer.Option(None, "-c", "--config"),
     output: Optional[Path] = typer.Option(None, "-o", "--output"),
     var: Optional[list[str]] = typer.Option(None, "--var", help="KEY=VALUE, многократно"),
@@ -1098,6 +1104,7 @@ def clean(
 
 - `-g a,b` и повторяющийся `-g a -g b` — оба варианта; split по запятой с trim.
 - `--entity` использует тот же split; per-entity режим требует `output_scope="entity"`.
+- `--entity-all` несовместим с `--entity`; вызывает генератор отдельно для каждой entity.
 - Позиционные `models` заменяют `sources`; `generators[].input` применяется, `sources[].input` — нет.
 - `--format` переименован в `--output-format`, чтобы не путать с форматом документа.
 - `--plan`/`--dry-run` — синонимы; `--plan` печатает create/update/skip/delete/conflict.
@@ -1472,6 +1479,27 @@ L2 реализован по ADR-0020: payload и `CachedFormatProbe` — в `co
 используется. Watch переиспользует тот же персистентный кэш: CLI создаёт новый `Engine`
 на каждый прогон.
 
+### 8.8 Per-entity orchestration
+
+`Engine` хранит выбранные entity (`_entities`) и флаг `_entity_all`. После композиции и
+проверки `output_scope`:
+
+- `_entity_all=True` упорядочивает entities по итоговой модели;
+- для каждого генератора множество вызовов — пересечение с `generators[].input.entities`
+  (пустой `input` — все entities); имена `input` валидны, поэтому пересечение непусто;
+- каждый вызов получает `ModelSlice` с одной entity; `_run_generator` принимает выбор
+  entity параметром, а не читает общий `_entities`;
+- результаты вызовов агрегируются в один `GeneratorReport` (суммарный `duration_ms`,
+  объединённые `formats`, `status="error"` при ошибке любого вызова) и общий список
+  `artifacts`; diagnostics получают `location.entity`; повторяющиеся между вызовами
+  пути — EG042;
+- при любой ошибке `build()` возвращает `success=false`, поэтому `generate()` не пишет
+  ни одного артефакта; остальные вызовы всё равно выполняются для сбора диагностики;
+- writer получает `merge=True`, cleanup отключён, incremental не используется.
+
+Реализация не меняет полный прогон: `_entity_all=False` и `entities=None` оставляют
+один вызов с полным `ModelSlice`.
+
 ---
 
 ## 10. Структура проекта (код)
@@ -1525,7 +1553,7 @@ examples/
 ├── tpc-h-generator/
 └── tpc-h/
 docs/
-├── requirements/                # index, v1.0–v1.4, v2.0–v2.5
+├── requirements/                # index, v1.0–v1.4, v2.0–v2.6
 ├── system-design/
 ├── reviews/
 ├── adr/
@@ -1550,7 +1578,7 @@ L1-кэш incremental — в `engine.py`, L2 — в `document_cache.py`/`parser_
 
 ---
 
-## 11. Тестирование (охват v2.5)
+## 11. Тестирование (охват v2.6)
 
 ### 11.1 Приоритеты
 
@@ -1566,7 +1594,7 @@ L1-кэш incremental — в `engine.py`, L2 — в `document_cache.py`/`parser_
 10. **Cleanup**: modified owned-файл не удаляется (EG050), чужой файл не удаляется, shared `output_dir`, удалённый из конфига генератор.
 11. **Concurrency**: второй запуск при held lock; stale lock.
 12. **Determinism**: повторный запуск даёт идентичные байты; порядок source/artifact/plugin стабилен; артефакты не содержат абсолютных путей.
-13. **Per-entity**: `output_scope`, `--entity`, EG303, closure enums/types, manifest merge, cleanup off, incremental/watch ограничения.
+13. **Per-entity**: `output_scope`, `--entity`, `--entity-all`/`entity_all`, EG303, closure enums/types, manifest merge, cleanup off, incremental/watch ограничения, агрегация отчёта.
 14. **Метрики и логи (ADR-0021)**: инварианты `cache` (`hits + misses`, сумма `miss_reasons`), `cache: null` без incremental, `--plan` без записи; JSON-лог — валидная строка на запись, обязательные поля, отсутствие секретов и абсолютных путей; сбой formatter не меняет exit code.
 
 ### 11.2 Property-based
@@ -1698,7 +1726,7 @@ addopts = "-ra --strict-markers"
 
 ---
 
-## 13. Проектировочные решения (v2.5, сводка)
+## 13. Проектировочные решения (v2.6, сводка)
 
 | Решение | Причина | Где |
 |---------|---------|-----|
