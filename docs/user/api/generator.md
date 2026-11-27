@@ -22,7 +22,8 @@ def my_generator(
 - `id` опционален; по умолчанию имя функции с `_` → `-`.
 - `name` опционален.
 - `api_version` по умолчанию `"1"`.
-- `output_scope` — `"model"` (default) или `"entity"` для `engine.generate(entities=...)`.
+- `output_scope` — `"model"` (default) или `"entity"` для `engine.generate(entities=...)`
+  и `engine.generate(entity_all=True)`.
 - Аннотации инжектируются: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
   Неизвестная аннотация — EG302.
 - Возврат: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`.

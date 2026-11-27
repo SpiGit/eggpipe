@@ -478,7 +478,7 @@ sources:
 Раскладка влияет только на композицию модели и не задаёт число вызовов генератора:
 обычный `eggpipe generate` передаёт один `ModelSlice` со всеми entities независимо от
 `file-per-model`/`directory-per-model`. Для отдельного вызова на entity используйте
-`--entity`; подробнее — [CLI](cli.md) и [Per-entity генерация](plugins.md).
+`--entity` или `--entity-all`; подробнее — [CLI](cli.md) и [Per-entity генерация](plugins.md).
 
 ## Generators
 
@@ -565,6 +565,7 @@ eggpipe generate -g oracle-ddl
 | `--config, -c` | путь к `.eggpipe.yaml` |
 | `--generator, -g` | id генераторов: через запятую или повторно |
 | `--entity` | per-entity генерация: имя или список через запятую, повторяемый флаг; требует `output_scope="entity"` у всех выбранных генераторов |
+| `--entity-all` | per-entity генерация для всех entities, по одной на вызов; несовместим с `--entity`; требует `output_scope="entity"` |
 | `--plugin PATH` | dev-only локальный плагин |
 | `--output, -o` | корень артефактов вместо каталога конфига |
 | `--var KEY=VALUE` | переменные для плагинов |
@@ -575,7 +576,7 @@ eggpipe generate -g oracle-ddl
 | `--strict` | warnings → errors |
 | `--ignore` | коды warnings через запятую |
 | `--clean` | cleanup enabled для запуска; в per-entity не выполняется (+ Warning EG030) |
-| `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict`/`--entity` |
+| `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict`/`--entity`/`--entity-all` |
 | `--include-disabled` | включить `enabled: false` |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |
 | `--output-format` | `text` или `json` |
@@ -583,15 +584,16 @@ eggpipe generate -g oracle-ddl
 | `--quiet, -q` | только ошибки |
 | `--verbose, -v` | подробный вывод |
 
-Без `--entity` генератор получает полный `ModelSlice` и вызывается один раз. `--entity`
-не разворачивается в «все entities» автоматически: имена перечисляются через запятую или
-повторяющимся флагом. Несколько имён в одном запуске дают один вызов с комбинированным
-срезом; отдельный вызов на entity — это отдельный запуск команды.
+Без `--entity`/`--entity-all` генератор получает полный `ModelSlice` и вызывается один
+раз. `--entity` не разворачивается в «все entities» автоматически: имена перечисляются
+через запятую или повторяющимся флагом. Несколько имён в одном запуске дают один вызов с
+комбинированным срезом; отдельный вызов на entity — это отдельный запуск команды или
+`--entity-all`.
 
 `--entity` принимает только точные имена entity после композиции. Маски (`*`, `lu_*`)
 не поддерживаются и дают EG018; shell-подстановка тоже не подходит, потому что работает
-с файлами, а не с именами entity. Автоматического перебора всех entities в CLI нет —
-перечислите нужные имена явно.
+с файлами, а не с именами entity. Для всех entities используйте `--entity-all`; он
+несовместим с `--entity`.
 
 ## watch
 
@@ -755,13 +757,16 @@ report = engine.generate()             # build + запись
 report = engine.check()                # проверка drift без записи
 plan = engine.build(incremental=True)  # opt-in кэш на один вызов
 report = engine.generate(entities=["User"])  # per-entity generate
+report = engine.generate(entity_all=True)    # по одному вызову на каждую entity
 ```
 
 `Engine` не вызывает `sys.exit`, не настраивает root-logger и не пишет файлы в `build()`.
 `AppConfig(incremental=True)` включает кэш, `build(incremental=...)` переопределяет настройку;
 `check()` всегда работает без кэша. `entities=[...]` включает per-entity режим для генераторов
 с `output_scope="entity"`. `entities=None` (по умолчанию) — полный срез и один вызов
-генератора; `output_scope="entity"` сам по себе режим не включает.
+генератора; `output_scope="entity"` сам по себе режим не включает. `entity_all=True`
+вызывает генератор по одной entity и несовместим с `entities`; требует
+`output_scope="entity"`, как обычный per-entity режим.
 
 Полезные параметры `Engine`:
 
@@ -846,7 +851,8 @@ def my_generator(
 - `id` опционален; по умолчанию имя функции с `_` → `-`.
 - `name` опционален.
 - `api_version` по умолчанию `"1"`.
-- `output_scope` — `"model"` (default) или `"entity"` для `engine.generate(entities=...)`.
+- `output_scope` — `"model"` (default) или `"entity"` для `engine.generate(entities=...)`
+  и `engine.generate(entity_all=True)`.
 - Аннотации инжектируются: `ModelSlice`, `GenerationContext`, `GeneratorConfig`.
   Неизвестная аннотация — EG302.
 - Возврат: `GenerationResult`, `Artifact`, `list[Artifact]`, `tuple[Artifact, ...]`.
@@ -1313,16 +1319,17 @@ def user_sql(...): ...
 | `eggpipe generate` | все entities среза, один вызов |
 | `eggpipe generate --entity User` | срез из `User`, один вызов |
 | `eggpipe generate --entity User,Post` | срез из `User` и `Post`, один вызов |
+| `eggpipe generate --entity-all` | по одному вызову на каждую entity, выбранную для генератора |
 
 Раскладки `file-per-model`/`directory-per-model` влияют только на композицию источников
 и не меняют число вызовов. Если один запуск должен создать артефакт на каждую entity,
 генератор итерируется по `model.entities`. Если нужен именно отдельный вызов на entity,
-запускайте команду отдельно для каждой entity (`--entity User`, затем `--entity Post`) или
-вызывайте `engine.generate(entities=["User"])` отдельно для каждой entity.
+используйте `--entity-all` (в API — `entity_all=True`); он вызывает генератор по одной
+entity и не требует перечислять имена. Альтернатива — запускать команду отдельно для
+каждой entity (`--entity User`, затем `--entity Post`).
 
-`--entity` принимает точные имена; маски (`*`, `lu_*`) не поддерживаются. Если entity
-много, сформируйте список заранее и передайте его одним значением
-`--entity User,Post,Comment`.
+`--entity` принимает точные имена; маски (`*`, `lu_*`) не поддерживаются. Для всех
+entities используйте `--entity-all`; он несовместим с `--entity`.
 
 ## Ошибки контракта
 

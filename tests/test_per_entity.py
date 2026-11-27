@@ -7,10 +7,13 @@ from pathlib import Path
 from typing import ClassVar, Literal
 
 import pytest
+from typing_extensions import override
 
 from eggpipe import (
     AppConfig,
     Artifact,
+    ConfigValidationError,
+    Diagnostic,
     Engine,
     GenerationResult,
     GeneratorConfig,
@@ -36,6 +39,14 @@ model:
       fields:
         - name: id
           type: integer
+"""
+
+
+EMPTY_MODEL = """\
+format: entity-model
+version: "1.0"
+model:
+  entities: []
 """
 
 
@@ -67,6 +78,57 @@ class ModelGenerator(GeneratorPlugin):
 
     def generate(self, input: GeneratorInput) -> GenerationResult:
         return GenerationResult(artifacts=[Artifact(path="all.txt", content="all\n")])
+
+
+class EntityAllGenerator(GeneratorPlugin):
+    id = "entity-all"
+    name = "Entity all"
+    input_formats: ClassVar[set[str] | None] = None
+    output_scope: ClassVar[Literal["entity"]] = "entity"
+    __version__ = "1"
+    calls: ClassVar[list[tuple[str, ...]]] = []
+
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        names = tuple(entity.name for entity in input.model.entities)
+        type(self).calls.append(names)
+        return GenerationResult(
+            artifacts=[
+                Artifact(path=f"{entity.name.lower()}.txt", content=f"{entity.name}\n")
+                for entity in input.model.entities
+            ]
+        )
+
+
+class FailingEntityGenerator(EntityAllGenerator):
+    id = "failing-entity"
+    name = "Failing entity"
+
+    @override
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        result = super().generate(input)
+        if any(entity.name == "Post" for entity in input.model.entities):
+            return result.model_copy(
+                update={
+                    "errors": [
+                        Diagnostic(
+                            level="error",
+                            code="EG300",
+                            message="Post failed",
+                        )
+                    ]
+                }
+            )
+        return result
+
+
+class DuplicatePathGenerator(EntityAllGenerator):
+    id = "duplicate-path"
+    name = "Duplicate path"
+
+    @override
+    def generate(self, input: GeneratorInput) -> GenerationResult:
+        type(self).calls.append(tuple(entity.name for entity in input.model.entities))
+        return GenerationResult(artifacts=[Artifact(path="same.txt", content="same\n")])
 
 
 def make_engine(
@@ -238,3 +300,168 @@ def test_per_entity_accepts_single_string(tmp_path: Path) -> None:
 
     assert report.success is True
     assert (tmp_path / "out" / "user.txt").is_file()
+
+
+def test_entity_all_calls_generator_once_per_entity(tmp_path: Path) -> None:
+    EntityAllGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    engine = make_engine(tmp_path, generator_id="entity-all", plugin=EntityAllGenerator())
+
+    report = engine.generate(entity_all=True)
+
+    assert report.success is True
+    assert EntityAllGenerator.calls == [("User",), ("Post",)]
+    assert (tmp_path / "out" / "user.txt").is_file()
+    assert (tmp_path / "out" / "post.txt").is_file()
+    assert len(report.generators) == 1
+    assert report.generators[0].status == "ok"
+    manifest = json.loads((tmp_path / ".eggpipe" / "manifest.json").read_text(encoding="utf-8"))
+    paths = {item["path"] for item in manifest["locations"][0]["artifacts"]}
+    assert paths == {"user.txt", "post.txt"}
+
+
+def test_entity_all_respects_generator_input(tmp_path: Path) -> None:
+    EntityAllGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    engine = make_engine(
+        tmp_path,
+        generator_id="entity-all",
+        plugin=EntityAllGenerator(),
+        input_entities=("Post",),
+    )
+
+    report = engine.generate(entity_all=True)
+
+    assert report.success is True
+    assert EntityAllGenerator.calls == [("Post",)]
+    assert not (tmp_path / "out" / "user.txt").exists()
+    assert (tmp_path / "out" / "post.txt").is_file()
+
+
+def test_entity_all_requires_entity_scope(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(tmp_path, generator_id="model", plugin=ModelGenerator()).generate(
+        entity_all=True
+    )
+
+    assert report.success is False
+    assert report.exit_code == 2
+    assert any(item.code == "EG303" for item in report.diagnostics)
+    assert not (tmp_path / "out" / "all.txt").exists()
+
+
+def test_entity_all_rejects_entities_argument(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    with pytest.raises(ConfigValidationError):
+        make_engine(tmp_path).generate(entities=["User"], entity_all=True)
+
+
+def test_entity_all_rejects_empty_model(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(EMPTY_MODEL, encoding="utf-8")
+    report = make_engine(tmp_path, generator_id="entity-all", plugin=EntityAllGenerator()).generate(
+        entity_all=True
+    )
+
+    assert report.success is False
+    assert report.exit_code == 1
+    assert any(item.code == "EG018" for item in report.diagnostics)
+    assert not (tmp_path / "out").exists()
+
+
+def test_entity_all_cleanup_is_disabled_and_warns(tmp_path: Path) -> None:
+    EntityAllGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    engine = make_engine(
+        tmp_path,
+        generator_id="entity-all",
+        plugin=EntityAllGenerator(),
+        cleanup="enabled",
+    )
+    assert engine.generate().success is True
+
+    report = engine.generate(entity_all=True)
+
+    assert report.success is True
+    assert (tmp_path / "out" / "user.txt").is_file()
+    assert (tmp_path / "out" / "post.txt").is_file()
+    assert any(item.code == "EG030" for item in report.diagnostics)
+
+
+def test_entity_all_disables_incremental_cache(tmp_path: Path) -> None:
+    EntityAllGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    engine = make_engine(
+        tmp_path, generator_id="entity-all", plugin=EntityAllGenerator(), incremental=True
+    )
+    engine.generate(entity_all=True)
+    engine.generate(entity_all=True)
+
+    assert len(EntityAllGenerator.calls) == 4
+
+
+def test_entity_all_rejects_duplicate_paths(tmp_path: Path) -> None:
+    DuplicatePathGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(
+        tmp_path, generator_id="duplicate-path", plugin=DuplicatePathGenerator()
+    ).generate(entity_all=True)
+
+    assert report.success is False
+    assert any(item.code == "EG042" for item in report.diagnostics)
+    assert not (tmp_path / "out" / "same.txt").exists()
+
+
+def test_entity_all_continues_after_entity_error_and_writes_nothing(tmp_path: Path) -> None:
+    FailingEntityGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(
+        tmp_path, generator_id="failing-entity", plugin=FailingEntityGenerator()
+    ).generate(entity_all=True)
+
+    assert report.success is False
+    assert FailingEntityGenerator.calls == [("User",), ("Post",)]
+    assert any(
+        item.code == "EG300" and item.location is not None and item.location.entity == "Post"
+        for item in report.diagnostics
+    )
+    assert not (tmp_path / "out" / "user.txt").exists()
+    assert not (tmp_path / "out" / "post.txt").exists()
+
+
+def test_entity_all_check_requires_entity_scope(tmp_path: Path) -> None:
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(tmp_path, generator_id="model", plugin=ModelGenerator()).check(
+        entity_all=True
+    )
+
+    assert report.success is False
+    assert report.exit_code == 2
+    assert any(item.code == "EG303" for item in report.diagnostics)
+
+
+def test_entity_all_check_reports_existing_artifacts(tmp_path: Path) -> None:
+    EntityAllGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    engine = make_engine(tmp_path, generator_id="entity-all", plugin=EntityAllGenerator())
+    assert engine.generate(entity_all=True).success is True
+
+    report = engine.check(entity_all=True)
+
+    assert report.success is True
+    assert report.exit_code == 0
+    assert {item.path for item in report.artifacts} == {"user.txt", "post.txt"}
+
+
+def test_entity_all_rejects_unknown_generator_input(tmp_path: Path) -> None:
+    EntityAllGenerator.calls = []
+    (tmp_path / "model.yaml").write_text(MODEL, encoding="utf-8")
+    report = make_engine(
+        tmp_path,
+        generator_id="entity-all",
+        plugin=EntityAllGenerator(),
+        input_entities=("Missing",),
+    ).generate(entity_all=True)
+
+    assert report.success is False
+    assert any(item.code == "EG018" for item in report.diagnostics)
+    assert EntityAllGenerator.calls == []

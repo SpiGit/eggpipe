@@ -37,14 +37,16 @@ root-logger.
 Обычный `eggpipe generate` передаёт полный `ModelSlice`; раскладка
 `file-per-model`/`directory-per-model` влияет только на композицию. `output_scope="entity"`
 объявляет совместимость с per-entity режимом, но не включает его. Для отдельного вызова
-используйте `--entity User` или `engine.generate(entities=["User"])`. Если один запуск
-должен создать артефакт на каждую entity, итерируйтесь по `model.entities` в генераторе.
+используйте `--entity User` или `engine.generate(entities=["User"])`. Для всех entities —
+`--entity-all` или `engine.generate(entity_all=True)`: генератор вызывается по одной
+entity. Если один запуск должен создать артефакт на каждую entity, можно также
+итерироваться по `model.entities` в генераторе.
 
 ### Поддерживает ли `--entity` маски (`*`, `lu_*`)?
 
 Нет. `--entity` принимает точные имена entity после композиции; `*` или `lu_*` дают
-EG018. Перечислите имена явно: `--entity User,Post,Comment`. Автоматического перебора
-всех entities в CLI нет; если он нужен, это отдельное изменение публичного CLI.
+EG018. Перечислите имена явно: `--entity User,Post,Comment` или используйте
+`--entity-all` для всех entities.
 
 ### Где хранится ownership?
 

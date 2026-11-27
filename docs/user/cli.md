@@ -28,6 +28,7 @@ eggpipe generate -g oracle-ddl
 | `--config, -c` | путь к `.eggpipe.yaml` |
 | `--generator, -g` | id генераторов: через запятую или повторно |
 | `--entity` | per-entity генерация: имя или список через запятую, повторяемый флаг; требует `output_scope="entity"` у всех выбранных генераторов |
+| `--entity-all` | per-entity генерация для всех entities, по одной на вызов; несовместим с `--entity`; требует `output_scope="entity"` |
 | `--plugin PATH` | dev-only локальный плагин |
 | `--output, -o` | корень артефактов вместо каталога конфига |
 | `--var KEY=VALUE` | переменные для плагинов |
@@ -38,7 +39,7 @@ eggpipe generate -g oracle-ddl
 | `--strict` | warnings → errors |
 | `--ignore` | коды warnings через запятую |
 | `--clean` | cleanup enabled для запуска; в per-entity не выполняется (+ Warning EG030) |
-| `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict`/`--entity` |
+| `--incremental` | пропустить parse/validate/generate, если входной fingerprint не менялся; также `EGGPIPE_INCREMENTAL=true`; игнорируется с `--check`/`--force`/`--clean`/`--strict`/`--entity`/`--entity-all` |
 | `--include-disabled` | включить `enabled: false` |
 | `--allow-outside-imports` | разрешить импорты/ресурсы вне project root |
 | `--output-format` | `text` или `json` |
@@ -46,15 +47,16 @@ eggpipe generate -g oracle-ddl
 | `--quiet, -q` | только ошибки |
 | `--verbose, -v` | подробный вывод |
 
-Без `--entity` генератор получает полный `ModelSlice` и вызывается один раз. `--entity`
-не разворачивается в «все entities» автоматически: имена перечисляются через запятую или
-повторяющимся флагом. Несколько имён в одном запуске дают один вызов с комбинированным
-срезом; отдельный вызов на entity — это отдельный запуск команды.
+Без `--entity`/`--entity-all` генератор получает полный `ModelSlice` и вызывается один
+раз. `--entity` не разворачивается в «все entities» автоматически: имена перечисляются
+через запятую или повторяющимся флагом. Несколько имён в одном запуске дают один вызов с
+комбинированным срезом; отдельный вызов на entity — это отдельный запуск команды или
+`--entity-all`.
 
 `--entity` принимает только точные имена entity после композиции. Маски (`*`, `lu_*`)
 не поддерживаются и дают EG018; shell-подстановка тоже не подходит, потому что работает
-с файлами, а не с именами entity. Автоматического перебора всех entities в CLI нет —
-перечислите нужные имена явно.
+с файлами, а не с именами entity. Для всех entities используйте `--entity-all`; он
+несовместим с `--entity`.
 
 ## watch
 

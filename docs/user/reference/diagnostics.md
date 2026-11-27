@@ -25,7 +25,7 @@
 | EG015 | warning | validate | Пустой description у required-поля | реализовано |
 | EG016 | error | validate | `default` не приводится к итоговому типу | реализовано |
 | EG017 | error | validate | `default` нарушает constraints/enum | реализовано |
-| EG018 | error | slice | Неизвестное имя в `input` или `--entity`; пустой `--entity` (API) | реализовано |
+| EG018 | error | slice | Неизвестное имя в `input` или `--entity`; пустой `--entity` (API); `--entity-all` на модели без entities | реализовано |
 | EG019 | error | validate | Пустой enum / дубликат имени или значения | реализовано |
 | EG020 | error | validate | Цикл `CustomType.base` / глубина > 10 | реализовано |
 | EG021 | error | validate | Неприменимый или противоречивый constraint | реализовано |
