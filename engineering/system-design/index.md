@@ -1486,7 +1486,7 @@ L2 реализован по ADR-0020: payload и `CachedFormatProbe` — в `co
 
 - `_entity_all=True` упорядочивает entities по итоговой модели;
 - для каждого генератора множество вызовов — пересечение с `generators[].input.entities`
-  (пустой `input` — все entities); пустое пересечение даёт один вызов с пустым срезом;
+  (пустой `input` — все entities); имена `input` валидны, поэтому пересечение непусто;
 - каждый вызов получает `ModelSlice` с одной entity; `_run_generator` принимает выбор
   entity параметром, а не читает общий `_entities`;
 - результаты вызовов агрегируются в один `GeneratorReport` (суммарный `duration_ms`,
